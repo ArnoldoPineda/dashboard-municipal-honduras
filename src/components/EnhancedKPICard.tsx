@@ -40,15 +40,6 @@ export const EnhancedKPICard: React.FC<KPICardProps> = ({
     indigo: 'text-indigo-900',
   }[color] || 'text-gray-900';
 
-  const accentColor = {
-    blue: 'text-blue-600',
-    green: 'text-green-600',
-    purple: 'text-purple-600',
-    orange: 'text-orange-600',
-    red: 'text-red-600',
-    indigo: 'text-indigo-600',
-  }[color] || 'text-gray-600';
-
   const chartColor = {
     blue: '#3b82f6',
     green: '#10b981',

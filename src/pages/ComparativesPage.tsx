@@ -2,12 +2,9 @@ import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { AdaptiveTable } from '../components/COMPONENTES_ADAPTATIVOS';
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -15,15 +12,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, Download } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 type MetricType = 'population' | 'presupuesto' | 'ingresos' | 'autonomia';
-
-interface MunicipalityData {
-  id: string;
-  name: string;
-  department: string;
-}
 
 export default function ComparativosPage() {
   const { isMobile, isTablet } = useMediaQuery();
@@ -85,7 +76,7 @@ export default function ComparativosPage() {
       grouped[m.year][m.name] = value;
     });
 
-    return Object.values(grouped).sort((a, b) => a.year - b.year);
+    return Object.values(grouped).sort((a: { year: number }, b: { year: number }) => a.year - b.year);
   }, [municipalities, selectedMunicipalities, selectedYears, selectedMetric]);
 
   const tableData = useMemo(() => {

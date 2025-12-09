@@ -92,7 +92,7 @@ export const useMunicipalitiesMultiYear = (
     };
 
     fetchData();
-  }, [JSON.stringify(selectedYears)]);
+  }, [selectedYears]);
 
   return { municipalities, loading, error };
 };

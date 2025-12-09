@@ -7,7 +7,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, children }) => {
-  const { isMobile, isTablet } = useMediaQuery();
+  const { isMobile } = useMediaQuery();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
 
   return (

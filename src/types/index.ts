@@ -1,0 +1,1 @@
+﻿// Tipos y interfaces del proyecto aquí

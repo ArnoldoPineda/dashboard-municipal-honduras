@@ -33,7 +33,7 @@ export const AdvancedAnalysisChart = ({ data, title, type, customColors = COLORS
     switch (type) {
       case 'bar':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
@@ -47,7 +47,7 @@ export const AdvancedAnalysisChart = ({ data, title, type, customColors = COLORS
 
       case 'pie':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
@@ -70,7 +70,7 @@ export const AdvancedAnalysisChart = ({ data, title, type, customColors = COLORS
 
       case 'line':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -92,7 +92,7 @@ export const AdvancedAnalysisChart = ({ data, title, type, customColors = COLORS
 
       case 'scatter':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="x" name="Población" />
@@ -109,9 +109,12 @@ export const AdvancedAnalysisChart = ({ data, title, type, customColors = COLORS
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="bg-white p-6 rounded-lg shadow-md w-full h-full">
       <h3 className="text-lg font-bold mb-4 text-gray-800">{title}</h3>
-      {renderChart()}
+      {/* Contenedor con altura fija para que ResponsiveContainer funcione */}
+      <div className="w-full" style={{ height: '450px' }}>
+        {renderChart()}
+      </div>
     </div>
   );
 };

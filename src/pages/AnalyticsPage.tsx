@@ -309,38 +309,40 @@ export default function AnalyticsPage() {
               Autonomía Financiera
             </h3>
             {autonomyChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
-                <BarChart data={autonomyChartData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="name"
-                    angle={-45}
-                    textAnchor="end"
-                    height={isMobile ? 60 : 80}
-                    interval={0}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                  />
-                  <YAxis label={{ value: 'Autonomía (%)', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload?.[0]) {
-                        return (
-                          <div className="bg-white p-3 rounded shadow-lg border border-gray-300">
-                            <p className="text-sm font-semibold text-gray-900">
-                              {payload[0].payload.fullName}
-                            </p>
-                            <p className="text-sm text-blue-600">
-                              Autonomía: {payload[0].value.toFixed(1)}%
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="autonomy" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ height: isMobile ? '300px' : '380px', width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={autonomyChartData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={isMobile ? 60 : 80}
+                      interval={0}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                    <YAxis label={{ value: 'Autonomía (%)', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload?.[0]) {
+                          return (
+                            <div className="bg-white p-3 rounded shadow-lg border border-gray-300">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {payload[0].payload.fullName}
+                              </p>
+                              <p className="text-sm text-blue-600">
+                                Autonomía: {payload[0].value.toFixed(1)}%
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="autonomy" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
               <p className="text-center text-gray-600 py-8">Sin datos disponibles</p>
             )}
@@ -353,38 +355,40 @@ export default function AnalyticsPage() {
               {selectedDepartment ? `Top Municipios` : 'Top Departamentos'}
             </h3>
             {departmentComparison.length > 0 ? (
-              <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
-                <BarChart data={departmentComparison} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="name"
-                    angle={-45}
-                    textAnchor="end"
-                    height={isMobile ? 60 : 80}
-                    interval={0}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                  />
-                  <YAxis label={{ value: 'Autonomía (%)', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload?.[0]) {
-                        return (
-                          <div className="bg-white p-3 rounded shadow-lg border border-gray-300">
-                            <p className="text-sm font-semibold text-gray-900">
-                              {payload[0].payload.fullName}
-                            </p>
-                            <p className="text-sm text-blue-600">
-                              Autonomía: {payload[0].payload.autonomia2024.toFixed(1)}%
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="autonomia2024" fill="#10b981" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ height: isMobile ? '300px' : '380px', width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={departmentComparison} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={isMobile ? 60 : 80}
+                      interval={0}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                    <YAxis label={{ value: 'Autonomía (%)', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload?.[0]) {
+                          return (
+                            <div className="bg-white p-3 rounded shadow-lg border border-gray-300">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {payload[0].payload.fullName}
+                              </p>
+                              <p className="text-sm text-blue-600">
+                                Autonomía: {payload[0].payload.autonomia2024.toFixed(1)}%
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="autonomia2024" fill="#10b981" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
               <p className="text-center text-gray-600 py-8">Sin datos disponibles</p>
             )}

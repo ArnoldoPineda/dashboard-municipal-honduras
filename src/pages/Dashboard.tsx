@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import EnhancedKPICard from '../components/EnhancedKPICard.tsx';
@@ -9,12 +9,21 @@ import { AdaptiveTable } from '../components/COMPONENTES_ADAPTATIVOS';
 const Dashboard = () => {
   const { isMobile, isTablet } = useMediaQuery();
   const [selectedYear, setSelectedYear] = useState<number>(2024);
+  const [chartsReady, setChartsReady] = useState(false);
 
   const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);
 
   const municipalitiesByYear = useMemo(() => {
     return municipalities.filter((m) => m.year === selectedYear);
   }, [municipalities, selectedYear]);
+
+  // Esperar a que el DOM esté listo antes de renderizar gráficos
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setChartsReady(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (loading) {
     return (
@@ -216,19 +225,25 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* GRÁFICOS - RESPONSIVO */}
-        <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-          <AdvancedAnalysisChart
-            data={poblacionPorDept}
-            title={`Top 10 Departamentos por Población (${selectedYear})`}
-            type="bar"
-          />
-          <AdvancedAnalysisChart
-            data={presupuestoPorDept}
-            title={`Top 10 Departamentos por Presupuesto (${selectedYear})`}
-            type="bar"
-          />
-        </div>
+        {/* GRÁFICOS - RESPONSIVO - SOLO SI CHARTS ESTÁN LISTOS */}
+        {chartsReady && (
+          <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            <div key={`chart-poblacion-${selectedYear}`}>
+              <AdvancedAnalysisChart
+                data={poblacionPorDept}
+                title={`Top 10 Departamentos por Población (${selectedYear})`}
+                type="bar"
+              />
+            </div>
+            <div key={`chart-presupuesto-${selectedYear}`}>
+              <AdvancedAnalysisChart
+                data={presupuestoPorDept}
+                title={`Top 10 Departamentos por Presupuesto (${selectedYear})`}
+                type="bar"
+              />
+            </div>
+          </div>
+        )}
 
         {/* TABLA - RESPONSIVA (TABLA EN DESKTOP, CARDS EN MOBILE) */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">

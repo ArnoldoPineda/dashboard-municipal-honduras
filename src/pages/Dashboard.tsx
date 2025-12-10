@@ -21,7 +21,7 @@ const Dashboard = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setChartsReady(true);
-    }, 500);
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
 

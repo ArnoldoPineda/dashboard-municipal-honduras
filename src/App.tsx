@@ -18,7 +18,6 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/comparativos" element={<ComparativesPageNew />} />
             <Route path="/analisis" element={<AnalyticsPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/rankings" element={<RankingsPage />} />
             <Route path="/presupuestario" element={<PresupuestarioPage />} />
           </Routes>

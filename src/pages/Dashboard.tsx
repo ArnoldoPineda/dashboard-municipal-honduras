@@ -30,7 +30,7 @@ const SkeletonChart = ({ height }: { height: number }) => (
 );
 
 const Dashboard = () => {
-  const { isMobile, isTabletSmall, isTablet, isDesktop, isLargeDesktop } = useMediaQuery();
+  const { isMobile, isTabletSmall, isTablet } = useMediaQuery();
   const [selectedYear, setSelectedYear] = useState<number>(2024);
 
   const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);

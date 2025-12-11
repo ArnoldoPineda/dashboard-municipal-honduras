@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface DashboardLayoutProps {
@@ -8,7 +8,26 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, children }) => {
   const { isMobile } = useMediaQuery();
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Cerrado por defecto en mobile
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // En desktop, abrir sidebar automáticamente
+    if (!isMobile) {
+      setSidebarOpen(true);
+    }
+  }, [isMobile]);
+
+  // No renderizar hasta que esté montado (evita hidration mismatch)
+  if (!mounted) return null;
+
+  const handleNavClick = () => {
+    // Cerrar sidebar en mobile al clickear un link
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -51,19 +70,39 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, children }) =>
                 : 'w-64 bg-white shadow-sm'
             }`}>
               <nav className="p-4 space-y-2">
-                <a href="/" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+                <a 
+                  href="/" 
+                  onClick={handleNavClick}
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                >
                   Dashboard
                 </a>
-                <a href="/analytics" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
-                  Analytics
+                <a 
+                  href="/presupuestario" 
+                  onClick={handleNavClick}
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  Datos Financieros
                 </a>
-                <a href="/comparativos" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+                <a 
+                  href="/analisis" 
+                  onClick={handleNavClick}
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  Análisis
+                </a>
+                <a 
+                  href="/comparativos" 
+                  onClick={handleNavClick}
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                >
                   Comparativos
                 </a>
-                <a href="/presupuestario" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
-                  Presupuestario
-                </a>
-                <a href="/rankings" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+                <a 
+                  href="/rankings" 
+                  onClick={handleNavClick}
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                >
                   Rankings
                 </a>
               </nav>

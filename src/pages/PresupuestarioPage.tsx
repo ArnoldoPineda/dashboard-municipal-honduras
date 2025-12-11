@@ -15,8 +15,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ResponsiveContainer,
 } from 'recharts';
-import SafeResponsiveContainer from '../components/SafeResponsiveContainer';
 
 // 👇 AJUSTE: aceptar number | string | null para evitar error con ValueType
 const formatNumber = (
@@ -127,8 +127,8 @@ const PresupuestarioPage = () => {
     if (!chartsReady) return <div style={{ width: '100%', height: chartHeight }} />;
 
     return (
-      <div style={{ width: '100%', height: chartHeight }}>
-        <SafeResponsiveContainer width="100%" height="100%">
+      <div style={{ width: '100%', height: chartHeight, minHeight: chartHeight }}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
@@ -138,7 +138,7 @@ const PresupuestarioPage = () => {
             <Bar dataKey="Presupuesto" fill="#0088FE" />
             <Bar dataKey="Egresos" fill="#00C49F" />
           </BarChart>
-        </SafeResponsiveContainer>
+        </ResponsiveContainer>
       </div>
     );
   };
@@ -155,8 +155,8 @@ const PresupuestarioPage = () => {
     if (!chartsReady) return <div style={{ width: '100%', height: chartHeight }} />;
 
     return (
-      <div style={{ width: '100%', height: chartHeight }}>
-        <SafeResponsiveContainer width="100%" height="100%">
+      <div style={{ width: '100%', height: chartHeight, minHeight: chartHeight }}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
@@ -167,7 +167,7 @@ const PresupuestarioPage = () => {
             <Line type="monotone" dataKey="Corrientes" stroke="#82ca9d" strokeWidth={2} />
             <Line type="monotone" dataKey="Recaudados" stroke="#ffc658" strokeWidth={2} />
           </LineChart>
-        </SafeResponsiveContainer>
+        </ResponsiveContainer>
       </div>
     );
   };
@@ -185,8 +185,8 @@ const PresupuestarioPage = () => {
     if (!chartsReady) return <div style={{ width: '100%', height: chartHeight }} />;
 
     return (
-      <div style={{ width: '100%', height: chartHeight }}>
-        <SafeResponsiveContainer width="100%" height="100%">
+      <div style={{ width: '100%', height: chartHeight, minHeight: chartHeight }}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           <PieChart>
             <Pie
               data={data}
@@ -208,7 +208,7 @@ const PresupuestarioPage = () => {
             </Pie>
             <Tooltip formatter={(value: string | number) => formatCurrency(value)} />
           </PieChart>
-        </SafeResponsiveContainer>
+        </ResponsiveContainer>
       </div>
     );
   };
@@ -371,8 +371,8 @@ const PresupuestarioPage = () => {
         <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-3' : 'p-4'}`}>
           <h3 className={`font-bold mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Gastos de Funcionamiento</h3>
           {chartsReady && (
-            <div style={{ width: '100%', height: chartHeight }}>
-              <SafeResponsiveContainer width="100%" height="100%">
+            <div style={{ width: '100%', height: chartHeight, minHeight: chartHeight }}>
+              <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
@@ -382,7 +382,7 @@ const PresupuestarioPage = () => {
                   <Bar dataKey="Personales" fill="#0088FE" />
                   <Bar dataKey="No Personales" fill="#00C49F" />
                 </BarChart>
-              </SafeResponsiveContainer>
+              </ResponsiveContainer>
             </div>
           )}
           {!chartsReady && <div style={{ width: '100%', height: chartHeight }} />}
@@ -481,8 +481,8 @@ const PresupuestarioPage = () => {
         <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-3' : 'p-4'}`}>
           <h3 className={`font-bold mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Total Egresos vs Superávit</h3>
           {chartsReady && (
-            <div style={{ width: '100%', height: chartHeight }}>
-              <SafeResponsiveContainer width="100%" height="100%">
+            <div style={{ width: '100%', height: chartHeight, minHeight: chartHeight }}>
+              <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
@@ -492,7 +492,7 @@ const PresupuestarioPage = () => {
                   <Bar dataKey="Total Egresos" fill="#0088FE" />
                   <Bar dataKey="Superávit/Déficit" fill="#82ca9d" />
                 </BarChart>
-              </SafeResponsiveContainer>
+              </ResponsiveContainer>
             </div>
           )}
           {!chartsReady && <div style={{ width: '100%', height: chartHeight }} />}

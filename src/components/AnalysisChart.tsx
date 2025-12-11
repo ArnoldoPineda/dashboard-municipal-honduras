@@ -9,8 +9,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ResponsiveContainer,
 } from 'recharts';
-import SafeResponsiveContainer from './SafeResponsiveContainer';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface AnalysisChartProps {
@@ -40,10 +40,10 @@ const AnalysisChart: React.FC<AnalysisChartProps> = ({
         {title}
       </h3>
 
-      {/* Contenedor fijo para que SafeResponsiveContainer siempre tenga alto */}
-      <div style={{ width: '100%', height: chartHeight }}>
+      {/* Contenedor fijo para que ResponsiveContainer siempre tenga alto */}
+      <div style={{ width: '100%', height: chartHeight, minHeight: chartHeight }}>
         {ready && data && data.length > 0 && (
-          <SafeResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={chartHeight}>
             {type === 'line' ? (
               <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -75,7 +75,7 @@ const AnalysisChart: React.FC<AnalysisChartProps> = ({
                 <Bar dataKey="value" fill="#4F46E5" radius={[4, 4, 0, 0]} />
               </BarChart>
             )}
-          </SafeResponsiveContainer>
+          </ResponsiveContainer>
         )}
 
         {/* Placeholder silencioso mientras aún no está ready */}

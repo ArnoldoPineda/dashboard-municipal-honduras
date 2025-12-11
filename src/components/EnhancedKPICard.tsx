@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import {
   AreaChart,
   Area,
+  ResponsiveContainer,
 } from 'recharts';
-import SafeResponsiveContainer from './SafeResponsiveContainer';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface EnhancedKPICardProps {
@@ -79,6 +79,8 @@ const EnhancedKPICard: React.FC<EnhancedKPICardProps> = ({
   const trendIcon =
     trend === 'up' ? '📈' : trend === 'down' ? '📉' : trend === 'neutral' ? '➡️' : '';
 
+  const chartHeight = isMobile ? 40 : 50;
+
   return (
     <div
       className={`rounded-lg border-l-4 p-4 shadow-md hover:shadow-lg transition ${colorClass.bg} border-b ${colorClass.border}`}
@@ -109,9 +111,9 @@ const EnhancedKPICard: React.FC<EnhancedKPICardProps> = ({
 
       {/* Spark Chart (si hay datos) */}
       {sparkData && sparkData.length > 0 && (
-        <div style={{ width: '100%', height: isMobile ? 40 : 50 }}>
+        <div style={{ width: '100%', height: chartHeight, minHeight: chartHeight }}>
           {ready && (
-            <SafeResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <AreaChart data={sparkData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                 <defs>
                   <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
@@ -128,7 +130,7 @@ const EnhancedKPICard: React.FC<EnhancedKPICardProps> = ({
                   isAnimationActive={false}
                 />
               </AreaChart>
-            </SafeResponsiveContainer>
+            </ResponsiveContainer>
           )}
           {!ready && <div style={{ width: '100%', height: '100%' }} />}
         </div>

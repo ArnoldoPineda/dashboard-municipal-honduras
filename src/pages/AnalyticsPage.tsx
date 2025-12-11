@@ -10,8 +10,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
 } from 'recharts';
+import SafeResponsiveContainer from '../components/SafeResponsiveContainer';
 import { TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface MunicipalityMetrics {
@@ -205,6 +205,9 @@ export default function AnalyticsPage() {
     autonomy: `${mun.autonomy.toFixed(1)}%`,
   }));
 
+  // Altura para los gráficos (fija para evitar ResizeObserver spam)
+  const chartHeight = isMobile ? 300 : 380;
+
   if (loading) {
     return (
       <DashboardLayout title="Análisis">
@@ -309,8 +312,8 @@ export default function AnalyticsPage() {
               Autonomía Financiera
             </h3>
             {autonomyChartData.length > 0 ? (
-              <div style={{ height: isMobile ? '300px' : '380px', width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: '100%', height: chartHeight }}>
+                <SafeResponsiveContainer width="100%" height="100%">
                   <BarChart data={autonomyChartData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
@@ -341,7 +344,7 @@ export default function AnalyticsPage() {
                     />
                     <Bar dataKey="autonomy" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer>
+                </SafeResponsiveContainer>
               </div>
             ) : (
               <p className="text-center text-gray-600 py-8">Sin datos disponibles</p>
@@ -355,8 +358,8 @@ export default function AnalyticsPage() {
               {selectedDepartment ? `Top Municipios` : 'Top Departamentos'}
             </h3>
             {departmentComparison.length > 0 ? (
-              <div style={{ height: isMobile ? '300px' : '380px', width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: '100%', height: chartHeight }}>
+                <SafeResponsiveContainer width="100%" height="100%">
                   <BarChart data={departmentComparison} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
@@ -387,7 +390,7 @@ export default function AnalyticsPage() {
                     />
                     <Bar dataKey="autonomia2024" fill="#10b981" radius={[8, 8, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer>
+                </SafeResponsiveContainer>
               </div>
             ) : (
               <p className="text-center text-gray-600 py-8">Sin datos disponibles</p>

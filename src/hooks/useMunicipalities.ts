@@ -1,5 +1,5 @@
 // src/hooks/useMunicipalities.ts
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../services/supabaseClient.ts';
 
 export type Municipality = {
@@ -57,15 +57,28 @@ export type Municipality = {
   ingreso_corriente_ajustado: number | null;
 };
 
-// Hook multi-año
+// Hook multi-año - OPTIMIZADO SIN REFETCH INNECESARIO
 export const useMunicipalitiesMultiYear = (
   selectedYears: number[] = [2024]
 ) => {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Ref para almacenar el string de años y evitar refetch innecesario
+  const yearsStringRef = useRef<string>('');
 
   useEffect(() => {
+    // Convertir array a string para comparar (evita recrear el array)
+    const yearsString = JSON.stringify(selectedYears.sort());
+    
+    // Si el string es igual, NO hacer fetch
+    if (yearsStringRef.current === yearsString && municipalities.length > 0) {
+      return;
+    }
+
+    yearsStringRef.current = yearsString;
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
@@ -92,7 +105,7 @@ export const useMunicipalitiesMultiYear = (
     };
 
     fetchData();
-  }, [selectedYears]);
+  }, [selectedYears, municipalities.length]); // Añadir municipalities.length para evitar bucle infinito
 
   return { municipalities, loading, error };
 };

@@ -76,7 +76,7 @@ export default function ComparativosPage() {
       grouped[m.year][m.name] = value;
     });
 
-    return Object.values(grouped).sort((a: { year: number }, b: { year: number }) => a.year - b.year);
+    return Object.values(grouped).sort((a: any, b: any) => a.year - b.year);
   }, [municipalities, selectedMunicipalities, selectedYears, selectedMetric]);
 
   const tableData = useMemo(() => {
@@ -152,8 +152,17 @@ export default function ComparativosPage() {
   if (loading) {
     return (
       <DashboardLayout title="Comparativos">
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '24rem' }}>
+          <div style={{ 
+            animation: 'spin 1s linear infinite',
+            borderRadius: '50%',
+            height: '3rem',
+            width: '3rem',
+            borderWidth: '4px',
+            borderStyle: 'solid',
+            borderColor: '#e5e7eb',
+            borderTopColor: '#3b82f6'
+          }}></div>
         </div>
       </DashboardLayout>
     );
@@ -162,7 +171,7 @@ export default function ComparativosPage() {
   if (error) {
     return (
       <DashboardLayout title="Comparativos">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+        <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '1rem', color: '#991b1b' }}>
           Error: {error}
         </div>
       </DashboardLayout>
@@ -171,10 +180,10 @@ export default function ComparativosPage() {
 
   return (
     <DashboardLayout title="Comparativos">
-      <div className="space-y-6">
-        {/* PASO 1: SELECCIONAR DEPARTAMENTO - RESPONSIVO */}
-        <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
-          <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* PASO 1: SELECCIONAR DEPARTAMENTO */}
+        <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', padding: isMobile ? '0.75rem' : '1.5rem' }}>
+          <h3 style={{ fontWeight: 'bold', color: '#111827', marginBottom: '1rem', fontSize: isMobile ? '1rem' : '1.125rem' }}>
             1. Seleccionar Departamento
           </h3>
           <select
@@ -183,9 +192,16 @@ export default function ComparativosPage() {
               setSelectedDepartment(e.target.value);
               setSelectedMunicipalities([]);
             }}
-            className={`w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium ${
-              isMobile ? 'px-3 py-3 text-sm' : 'px-4 py-2'
-            }`}
+            style={{
+              width: '100%',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              padding: isMobile ? '0.75rem' : '0.5rem',
+              fontSize: isMobile ? '0.875rem' : '1rem',
+              fontWeight: '500',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
           >
             <option value="">-- Selecciona un Departamento --</option>
             {departments.map((dept) => (
@@ -196,78 +212,92 @@ export default function ComparativosPage() {
           </select>
         </div>
 
-        {/* PASO 2: SELECCIONAR MUNICIPIOS - RESPONSIVO */}
+        {/* PASO 2: SELECCIONAR MUNICIPIOS */}
         {selectedDepartment && (
-          <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
-            <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', padding: isMobile ? '0.75rem' : '1.5rem' }}>
+            <h3 style={{ fontWeight: 'bold', color: '#111827', marginBottom: '1rem', fontSize: isMobile ? '1rem' : '1.125rem' }}>
               2. Seleccionar Municipios
             </h3>
-            <div className={`grid gap-3 ${
-              isMobile 
-                ? 'grid-cols-1' 
-                : isTablet 
-                ? 'grid-cols-2' 
-                : 'grid-cols-3'
-            }`}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+              gap: '0.75rem'
+            }}>
               {municipalitiesByDept.map((mun) => (
-                <label key={mun.name} className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-blue-50 ${isMobile ? 'text-sm' : ''}`}>
+                <label key={mun.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={selectedMunicipalities.includes(mun.name)}
                     onChange={() => toggleMunicipality(mun.name)}
-                    className="w-4 h-4 accent-blue-600"
+                    style={{ width: '1rem', height: '1rem', accentColor: '#2563eb' }}
                   />
-                  <span className="text-gray-900 font-medium">{mun.name}</span>
+                  <span style={{ color: '#111827', fontWeight: '500', fontSize: isMobile ? '0.875rem' : '1rem' }}>{mun.name}</span>
                 </label>
               ))}
             </div>
             {selectedMunicipalities.length > 0 && (
-              <p className={`mt-4 text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Seleccionados: <span className="font-bold text-blue-700">{selectedMunicipalities.join(', ')}</span>
+              <p style={{ marginTop: '1rem', color: '#4b5563', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                Seleccionados: <span style={{ fontWeight: 'bold', color: '#1d4ed8' }}>{selectedMunicipalities.join(', ')}</span>
               </p>
             )}
           </div>
         )}
 
-        {/* PASO 3: SELECCIONAR AÑOS - RESPONSIVO */}
+        {/* PASO 3: SELECCIONAR AÑOS */}
         {selectedDepartment && (
-          <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
-            <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>3. Seleccionar Años</h3>
-            <div className="flex gap-2 flex-wrap">
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', padding: isMobile ? '0.75rem' : '1.5rem' }}>
+            <h3 style={{ fontWeight: 'bold', color: '#111827', marginBottom: '1rem', fontSize: isMobile ? '1rem' : '1.125rem' }}>
+              3. Seleccionar Años
+            </h3>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {[2021, 2022, 2023, 2024].map((year) => (
                 <button
                   key={year}
                   onClick={() => toggleYear(year)}
-                  className={`rounded-lg font-bold transition ${
-                    selectedYears.includes(year)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'}`}
+                  style={{
+                    padding: isMobile ? '0.5rem 0.75rem' : '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: selectedYears.includes(year) ? '#2563eb' : '#e5e7eb',
+                    color: selectedYears.includes(year) ? 'white' : '#374151',
+                    fontSize: isMobile ? '0.875rem' : '1rem',
+                    transition: 'all 0.2s'
+                  }}
                 >
                   {year}
                 </button>
               ))}
             </div>
-            <p className={`mt-4 text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              Seleccionados: <span className="font-bold text-blue-700">{selectedYears.join(', ')}</span>
+            <p style={{ marginTop: '1rem', color: '#4b5563', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+              Seleccionados: <span style={{ fontWeight: 'bold', color: '#1d4ed8' }}>{selectedYears.join(', ')}</span>
             </p>
           </div>
         )}
 
-        {/* PASO 4: SELECCIONAR MÉTRICA - RESPONSIVO */}
+        {/* PASO 4: SELECCIONAR MÉTRICA */}
         {selectedDepartment && (
-          <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
-            <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>4. Métrica a Comparar</h3>
-            <div className={`flex gap-2 flex-wrap ${isMobile ? 'text-sm' : ''}`}>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', padding: isMobile ? '0.75rem' : '1.5rem' }}>
+            <h3 style={{ fontWeight: 'bold', color: '#111827', marginBottom: '1rem', fontSize: isMobile ? '1rem' : '1.125rem' }}>
+              4. Métrica a Comparar
+            </h3>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {(['population', 'presupuesto', 'ingresos', 'autonomia'] as MetricType[]).map((metric) => (
                 <button
                   key={metric}
                   onClick={() => setSelectedMetric(metric)}
-                  className={`rounded-lg font-medium transition ${
-                    selectedMetric === metric
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } ${isMobile ? 'px-2 py-2 text-xs' : 'px-4 py-2'}`}
+                  style={{
+                    padding: isMobile ? '0.5rem 0.5rem' : '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    fontWeight: '500',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: selectedMetric === metric ? '#16a34a' : '#e5e7eb',
+                    color: selectedMetric === metric ? 'white' : '#374151',
+                    fontSize: isMobile ? '0.75rem' : '1rem',
+                    transition: 'all 0.2s'
+                  }}
                 >
                   {metric === 'population' && 'Población'}
                   {metric === 'presupuesto' && 'Presupuesto'}
@@ -279,66 +309,68 @@ export default function ComparativosPage() {
           </div>
         )}
 
-        {/* GRÁFICO COMPARATIVO - RESPONSIVO */}
+        {/* GRÁFICO COMPARATIVO */}
         {selectedMunicipalities.length > 0 && selectedYears.length > 0 && comparisonData.length > 0 && (
-          <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
-            <h3 className={`font-bold text-gray-900 mb-4 flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', padding: isMobile ? '0.75rem' : '1.5rem' }}>
+            <h3 style={{ fontWeight: 'bold', color: '#111827', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: isMobile ? '1rem' : '1.125rem' }}>
               <TrendingUp size={isMobile ? 16 : 20} />
               Comparativa - {getMetricLabel()}
             </h3>
-            <ResponsiveContainer width="100%" height={isMobile ? 250 : 400}>
-              <LineChart data={comparisonData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                <YAxis label={{ value: getMetricLabel(), angle: -90, position: 'insideLeft' }} />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload?.length) {
-                      return (
-                        <div className="bg-white p-3 rounded shadow-lg border border-gray-300">
-                          <p className={`font-semibold text-gray-900 ${isMobile ? 'text-xs' : 'text-sm'}`}>Año {payload[0].payload.year}</p>
-                          {payload.map((entry, index) => (
-                            <p key={index} style={{ color: entry.color }} className={isMobile ? 'text-xs' : 'text-sm'}>
-                              {entry.name}: {entry.value?.toLocaleString('es-HN') || 0}
-                            </p>
-                          ))}
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                {!isMobile && <Legend />}
-                {selectedMunicipalities.map((mun, idx) => (
-                  <Line
-                    key={mun}
-                    type="monotone"
-                    dataKey={mun}
-                    stroke={COLORS[idx % COLORS.length]}
-                    strokeWidth={2}
-                    connectNulls
+            <div style={{ width: '100%', height: isMobile ? '250px' : '400px', display: 'block' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={comparisonData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis label={{ value: getMetricLabel(), angle: -90, position: 'insideLeft' }} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload?.length) {
+                        return (
+                          <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid #d1d5db' }}>
+                            <p style={{ fontWeight: '600', color: '#111827', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Año {payload[0].payload.year}</p>
+                            {payload.map((entry, index) => (
+                              <p key={index} style={{ color: entry.color, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {entry.name}: {entry.value?.toLocaleString('es-HN') || 0}
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+                  {!isMobile && <Legend />}
+                  {selectedMunicipalities.map((mun, idx) => (
+                    <Line
+                      key={mun}
+                      type="monotone"
+                      dataKey={mun}
+                      stroke={COLORS[idx % COLORS.length]}
+                      strokeWidth={2}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
-        {/* TABLA COMPARATIVA - RESPONSIVA */}
+        {/* TABLA COMPARATIVA */}
         {selectedMunicipalities.length > 0 && selectedYears.length > 0 && tableData.length > 0 && (
-          <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
-            <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden', padding: isMobile ? '0.75rem' : '1.5rem' }}>
+            <h3 style={{ fontWeight: 'bold', color: '#111827', marginBottom: '1rem', fontSize: isMobile ? '1rem' : '1.125rem' }}>
               Tabla Comparativa - {getMetricLabel()}
             </h3>
-            <div className={isMobile ? '' : 'overflow-x-auto'}>
-              <table className={`w-full ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                <thead className="bg-blue-50 border-b border-blue-200">
-                  <tr>
-                    <th className={`text-left font-semibold text-blue-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', fontSize: isMobile ? '0.75rem' : '0.875rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f0f4f8', borderBottom: '1px solid #d1d5db' }}>
+                    <th style={{ textAlign: 'left', fontWeight: '600', color: '#1e3a8a', padding: isMobile ? '0.5rem' : '1rem' }}>
                       Municipio
                     </th>
                     {selectedYears.map((year) => (
-                      <th key={year} className={`text-right font-semibold text-blue-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>
+                      <th key={year} style={{ textAlign: 'right', fontWeight: '600', color: '#1e3a8a', padding: isMobile ? '0.5rem' : '1rem' }}>
                         {year}
                       </th>
                     ))}
@@ -346,12 +378,12 @@ export default function ComparativosPage() {
                 </thead>
                 <tbody>
                   {tableData.map((row, idx) => (
-                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className={`font-medium text-gray-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>
+                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={{ fontWeight: '500', color: '#111827', padding: isMobile ? '0.5rem' : '1rem' }}>
                         {row.municipio}
                       </td>
                       {selectedYears.map((year) => (
-                        <td key={year} className={`text-right text-gray-600 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>
+                        <td key={year} style={{ textAlign: 'right', color: '#4b5563', padding: isMobile ? '0.5rem' : '1rem' }}>
                           {row[`año_${year}`] || 'N/A'}
                         </td>
                       ))}
@@ -363,18 +395,18 @@ export default function ComparativosPage() {
           </div>
         )}
 
-        {/* MENSAJES - RESPONSIVOS */}
+        {/* MENSAJES */}
         {selectedMunicipalities.length === 0 && selectedDepartment && (
-          <div className={`bg-blue-50 border-l-4 border-blue-600 rounded-lg ${isMobile ? 'p-4' : 'p-6'}`}>
-            <p className={`text-blue-800 ${isMobile ? 'text-sm' : ''}`}>
+          <div style={{ backgroundColor: '#f0f4f8', borderLeft: '4px solid #2563eb', borderRadius: '0.5rem', padding: isMobile ? '1rem' : '1.5rem' }}>
+            <p style={{ color: '#1e40af', fontSize: isMobile ? '0.875rem' : '1rem' }}>
               👆 Selecciona al menos un municipio para ver la comparativa
             </p>
           </div>
         )}
 
         {!selectedDepartment && (
-          <div className={`bg-blue-50 border-l-4 border-blue-600 rounded-lg ${isMobile ? 'p-4' : 'p-6'}`}>
-            <p className={`text-blue-800 ${isMobile ? 'text-sm' : ''}`}>
+          <div style={{ backgroundColor: '#f0f4f8', borderLeft: '4px solid #2563eb', borderRadius: '0.5rem', padding: isMobile ? '1rem' : '1.5rem' }}>
+            <p style={{ color: '#1e40af', fontSize: isMobile ? '0.875rem' : '1rem' }}>
               👆 Selecciona un departamento para comenzar
             </p>
           </div>

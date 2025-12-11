@@ -1,51 +1,86 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useEffect, useState } from 'react';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
+import SafeResponsiveContainer from './SafeResponsiveContainer';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
-interface ChartProps {
-  data: any[];
+interface AnalysisChartProps {
+  data: { name: string; value: number }[];
   title: string;
-  type: 'bar' | 'pie';
+  type?: 'bar' | 'line';
 }
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+const AnalysisChart: React.FC<AnalysisChartProps> = ({
+  data,
+  title,
+  type = 'bar',
+}) => {
+  const { isMobile } = useMediaQuery();
+  const [ready, setReady] = useState(false);
 
-const AnalysisChart: React.FC<ChartProps> = ({ data, title, type }) => {
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  const chartHeight = isMobile ? 220 : 260;
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">{title}</h2>
-      
-      {type === 'bar' ? (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip formatter={(value) => value.toLocaleString('es-HN')} />
-            <Legend />
-            <Bar dataKey="value" fill="#3B82F6" />
-          </BarChart>
-        </ResponsiveContainer>
-      ) : (
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, value }) => `${name}: ${value.toLocaleString('es-HN')}`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => value.toLocaleString('es-HN')} />
-          </PieChart>
-        </ResponsiveContainer>
-      )}
+    <div className="bg-white rounded-lg shadow-md p-4 h-full flex flex-col">
+      <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
+        {title}
+      </h3>
+
+      {/* Contenedor fijo para que SafeResponsiveContainer siempre tenga alto */}
+      <div style={{ width: '100%', height: chartHeight }}>
+        {ready && data && data.length > 0 && (
+          <SafeResponsiveContainer width="100%" height="100%">
+            {type === 'line' ? (
+              <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: isMobile ? 10 : 11 }}
+                  angle={isMobile ? -30 : 0}
+                  textAnchor={isMobile ? 'end' : 'middle'}
+                  interval={0}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={2} dot={false} />
+              </LineChart>
+            ) : (
+              <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: isMobile ? 10 : 11 }}
+                  angle={isMobile ? -30 : 0}
+                  textAnchor={isMobile ? 'end' : 'middle'}
+                  interval={0}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
+          </SafeResponsiveContainer>
+        )}
+
+        {/* Placeholder silencioso mientras aún no está ready */}
+        {!ready && <div style={{ width: '100%', height: '100%' }} />}
+      </div>
     </div>
   );
 };

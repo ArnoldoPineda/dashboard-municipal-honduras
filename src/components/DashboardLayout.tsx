@@ -72,8 +72,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, children }) =>
         )}
 
         {/* CONTENT AREA */}
-        <main className={`flex-1 overflow-auto ${isMobile ? 'px-3 py-4' : 'px-6 py-8'}`}>
-          <div className="max-w-7xl space-y-6">
+        <main className={`flex-1 overflow-y-scroll ${isMobile ? 'px-3 py-4' : 'px-6 py-8'}`}>
+          <div className="max-w-7xl mx-auto space-y-6">
             {children}
           </div>
         </main>
@@ -88,4 +88,5 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, children }) =>
     </div>
   );
 };
+
 export default DashboardLayout;

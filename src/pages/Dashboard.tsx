@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import EnhancedKPICard from '../components/EnhancedKPICard.tsx';
@@ -6,10 +6,32 @@ import AdvancedAnalysisChart from '../components/AdvancedAnalysisChart.tsx';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { AdaptiveTable } from '../components/COMPONENTES_ADAPTATIVOS';
 
+// SKELETON LOADER COMPONENT
+const SkeletonKPI = ({ isMobile }: { isMobile: boolean }) => (
+  <div style={{
+    backgroundColor: '#f3f4f6',
+    borderRadius: '0.5rem',
+    padding: isMobile ? '1rem' : '1.5rem',
+    animation: 'pulse 2s infinite'
+  }}>
+    <div style={{ height: '1rem', backgroundColor: '#e5e7eb', borderRadius: '0.25rem', marginBottom: '0.5rem' }}></div>
+    <div style={{ height: '2rem', backgroundColor: '#e5e7eb', borderRadius: '0.25rem' }}></div>
+  </div>
+);
+
+const SkeletonChart = ({ height }: { height: number }) => (
+  <div style={{
+    width: '100%',
+    height: `${height}px`,
+    backgroundColor: '#f3f4f6',
+    borderRadius: '0.5rem',
+    animation: 'pulse 2s infinite'
+  }}></div>
+);
+
 const Dashboard = () => {
-  const { isMobile, isTablet } = useMediaQuery();
+  const { isMobile } = useMediaQuery();
   const [selectedYear, setSelectedYear] = useState<number>(2024);
-  const [chartsReady, setChartsReady] = useState(false);
 
   const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);
 
@@ -17,44 +39,36 @@ const Dashboard = () => {
     return municipalities.filter((m) => m.year === selectedYear);
   }, [municipalities, selectedYear]);
 
-  // Esperar a que el DOM esté listo antes de renderizar gráficos
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setChartsReady(true);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading) {
-    return (
-      <DashboardLayout title="Dashboard">
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   if (error) {
     return (
       <DashboardLayout title="Dashboard">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+        <div style={{ 
+          backgroundColor: '#fef2f2', 
+          border: '1px solid #fecaca', 
+          borderRadius: '0.5rem', 
+          padding: '1rem', 
+          color: '#991b1b' 
+        }}>
           Error al cargar datos: {error}
         </div>
       </DashboardLayout>
     );
   }
 
+  // Calcular datos (aunque loading sea true, usamos datos disponibles o defaults)
   const totalMunicipios = municipalitiesByYear.length;
   const poblacionTotal = municipalitiesByYear.reduce((sum, m) => sum + (m.population || 0), 0);
   const presupuestoTotal = municipalitiesByYear.reduce((sum, m) => sum + (m.presupuesto_municipal || 0), 0);
   const ingresosTotal = municipalitiesByYear.reduce((sum, m) => sum + (m.ingresos_propios || 0), 0);
-  const autonomiaPromedio = totalMunicipios > 0 
-    ? (municipalitiesByYear.reduce((sum, m) => sum + (m.autonomia_financiera || 0), 0) / totalMunicipios).toFixed(2)
-    : '0.00';
+  const autonomiaPromedio =
+    totalMunicipios > 0
+      ? (
+          municipalitiesByYear.reduce((sum, m) => sum + (m.autonomia_financiera || 0), 0) / totalMunicipios
+        ).toFixed(2)
+      : '0.00';
   const poblacionPromedio = totalMunicipios > 0 ? Math.round(poblacionTotal / totalMunicipios) : 0;
 
-  const deptMap = {};
+  const deptMap: any = {};
   municipalitiesByYear.forEach((mun) => {
     if (!deptMap[mun.department]) {
       deptMap[mun.department] = [];
@@ -64,31 +78,22 @@ const Dashboard = () => {
 
   const poblacionPorDept = Object.entries(deptMap)
     .map(([dept, muns]) => ({
-      name: dept.substring(0, 12),
-      value: muns.reduce((sum, m) => sum + (m.population || 0), 0),
+      name: (dept as string).substring(0, 12),
+      value: (muns as any[]).reduce((sum, m: any) => sum + (m.population || 0), 0),
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
   const presupuestoPorDept = Object.entries(deptMap)
     .map(([dept, muns]) => ({
-      name: dept.substring(0, 12),
-      value: muns.reduce((sum, m) => sum + (m.presupuesto_municipal || 0), 0),
+      name: (dept as string).substring(0, 12),
+      value: (muns as any[]).reduce((sum, m: any) => sum + (m.presupuesto_municipal || 0), 0),
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
-  const trendData = [
-    { value: 20 },
-    { value: 40 },
-    { value: 30 },
-    { value: 50 },
-    { value: 45 },
-    { value: 60 },
-    { value: 55 },
-  ];
+  const trendData = [{ value: 20 }, { value: 40 }, { value: 30 }, { value: 50 }, { value: 45 }, { value: 60 }, { value: 55 }];
 
-  // TABLA para AdaptiveTable
   const tableColumns = [
     { key: 'name', label: 'Municipio' },
     { key: 'department', label: 'Departamento' },
@@ -96,38 +101,76 @@ const Dashboard = () => {
     { key: 'presupuesto_municipal', label: 'Presupuesto' },
   ];
 
-  const tableData = municipalitiesByYear.slice(0, 10).map(m => ({
+  const tableData = municipalitiesByYear.slice(0, 10).map((m) => ({
     name: m.name,
     department: m.department,
     population: (m.population || 0).toLocaleString('es-HN'),
     presupuesto_municipal: `L ${(m.presupuesto_municipal || 0).toLocaleString('es-HN')}`,
   }));
 
+  const chartHeight = isMobile ? 260 : 320;
+
   return (
     <DashboardLayout title="Dashboard Municipal Honduras">
-      <div className="space-y-6">
-        {/* HEADER - RESPONSIVO */}
-        <div className={`${isMobile ? 'space-y-4' : 'flex justify-between items-start'}`}>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* HEADER */}
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'space-between',
+          alignItems: isMobile ? 'flex-start' : 'flex-start',
+          gap: isMobile ? '1rem' : '0'
+        }}>
           <div>
-            <h1 className={`font-bold text-gray-900 ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+            <h1 style={{
+              fontWeight: 'bold',
+              color: '#111827',
+              fontSize: isMobile ? '1.5rem' : '1.875rem',
+              margin: 0
+            }}>
               Dashboard Municipal Honduras
             </h1>
-            <p className={`text-gray-600 ${isMobile ? 'text-xs mt-1' : 'text-sm'}`}>
+            <p style={{
+              color: '#4b5563',
+              fontSize: isMobile ? '0.75rem' : '0.875rem',
+              marginTop: isMobile ? '0.25rem' : '0',
+              margin: 0,
+              opacity: loading ? 0.5 : 1
+            }}>
               Análisis consolidado de {totalMunicipios} municipios | {Object.keys(deptMap).length} departamentos
             </p>
           </div>
 
-          {/* SELECTOR DE AÑO - RESPONSIVO */}
-          <div className={`flex gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
+          {/* SELECTOR DE AÑO */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {[2021, 2022, 2023, 2024].map((year) => (
               <button
                 key={year}
                 onClick={() => setSelectedYear(year)}
-                className={`px-3 py-2 rounded-lg font-semibold transition ${
-                  selectedYear === year
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                } ${isMobile ? 'text-sm' : ''}`}
+                disabled={loading}
+                style={{
+                  padding: isMobile ? '0.5rem 0.75rem' : '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  backgroundColor: selectedYear === year ? '#2563eb' : '#e5e7eb',
+                  color: selectedYear === year ? 'white' : '#374151',
+                  fontSize: isMobile ? '0.875rem' : '1rem',
+                  transition: 'all 0.2s',
+                  boxShadow: selectedYear === year ? '0 10px 15px rgba(0,0,0,0.1)' : 'none',
+                  opacity: loading ? 0.5 : 1
+                }}
               >
                 {year}
               </button>
@@ -135,166 +178,243 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* KPIS - RESPONSIVO */}
-        <div className={`grid gap-4 ${
-          isMobile 
-            ? 'grid-cols-1' 
-            : isTablet 
-            ? 'grid-cols-2' 
-            : 'grid-cols-4'
-        }`}>
-          <EnhancedKPICard
-            title="Total Municipios"
-            value={totalMunicipios}
-            icon="🏛️"
-            color="blue"
-            description="Municipios registrados"
-            trendValue="+0.0%"
-            trend="neutral"
-            sparkData={trendData}
-          />
-          <EnhancedKPICard
-            title="Población Total"
-            value={`${(poblacionTotal / 1000000).toFixed(1)}M`}
-            icon="👥"
-            color="green"
-            description={`${poblacionPromedio.toLocaleString('es-HN')} prom`}
-            trendValue="+2.3%"
-            trend="up"
-            sparkData={trendData}
-          />
-          <EnhancedKPICard
-            title="Presupuesto Total"
-            value={`L ${(presupuestoTotal / 1000000000).toFixed(1)}B`}
-            icon="💰"
-            color="purple"
-            description={`L ${totalMunicipios > 0 ? (presupuestoTotal / totalMunicipios / 1000000).toFixed(0) : '0'}M prom`}
-            trendValue="+1.8%"
-            trend="up"
-            sparkData={trendData}
-          />
-          <EnhancedKPICard
-            title="Autonomía Promedio"
-            value={`${autonomiaPromedio}%`}
-            icon="📊"
-            color="orange"
-            description="Financiera"
-            trendValue="+0.5%"
-            trend="up"
-            sparkData={trendData}
-          />
+        {/* KPIS ROW 1 */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
+          gap: '1rem'
+        }}>
+          {loading ? (
+            <>
+              <SkeletonKPI isMobile={isMobile} />
+              <SkeletonKPI isMobile={isMobile} />
+              <SkeletonKPI isMobile={isMobile} />
+              <SkeletonKPI isMobile={isMobile} />
+            </>
+          ) : (
+            <>
+              <EnhancedKPICard
+                title="Total Municipios"
+                value={totalMunicipios}
+                icon="🏛️"
+                color="blue"
+                description="Municipios registrados"
+                trendValue="+0.0%"
+                trend="neutral"
+                sparkData={trendData}
+              />
+              <EnhancedKPICard
+                title="Población Total"
+                value={`${(poblacionTotal / 1000000).toFixed(1)}M`}
+                icon="👥"
+                color="green"
+                description={`${poblacionPromedio.toLocaleString('es-HN')} prom`}
+                trendValue="+2.3%"
+                trend="up"
+                sparkData={trendData}
+              />
+              <EnhancedKPICard
+                title="Presupuesto Total"
+                value={`L ${(presupuestoTotal / 1000000000).toFixed(1)}B`}
+                icon="💰"
+                color="purple"
+                description={`L ${
+                  totalMunicipios > 0 ? (presupuestoTotal / totalMunicipios / 1000000).toFixed(0) : '0'
+                }M prom`}
+                trendValue="+1.8%"
+                trend="up"
+                sparkData={trendData}
+              />
+              <EnhancedKPICard
+                title="Autonomía Promedio"
+                value={`${autonomiaPromedio}%`}
+                icon="📊"
+                color="orange"
+                description="Financiera"
+                trendValue="+0.5%"
+                trend="up"
+                sparkData={trendData}
+              />
+            </>
+          )}
         </div>
 
-        {/* SEGUNDA FILA KPIS - RESPONSIVO */}
-        <div className={`grid gap-4 ${
-          isMobile 
-            ? 'grid-cols-1' 
-            : isTablet 
-            ? 'grid-cols-2' 
-            : 'grid-cols-3'
-        }`}>
-          <EnhancedKPICard
-            title="Ingresos Propios"
-            value={`L ${(ingresosTotal / 1000000000).toFixed(1)}B`}
-            icon="📈"
-            color="indigo"
-            description={`${presupuestoTotal > 0 ? ((ingresosTotal / presupuestoTotal) * 100).toFixed(1) : '0.0'}% del presupuesto`}
-            trendValue="+3.2%"
-            trend="up"
-            sparkData={trendData}
-          />
-          <EnhancedKPICard
-            title="Departamentos"
-            value={Object.keys(deptMap).length}
-            icon="🗺️"
-            color="red"
-            description="Cobertura nacional"
-            trendValue="100%"
-            trend="neutral"
-            sparkData={trendData}
-          />
-          <EnhancedKPICard
-            title="Municipio Mayor"
-            value="Tegucigalpa"
-            icon="🌟"
-            color="green"
-            description={`${municipalitiesByYear
-              .filter((m) => m.name === 'Tegucigalpa')
-              .map((m) => `${(m.population || 0).toLocaleString('es-HN')} hab`)[0] || 'N/A'}`}
-            sparkData={trendData}
-          />
+        {/* KPIS ROW 2 */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+          gap: '1rem'
+        }}>
+          {loading ? (
+            <>
+              <SkeletonKPI isMobile={isMobile} />
+              <SkeletonKPI isMobile={isMobile} />
+              <SkeletonKPI isMobile={isMobile} />
+            </>
+          ) : (
+            <>
+              <EnhancedKPICard
+                title="Ingresos Propios"
+                value={`L ${(ingresosTotal / 1000000000).toFixed(1)}B`}
+                icon="📈"
+                color="indigo"
+                description={`${
+                  presupuestoTotal > 0 ? ((ingresosTotal / presupuestoTotal) * 100).toFixed(1) : '0.0'
+                }% del presupuesto`}
+                trendValue="+3.2%"
+                trend="up"
+                sparkData={trendData}
+              />
+              <EnhancedKPICard
+                title="Departamentos"
+                value={Object.keys(deptMap).length}
+                icon="🗺️"
+                color="red"
+                description="Cobertura nacional"
+                trendValue="100%"
+                trend="neutral"
+                sparkData={trendData}
+              />
+              <EnhancedKPICard
+                title="Municipio Mayor"
+                value="Tegucigalpa"
+                icon="🌟"
+                color="green"
+                description={`${
+                  municipalitiesByYear
+                    .filter((m) => m.name === 'Tegucigalpa')
+                    .map((m) => `${(m.population || 0).toLocaleString('es-HN')} hab`)[0] || 'N/A'
+                }`}
+                sparkData={trendData}
+              />
+            </>
+          )}
         </div>
 
-        {/* GRÁFICOS - RESPONSIVO - SOLO SI CHARTS ESTÁN LISTOS */}
-        {chartsReady && (
-          <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            <div key={`chart-poblacion-${selectedYear}`}>
+        {/* GRÁFICOS */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: '1.5rem'
+        }}>
+          <div style={{ width: '100%', height: `${chartHeight}px`, minHeight: `${chartHeight}px` }}>
+            {loading ? (
+              <SkeletonChart height={chartHeight} />
+            ) : poblacionPorDept.length > 0 ? (
               <AdvancedAnalysisChart
                 data={poblacionPorDept}
                 title={`Top 10 Departamentos por Población (${selectedYear})`}
                 type="bar"
               />
-            </div>
-            <div key={`chart-presupuesto-${selectedYear}`}>
+            ) : null}
+          </div>
+          <div style={{ width: '100%', height: `${chartHeight}px`, minHeight: `${chartHeight}px` }}>
+            {loading ? (
+              <SkeletonChart height={chartHeight} />
+            ) : presupuestoPorDept.length > 0 ? (
               <AdvancedAnalysisChart
                 data={presupuestoPorDept}
                 title={`Top 10 Departamentos por Presupuesto (${selectedYear})`}
                 type="bar"
               />
-            </div>
-          </div>
-        )}
-
-        {/* TABLA - RESPONSIVA (TABLA EN DESKTOP, CARDS EN MOBILE) */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className={`border-b border-gray-200 ${isMobile ? 'p-4' : 'p-6'}`}>
-            <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'}`}>
-              Municipios Registrados ({selectedYear})
-            </h3>
-            <p className={`text-gray-600 ${isMobile ? 'text-xs mt-1' : 'text-sm'}`}>
-              Total: {totalMunicipios} municipios
-            </p>
-          </div>
-          <div className={isMobile ? 'p-4' : ''}>
-            <AdaptiveTable 
-              columns={tableColumns}
-              data={tableData}
-              isMobile={isMobile}
-            />
+            ) : null}
           </div>
         </div>
 
-        {/* FOOTER STATS - RESPONSIVO */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white">
-          <div className={isMobile ? 'p-6' : 'p-8'}>
-            <h3 className={`font-bold mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>
-              Estadísticas Consolidadas - Año {selectedYear}
+        {/* TABLA */}
+        <div style={{ 
+          backgroundColor: 'white', 
+          borderRadius: '0.5rem', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)', 
+          overflow: 'hidden' 
+        }}>
+          <div style={{
+            borderBottom: '1px solid #e5e7eb',
+            padding: isMobile ? '1rem' : '1.5rem'
+          }}>
+            <h3 style={{
+              fontWeight: 'bold',
+              color: '#111827',
+              fontSize: isMobile ? '1.125rem' : '1.25rem',
+              margin: 0,
+              opacity: loading ? 0.5 : 1
+            }}>
+              Municipios Registrados ({selectedYear})
             </h3>
-            <div className={`grid gap-4 ${
-              isMobile 
-                ? 'grid-cols-2' 
-                : isTablet 
-                ? 'grid-cols-2' 
-                : 'grid-cols-4'
-            }`}>
-              <div>
-                <p className={`text-blue-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>Total Municipios</p>
-                <p className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{totalMunicipios}</p>
+            <p style={{
+              color: '#4b5563',
+              fontSize: isMobile ? '0.75rem' : '0.875rem',
+              marginTop: isMobile ? '0.25rem' : '0',
+              margin: 0,
+              opacity: loading ? 0.5 : 1
+            }}>
+              Total: {totalMunicipios} municipios
+            </p>
+          </div>
+          <div style={{ padding: isMobile ? '1rem' : '0', opacity: loading ? 0.5 : 1 }}>
+            {loading ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
+                Cargando datos...
               </div>
-              <div>
-                <p className={`text-blue-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>Población Promedio</p>
-                <p className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{(poblacionPromedio / 1000).toFixed(1)}K</p>
-              </div>
-              <div>
-                <p className={`text-blue-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>Presupuesto Prom</p>
-                <p className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                  L {totalMunicipios > 0 ? (presupuestoTotal / totalMunicipios / 1000000).toFixed(0) : '0'}M
-                </p>
-              </div>
-              <div>
-                <p className={`text-blue-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>Autonomía Prom</p>
-                <p className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{autonomiaPromedio}%</p>
-              </div>
+            ) : (
+              <AdaptiveTable columns={tableColumns} data={tableData} isMobile={isMobile} />
+            )}
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <div style={{
+          background: 'linear-gradient(to right, #2563eb, #9333ea)',
+          borderRadius: '0.5rem',
+          color: 'white',
+          padding: isMobile ? '1.5rem' : '2rem',
+          opacity: loading ? 0.5 : 1
+        }}>
+          <h3 style={{
+            fontWeight: 'bold',
+            marginBottom: '1rem',
+            fontSize: isMobile ? '1.125rem' : '1.25rem',
+            margin: 0
+          }}>
+            Estadísticas Consolidadas - Año {selectedYear}
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+            gap: '1rem',
+            marginTop: '1rem'
+          }}>
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? '0.75rem' : '0.875rem', margin: 0 }}>
+                Total Municipios
+              </p>
+              <p style={{ fontWeight: 'bold', fontSize: isMobile ? '1.125rem' : '1.5rem', margin: 0 }}>
+                {totalMunicipios}
+              </p>
+            </div>
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? '0.75rem' : '0.875rem', margin: 0 }}>
+                Población Promedio
+              </p>
+              <p style={{ fontWeight: 'bold', fontSize: isMobile ? '1.125rem' : '1.5rem', margin: 0 }}>
+                {(poblacionPromedio / 1000).toFixed(1)}K
+              </p>
+            </div>
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? '0.75rem' : '0.875rem', margin: 0 }}>
+                Presupuesto Prom
+              </p>
+              <p style={{ fontWeight: 'bold', fontSize: isMobile ? '1.125rem' : '1.5rem', margin: 0 }}>
+                L {totalMunicipios > 0 ? (presupuestoTotal / totalMunicipios / 1000000).toFixed(0) : '0'}M
+              </p>
+            </div>
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? '0.75rem' : '0.875rem', margin: 0 }}>
+                Autonomía Prom
+              </p>
+              <p style={{ fontWeight: 'bold', fontSize: isMobile ? '1.125rem' : '1.5rem', margin: 0 }}>
+                {autonomiaPromedio}%
+              </p>
             </div>
           </div>
         </div>

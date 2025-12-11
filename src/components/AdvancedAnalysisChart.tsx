@@ -1,119 +1,86 @@
-import React from 'react';
+// src/components/AdvancedAnalysisChart.tsx
+import React, { useEffect, useState } from 'react';
 import {
   BarChart,
   Bar,
-  PieChart,
-  Pie,
   LineChart,
   Line,
-  ScatterChart,
-  Scatter,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
-  Cell,
 } from 'recharts';
+import SafeResponsiveContainer from './SafeResponsiveContainer';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
-// Colores para los gráficos
-const COLORS = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899',
-  '#14b8a6', '#f97316', '#6366f1', '#06b6d4', '#84cc16', '#f43f5e',
-  '#0d9488', '#d946ef', '#059669', '#7c3aed',
-];
+interface AdvancedAnalysisChartProps {
+  data: { name: string; value: number }[];
+  title: string;
+  type?: 'bar' | 'line';
+}
 
-export const AdvancedAnalysisChart = ({ data, title, type, customColors = COLORS }) => {
-  if (!data || data.length === 0) {
-    return <div className="text-center py-8 text-gray-500">Sin datos disponibles</div>;
-  }
+const AdvancedAnalysisChart: React.FC<AdvancedAnalysisChartProps> = ({
+  data,
+  title,
+  type = 'bar',
+}) => {
+  const { isMobile } = useMediaQuery();
+  const [ready, setReady] = useState(false);
 
-  const renderChart = () => {
-    switch (type) {
-      case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
-              <Tooltip formatter={(value) => value.toLocaleString('es-HN')} />
-              <Legend />
-              <Bar dataKey="value" fill={customColors[0]} name="Valor" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        );
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
-      case 'pie':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name}: ${value}`}
-                outerRadius={120}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={customColors[index % customColors.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => value.toLocaleString('es-HN')} />
-            </PieChart>
-          </ResponsiveContainer>
-        );
-
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip formatter={(value) => value.toLocaleString('es-HN')} />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={customColors[0]}
-                strokeWidth={2}
-                dot={{ fill: customColors[0], r: 5 }}
-                activeDot={{ r: 7 }}
-                name="Valor"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        );
-
-      case 'scatter':
-        return (
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="x" name="Población" />
-              <YAxis dataKey="y" name="Presupuesto" />
-              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-              <Scatter name="Municipios" data={data} fill={customColors[0]} />
-            </ScatterChart>
-          </ResponsiveContainer>
-        );
-
-      default:
-        return <div className="text-center text-gray-500">Tipo de gráfico no soportado</div>;
-    }
-  };
+  const chartHeight = isMobile ? 220 : 260;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md w-full h-full">
-      <h3 className="text-lg font-bold mb-4 text-gray-800">{title}</h3>
-      {/* Contenedor con altura fija para que ResponsiveContainer funcione */}
-      <div className="w-full" style={{ height: '450px' }}>
-        {renderChart()}
+    <div className="bg-white rounded-lg shadow-md p-4 h-full flex flex-col">
+      <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
+        {title}
+      </h3>
+
+      {/* Contenedor fijo para que ResponsiveContainer siempre tenga alto */}
+      <div style={{ width: '100%', height: chartHeight }}>
+        {ready && data && data.length > 0 && (
+          <SafeResponsiveContainer width="100%" height="100%">
+            {type === 'line' ? (
+              <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: isMobile ? 10 : 11 }}
+                  angle={isMobile ? -30 : 0}
+                  textAnchor={isMobile ? 'end' : 'middle'}
+                  interval={0}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={2} dot={false} />
+              </LineChart>
+            ) : (
+              <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: isMobile ? 10 : 11 }}
+                  angle={isMobile ? -30 : 0}
+                  textAnchor={isMobile ? 'end' : 'middle'}
+                  interval={0}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
+          </SafeResponsiveContainer>
+        )}
+
+        {/* Placeholder silencioso mientras aún no está ready */}
+        {!ready && <div style={{ width: '100%', height: '100%' }} />}
       </div>
     </div>
   );

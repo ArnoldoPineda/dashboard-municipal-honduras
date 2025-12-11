@@ -30,7 +30,7 @@ const SkeletonChart = ({ height }: { height: number }) => (
 );
 
 const Dashboard = () => {
-  const { isMobile } = useMediaQuery();
+  const { isMobile, isTabletSmall, isTablet, isDesktop, isLargeDesktop } = useMediaQuery();
   const [selectedYear, setSelectedYear] = useState<number>(2024);
 
   const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);
@@ -108,7 +108,14 @@ const Dashboard = () => {
     presupuesto_municipal: `L ${(m.presupuesto_municipal || 0).toLocaleString('es-HN')}`,
   }));
 
-  const chartHeight = isMobile ? 260 : 320;
+  // ALTURA DINÁMICA DE GRÁFICOS POR BREAKPOINT
+  const chartHeight = isMobile 
+    ? 300 
+    : isTabletSmall 
+    ? 280 
+    : isTablet 
+    ? 280 
+    : 320;
 
   return (
     <DashboardLayout title="Dashboard Municipal Honduras">
@@ -126,10 +133,8 @@ const Dashboard = () => {
         {/* HEADER */}
         <div style={{
           display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          justifyContent: 'space-between',
-          alignItems: isMobile ? 'flex-start' : 'flex-start',
-          gap: isMobile ? '1rem' : '0'
+          flexDirection: 'column',
+          gap: '1rem'
         }}>
           <div>
             <h1 style={{
@@ -151,25 +156,34 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* SELECTOR DE AÑO */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* SELECTOR DE AÑO - MEJORADO */}
+          <div style={{ 
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+            gap: '0.75rem',
+            width: isMobile ? '100%' : 'auto'
+          }}>
             {[2021, 2022, 2023, 2024].map((year) => (
               <button
                 key={year}
                 onClick={() => setSelectedYear(year)}
                 disabled={loading}
                 style={{
-                  padding: isMobile ? '0.5rem 0.75rem' : '0.5rem 1rem',
+                  padding: isMobile ? '0.75rem 1rem' : '0.6rem 1.2rem',
                   borderRadius: '0.5rem',
                   fontWeight: '600',
                   border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   backgroundColor: selectedYear === year ? '#2563eb' : '#e5e7eb',
                   color: selectedYear === year ? 'white' : '#374151',
-                  fontSize: isMobile ? '0.875rem' : '1rem',
+                  fontSize: isMobile ? '1rem' : '1rem',
                   transition: 'all 0.2s',
                   boxShadow: selectedYear === year ? '0 10px 15px rgba(0,0,0,0.1)' : 'none',
-                  opacity: loading ? 0.5 : 1
+                  opacity: loading ? 0.5 : 1,
+                  minHeight: isMobile ? '44px' : 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 {year}
@@ -178,10 +192,14 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* KPIS ROW 1 */}
+        {/* KPIS ROW 1 - MEJORADA */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
+          gridTemplateColumns: isMobile 
+            ? 'repeat(2, 1fr)' 
+            : isTablet
+            ? 'repeat(3, 1fr)'
+            : 'repeat(4, 1fr)',
           gap: '1rem'
         }}>
           {loading ? (
@@ -239,10 +257,14 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* KPIS ROW 2 */}
+        {/* KPIS ROW 2 - MEJORADA */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+          gridTemplateColumns: isMobile 
+            ? 'repeat(2, 1fr)' 
+            : isTablet
+            ? 'repeat(2, 1fr)'
+            : 'repeat(3, 1fr)',
           gap: '1rem'
         }}>
           {loading ? (
@@ -291,10 +313,14 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* GRÁFICOS */}
+        {/* GRÁFICOS - MEJORADOS */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gridTemplateColumns: isMobile 
+            ? '1fr' 
+            : isTablet
+            ? 'repeat(2, 1fr)'
+            : 'repeat(2, 1fr)',
           gap: '1.5rem'
         }}>
           <div style={{ width: '100%', height: `${chartHeight}px`, minHeight: `${chartHeight}px` }}>

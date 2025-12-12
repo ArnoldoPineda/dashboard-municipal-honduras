@@ -183,7 +183,6 @@ export default function AnalyticsPage() {
       .slice(0, 10);
   }, [filteredMetrics]);
 
-  // TABLAS PARA AdaptiveTable
   const criticalColumns = [
     { key: 'name', label: 'Municipio' },
     { key: 'department', label: 'Dpto' },
@@ -205,7 +204,6 @@ export default function AnalyticsPage() {
     autonomy: `${mun.autonomy.toFixed(1)}%`,
   }));
 
-  // Altura para los gráficos (fija para evitar ResizeObserver spam)
   const chartHeight = isMobile ? 300 : 380;
 
   if (loading) {
@@ -270,7 +268,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* FILTRO POR DEPARTAMENTO - RESPONSIVO */}
+        {/* FILTRO POR DEPARTAMENTO */}
         <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-3' : 'p-4'}`}>
           <label className={`font-medium text-gray-700 block ${isMobile ? 'text-xs' : 'text-sm'}`}>
             Filtrar por Departamento:
@@ -303,7 +301,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* GRÁFICOS - RESPONSIVO */}
+        {/* GRÁFICOS */}
         <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {/* Autonomía Financiera */}
           <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-4' : 'p-6'}`}>
@@ -400,7 +398,7 @@ export default function AnalyticsPage() {
 
         {/* MUNICIPIOS CRÍTICOS */}
         {criticalMunicipalities.length > 0 && (
-          <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? '' : ''}`}>
+          <div className={`bg-white rounded-lg shadow-md overflow-hidden`}>
             <div className={`border-b border-red-200 bg-red-50 ${isMobile ? 'p-3' : 'p-6'}`}>
               <h3 className={`font-bold text-red-900 flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
                 <AlertCircle size={isMobile ? 16 : 20} className="text-red-600" />
@@ -436,7 +434,7 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        {/* MENSAJE SI NO HAY DATOS CRÍTICOS NI DE ADVERTENCIA */}
+        {/* MENSAJE SI NO HAY DATOS */}
         {criticalMunicipalities.length === 0 && warningMunicipalities.length === 0 && (
           <div className={`bg-green-50 border-l-4 border-green-600 rounded-lg ${isMobile ? 'p-4' : 'p-6'}`}>
             <h3 className={`font-bold text-green-900 mb-2 ${isMobile ? 'text-base' : 'text-lg'}`}>✓ Situación Saludable</h3>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import DashboardLayout from '../components/DashboardLayout.tsx';
+import DashboardLayout from '../components/DashboardLayout';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 
@@ -11,7 +11,6 @@ export default function RankingsPage() {
   const [rankingType, setRankingType] = useState<RankingType>('population');
   const [selectedYear, setSelectedYear] = useState<number>(2024);
 
-  // ✅ HOOKS SIEMPRE AL INICIO (ANTES de cualquier if/return)
   const filteredMunicipalities = useMemo(() => {
     return municipalities.filter(m => m.year === selectedYear);
   }, [municipalities, selectedYear]);
@@ -138,12 +137,8 @@ export default function RankingsPage() {
           <thead className="bg-gray-100 border-b border-gray-200">
             <tr>
               <th className={`text-center font-semibold text-gray-900 ${isMobile ? 'px-3 py-2 w-10' : 'px-6 py-3 w-12'}`}>#</th>
-              <th className={`text-left font-semibold text-gray-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>
-                Municipio
-              </th>
-              {!isMobile && (
-                <th className={`text-left font-semibold text-gray-900 px-6 py-3`}>Departamento</th>
-              )}
+              <th className={`text-left font-semibold text-gray-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>Municipio</th>
+              {!isMobile && <th className="text-left font-semibold text-gray-900 px-6 py-3">Departamento</th>}
               <th className={`text-right font-semibold text-gray-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>
                 {getRankingLabel()}
               </th>
@@ -151,12 +146,7 @@ export default function RankingsPage() {
           </thead>
           <tbody>
             {rankedData.map((municipality, index) => (
-              <tr
-                key={municipality.id}
-                className={`border-b border-gray-100 hover:bg-gray-50 transition ${
-                  index < 3 ? 'bg-yellow-50' : ''
-                }`}
-              >
+              <tr key={municipality.id} className={`border-b border-gray-100 hover:bg-gray-50 ${index < 3 ? 'bg-yellow-50' : ''}`}>
                 <td className={`text-center font-bold ${isMobile ? 'px-3 py-2' : 'px-6 py-4'}`}>
                   <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm ${
                     index === 0
@@ -173,9 +163,7 @@ export default function RankingsPage() {
                 <td className={`text-gray-900 font-medium ${isMobile ? 'px-3 py-2' : 'px-6 py-4'}`}>
                   {municipality.name}
                 </td>
-                {!isMobile && (
-                  <td className={`text-gray-600 px-6 py-4`}>{municipality.department}</td>
-                )}
+                {!isMobile && <td className="text-gray-600 px-6 py-4">{municipality.department}</td>}
                 <td className={`text-gray-600 text-right font-semibold ${isMobile ? 'px-3 py-2' : 'px-6 py-4'}`}>
                   {getValueFormatted(municipality)}
                 </td>
@@ -190,8 +178,8 @@ export default function RankingsPage() {
   return (
     <DashboardLayout title="Rankings">
       <div className="space-y-6">
-        {/* SELECTOR DE AÑO - RESPONSIVO */}
-        <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
+        {/* SELECTOR DE AÑO */}
+        <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-3' : 'p-6'}`}>
           <h2 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-xl'}`}>
             Selecciona Año
           </h2>
@@ -212,62 +200,32 @@ export default function RankingsPage() {
           </div>
         </div>
 
-        {/* SELECTOR DE RANKING - RESPONSIVO */}
-        <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
+        {/* SELECTOR DE RANKING */}
+        <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-3' : 'p-6'}`}>
           <h2 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-xl'}`}>
             Selecciona un Ranking
           </h2>
-          <div className={`grid gap-2 ${
-            isMobile 
-              ? 'grid-cols-2' 
-              : isTablet 
-              ? 'grid-cols-2' 
-              : 'grid-cols-4'
-          }`}>
-            <button
-              onClick={() => setRankingType('population')}
-              className={`rounded-lg font-medium transition ${
-                rankingType === 'population'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              } ${isMobile ? 'px-2 py-2 text-xs' : 'px-4 py-2 text-sm'}`}
-            >
-              Población
-            </button>
-            <button
-              onClick={() => setRankingType('budget')}
-              className={`rounded-lg font-medium transition ${
-                rankingType === 'budget'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              } ${isMobile ? 'px-2 py-2 text-xs' : 'px-4 py-2 text-sm'}`}
-            >
-              Presupuesto
-            </button>
-            <button
-              onClick={() => setRankingType('income')}
-              className={`rounded-lg font-medium transition ${
-                rankingType === 'income'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              } ${isMobile ? 'px-2 py-2 text-xs' : 'px-4 py-2 text-sm'}`}
-            >
-              Ingresos
-            </button>
-            <button
-              onClick={() => setRankingType('financial_autonomy')}
-              className={`rounded-lg font-medium transition ${
-                rankingType === 'financial_autonomy'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              } ${isMobile ? 'px-2 py-2 text-xs' : 'px-4 py-2 text-sm'}`}
-            >
-              Autonomía
-            </button>
+          <div className={`grid gap-2 ${isMobile ? 'grid-cols-2' : isTablet ? 'grid-cols-2' : 'grid-cols-4'}`}>
+            {(['population', 'budget', 'income', 'financial_autonomy'] as RankingType[]).map((type) => (
+              <button
+                key={type}
+                onClick={() => setRankingType(type)}
+                className={`rounded-lg font-medium transition ${
+                  rankingType === type
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                } ${isMobile ? 'px-2 py-2 text-xs' : 'px-4 py-2 text-sm'}`}
+              >
+                {type === 'population' && 'Población'}
+                {type === 'budget' && 'Presupuesto'}
+                {type === 'income' && 'Ingresos'}
+                {type === 'financial_autonomy' && 'Autonomía'}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* CONTENIDO - RESPONSIVE (CARDS EN MOBILE, TABLA EN DESKTOP) */}
+        {/* TABLA O CARDS */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className={`border-b border-gray-200 ${isMobile ? 'p-4' : 'p-6'}`}>
             <h2 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-2xl'}`}>

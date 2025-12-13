@@ -10,7 +10,7 @@ interface ExpandedSection {
 }
 
 export default function MunicipioDETALLE() {
-  const { isMobile, isTablet } = useMediaQuery();
+  const { isMobile } = useMediaQuery();
   const { municipalities } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);
 
   const [selectedYear, setSelectedYear] = useState(2024);
@@ -25,16 +25,7 @@ export default function MunicipioDETALLE() {
     gastos_capital: false,
     total_egresos: false,
   });
-
-  const selectedMunicipio_data = useMemo(() => {
-    return municipalities.find(
-      (m) =>
-        m.name === selectedMunicipio &&
-        m.department === selectedDepartment &&
-        m.year === selectedYear
-    );
-  }, [municipalities, selectedMunicipio, selectedDepartment, selectedYear]);
-
+  
   const { data: fiscalData, loading, error } = useMunicipalityDetails(
   selectedMunicipio,
   selectedYear,

@@ -105,6 +105,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, children }) =>
                 >
                   Rankings
                 </a>
+                <a 
+                  href="/detalle-municipio" 
+                  onClick={handleNavClick}
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  Detalle Municipio
+                </a>
               </nav>
             </aside>
           </>

@@ -15,6 +15,7 @@ export default function Navigation() {
     { path: '/analisis', label: 'Análisis' },
     { path: '/comparativos', label: 'Comparativos' },
     { path: '/rankings', label: 'Rankings' },
+    { path: '/detalle-municipio', label: 'Detalle Municipio' },
   ];
 
   return (

@@ -6,6 +6,7 @@ import RankingsPage from "./pages/RankingsPage.tsx";
 import PresupuestarioPage from "./pages/PresupuestarioPage.tsx";
 import ComparativesPage from "./pages/ComparativesPage.tsx";
 import AnalyticsPage from "./pages/AnalyticsPage.tsx";
+import MunicipioDETALLE from "./pages/MunicipioDETALLE.tsx";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/comparativos" element={<ComparativesPage />} />
           <Route path="/rankings" element={<RankingsPage />} />
           <Route path="/presupuestario" element={<PresupuestarioPage />} />
+          <Route path="/detalle-municipio" element={<MunicipioDETALLE />} />
         </Routes>
       </div>
     </BrowserRouter>

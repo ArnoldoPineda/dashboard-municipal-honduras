@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { getMunicipalityDetail } from '../services/mongoClient';
 
 interface FiscalData {
   municipio: string;
@@ -34,21 +34,11 @@ export default function useMunicipalityDetails(
       setError(null);
 
       try {
-        let query = supabase
-          .from('municipalities')
-          .select('*')
-          .eq('name', municipioName)
-          .eq('year', year);
-
-        if (departmentName) {
-          query = query.eq('department', departmentName);
-        }
-
-        const { data: municipalityData, error: queryError } = await query.single();
-
-        if (queryError) {
-          throw new Error(queryError.message);
-        }
+        const municipalityData = await getMunicipalityDetail(
+          municipioName,
+          year,
+          departmentName
+        );
 
         if (!municipalityData) {
           throw new Error('Municipio no encontrado');

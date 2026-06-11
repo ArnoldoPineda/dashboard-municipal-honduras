@@ -1,6 +1,6 @@
 // src/hooks/useMunicipalities.ts
 import { useEffect, useState, useRef } from 'react';
-import { getMunicipalities } from '../services/mongoClient';
+import { supabase } from '../services/supabaseClient.ts';
 
 export type Municipality = {
   id: string;
@@ -57,7 +57,7 @@ export type Municipality = {
   ingreso_corriente_ajustado: number | null;
 };
 
-// Hook multi-año - AHORA CON MONGODB
+// Hook multi-año - OPTIMIZADO SIN REFETCH INNECESARIO
 export const useMunicipalitiesMultiYear = (
   selectedYears: number[] = [2024]
 ) => {
@@ -65,11 +65,14 @@ export const useMunicipalitiesMultiYear = (
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Ref para almacenar el string de años y evitar refetch innecesario
   const yearsStringRef = useRef<string>('');
 
   useEffect(() => {
+    // Convertir array a string para comparar (evita recrear el array)
     const yearsString = JSON.stringify(selectedYears.sort());
     
+    // Si el string es igual, NO hacer fetch
     if (yearsStringRef.current === yearsString && municipalities.length > 0) {
       return;
     }
@@ -81,17 +84,19 @@ export const useMunicipalitiesMultiYear = (
       setError(null);
 
       try {
-        // Obtener datos de MongoDB a través de Netlify Functions
-        const allData = await getMunicipalities();
-        
-        let filtered = allData as Municipality[];
-        
-        // Filtrar por años en el cliente
+        let query = supabase.from('municipalities').select('*');
+
         if (selectedYears && selectedYears.length > 0) {
-          filtered = filtered.filter(m => selectedYears.includes(m.year));
+          query = query.in('year', selectedYears);
         }
 
-        setMunicipalities(filtered);
+        const { data, error } = await query;
+
+        if (error) {
+          throw error;
+        }
+
+        setMunicipalities((data as Municipality[]) || []);
       } catch (err: any) {
         setError(err.message ?? 'Error al cargar municipios');
       } finally {
@@ -100,7 +105,7 @@ export const useMunicipalitiesMultiYear = (
     };
 
     fetchData();
-  }, [selectedYears, municipalities.length]);
+  }, [selectedYears, municipalities.length]); // Añadir municipalities.length para evitar bucle infinito
 
   return { municipalities, loading, error };
 };

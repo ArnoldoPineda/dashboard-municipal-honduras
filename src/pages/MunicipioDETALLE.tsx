@@ -11,9 +11,9 @@ interface ExpandedSection {
 
 export default function MunicipioDETALLE() {
   const { isMobile } = useMediaQuery();
-  const { municipalities } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);
+  const { municipalities } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
 
-  const [selectedYear, setSelectedYear] = useState(2024);
+  const [selectedYear, setSelectedYear] = useState(2025);
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedMunicipio, setSelectedMunicipio] = useState('');
   const [expandedSections, setExpandedSections] = useState<ExpandedSection>({
@@ -41,12 +41,12 @@ export default function MunicipioDETALLE() {
       ? [
           ...new Set(
             municipalities
-              .filter((m) => m.department === selectedDepartment && m.year === selectedYear)
+              .filter((m) => m.department === selectedDepartment)
               .map((m) => m.name)
           ),
         ].sort()
       : [];
-  }, [municipalities, selectedDepartment, selectedYear]);
+  }, [municipalities, selectedDepartment]);
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -233,7 +233,7 @@ export default function MunicipioDETALLE() {
                 outline: 'none',
               }}
             >
-              {[2024, 2023, 2022, 2021].map((year) => (
+              {[2025, 2024, 2023, 2022, 2021].map((year) => (
                 <option key={year} value={year}>
                   {year}
                 </option>

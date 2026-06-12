@@ -1,1 +1,18 @@
 node_modules
+
+# Local Netlify folder
+.netlify
+
+# Environment variables — never commit secrets
+.env
+.env.local
+.env*.local
+
+# Import/data scripts
+import_2025.py
+fix_departments_2025.py
+query_santa_ana.py
+query_dept.py
+*.xlsx
+municipalities.json
+Municipalities.csv

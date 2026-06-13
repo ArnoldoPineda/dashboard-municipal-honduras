@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { useSimho } from '../context/SimhoContext';
+import useMunicipalityDetails from '../hooks/useMunicipalityDetails';
 
-type MapView = 'nation' | 'dept';
+type MapView = 'nation' | 'dept' | 'muni';
 type Indicator = 'budget' | 'propios' | 'autonomia';
 
 const INDICATORS: { key: Indicator; label: string }[] = [
@@ -14,13 +14,14 @@ const INDICATORS: { key: Indicator; label: string }[] = [
 ];
 
 const YEARS = [2019, 2020, 2021, 2022, 2023, 2024];
+const DETAIL_YEARS = [2021, 2022, 2023, 2024, 2025];
 
 const DEPT_CAPITALS: Record<string, string> = {
   'Atlántida':         'La Ceiba',
   'Colón':             'Trujillo',
   'Comayagua':         'Comayagua',
   'Copán':             'Santa Rosa de Copán',
-  'Cortés':            'San Pedro Ula',
+  'Cortés':            'San Pedro Sula',
   'Choluteca':         'Choluteca',
   'El Paraíso':        'Yuscarán',
   'Francisco Morazán': 'Tegucigalpa',
@@ -46,6 +47,8 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+type MuniStat = { name: string; budget: number; propios: number; autonomia: number; population: number };
+
 type DeptStats = {
   name: string;
   budget: number;
@@ -54,56 +57,383 @@ type DeptStats = {
   muniCount: number;
   population: number;
   transferencias: number;
-  municipalities: {
-    name: string;
-    budget: number;
-    propios: number;
-    autonomia: number;
-    population: number;
-  }[];
+  municipalities: MuniStat[];
 };
 
-// ── Mini map component ───────────────────────────────────────────────────────
+// ── Department mini-map: dept boundary + clickable municipality dots ──────────
 
-function MiniMap({ topoData, selectedDept }: { topoData: any; selectedDept: string }) {
+function DeptMiniMap({
+  topoData,
+  selectedDept,
+  municipalities,
+  onSelectMuni,
+}: {
+  topoData: any;
+  selectedDept: string;
+  municipalities: MuniStat[];
+  onSelectMuni: (name: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!topoData || !svgRef.current) return;
+
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
-    const W = 270, H = 190;
+    const W = 270, H = 200;
     svg.attr('width', W).attr('height', H);
 
     const features = (topojson.feature(topoData, topoData.objects.hnd) as any).features;
-    const projection = d3.geoMercator().fitExtent([[6, 6], [W - 6, H - 6]], {
-      type: 'FeatureCollection', features,
-    });
+    const deptFeature = features.find((f: any) =>
+      normalizeName(f.properties?.name || '') === normalizeName(selectedDept)
+    );
+
+    if (!deptFeature) return;
+
+    // Fit projection to just this department
+    const projection = d3.geoMercator().fitExtent(
+      [[14, 14], [W - 14, H - 14]],
+      { type: 'FeatureCollection', features: [deptFeature] }
+    );
     const path = d3.geoPath().projection(projection);
 
-    svg.selectAll('path')
-      .data(features)
-      .join('path')
+    // Department boundary
+    svg.append('path')
+      .datum(deptFeature)
       .attr('d', path as any)
-      .attr('fill', (f: any) => {
-        const n = f.properties?.name || '';
-        return normalizeName(n) === normalizeName(selectedDept)
-          ? 'rgba(0,212,184,0.3)'
-          : 'rgba(13,21,38,0.85)';
-      })
-      .attr('stroke', (f: any) => {
-        const n = f.properties?.name || '';
-        return normalizeName(n) === normalizeName(selectedDept)
-          ? '#00d4b8'
-          : 'rgba(0,212,184,0.18)';
-      })
-      .attr('stroke-width', (f: any) => {
-        const n = f.properties?.name || '';
-        return normalizeName(n) === normalizeName(selectedDept) ? 2 : 0.6;
-      });
-  }, [topoData, selectedDept]);
+      .attr('fill', 'rgba(0,212,184,0.05)')
+      .attr('stroke', 'rgba(0,212,184,0.45)')
+      .attr('stroke-width', 1.5);
 
-  return <svg ref={svgRef} style={{ display: 'block' }} />;
+    if (municipalities.length === 0) return;
+
+    // Get dept bounding box in SVG coordinates
+    const [[x0, y0], [x1, y1]] = path.bounds(deptFeature);
+    const boxW = x1 - x0, boxH = y1 - y0;
+
+    // Grid layout within dept bounding box
+    const n = municipalities.length;
+    const aspect = boxW / Math.max(boxH, 1);
+    const cols = Math.max(2, Math.round(Math.sqrt(n * aspect)));
+    const rows = Math.ceil(n / cols);
+    const cellW = boxW / cols;
+    const cellH = boxH / rows;
+
+    const maxBudget = d3.max(municipalities, m => m.budget) || 1;
+    const rScale = d3.scaleSqrt().domain([0, maxBudget]).range([3.5, 8]);
+
+    const sorted = [...municipalities].sort((a, b) => b.budget - a.budget);
+
+    sorted.forEach((muni, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = x0 + (col + 0.5) * cellW;
+      const cy = y0 + (row + 0.5) * cellH;
+      const r = rScale(muni.budget);
+
+      const g = svg.append('g').style('cursor', 'pointer');
+
+      // Glow ring (shown on hover)
+      g.append('circle')
+        .attr('class', 'glow')
+        .attr('cx', cx).attr('cy', cy)
+        .attr('r', r + 4)
+        .attr('fill', 'none')
+        .attr('stroke', 'rgba(0,212,184,0.0)')
+        .attr('stroke-width', 2);
+
+      // Main dot
+      g.append('circle')
+        .attr('class', 'dot')
+        .attr('cx', cx).attr('cy', cy)
+        .attr('r', r)
+        .attr('fill', 'rgba(0,212,184,0.65)')
+        .attr('stroke', '#00d4b8')
+        .attr('stroke-width', 1);
+
+      // Native tooltip (fallback)
+      g.append('title').text(muni.name);
+
+      g.on('mouseenter', function(event) {
+          g.select('.dot')
+            .attr('fill', '#00d4b8')
+            .attr('r', r + 1.5);
+          g.select('.glow')
+            .attr('stroke', 'rgba(0,212,184,0.4)');
+          if (tooltipRef.current) {
+            tooltipRef.current.style.display = 'block';
+            tooltipRef.current.textContent = muni.name;
+          }
+        })
+        .on('mousemove', function(event) {
+          if (tooltipRef.current) {
+            tooltipRef.current.style.left = `${event.offsetX + 10}px`;
+            tooltipRef.current.style.top = `${event.offsetY - 30}px`;
+          }
+        })
+        .on('mouseleave', function() {
+          g.select('.dot')
+            .attr('fill', 'rgba(0,212,184,0.65)')
+            .attr('r', r);
+          g.select('.glow')
+            .attr('stroke', 'rgba(0,212,184,0.0)');
+          if (tooltipRef.current) {
+            tooltipRef.current.style.display = 'none';
+          }
+        })
+        .on('click', () => onSelectMuni(muni.name));
+    });
+  }, [topoData, selectedDept, municipalities, onSelectMuni]);
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <svg ref={svgRef} style={{ display: 'block' }} />
+      <div
+        ref={tooltipRef}
+        style={{
+          display: 'none',
+          position: 'absolute', pointerEvents: 'none',
+          background: 'rgba(8,12,24,0.92)',
+          border: '1px solid rgba(0,212,184,0.4)',
+          borderRadius: 6, padding: '4px 10px',
+          fontSize: 11, color: '#e8eef6',
+          fontFamily: "'Barlow Condensed', sans-serif",
+          whiteSpace: 'nowrap', zIndex: 10,
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Municipality fiscal detail view ──────────────────────────────────────────
+
+function MuniDetailView({
+  muniName,
+  deptName,
+  initialYear,
+  onBack,
+}: {
+  muniName: string;
+  deptName: string;
+  initialYear: number;
+  onBack: () => void;
+}) {
+  const [muniYear, setMuniYear] = useState(initialYear);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({
+    general: true,
+    ingresos_tributarios: false,
+    ingresos_no_tributarios: false,
+    ingresos_capital: false,
+    gastos_funcionamiento: false,
+    gastos_capital: false,
+    total_egresos: false,
+  });
+
+  const { data: fiscal, loading, error } = useMunicipalityDetails(muniName, muniYear, deptName);
+
+  const toggle = (key: string) =>
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const fmtCurrency = (v: number) =>
+    new Intl.NumberFormat('es-HN', {
+      style: 'currency', currency: 'HNL', maximumFractionDigits: 0,
+    }).format(v);
+
+  const FiscalSection = ({
+    title, color, details, sectionKey, total,
+  }: {
+    title: string;
+    color: string;
+    details: Array<{ label: string; amount: number; percentage?: number; color?: string }>;
+    sectionKey: string;
+    total: number;
+  }) => {
+    const open = expanded[sectionKey];
+    return (
+      <div style={{
+        background: 'rgba(13,21,38,0.74)',
+        border: '1px solid rgba(0,212,184,0.14)',
+        borderRadius: 10, marginBottom: 8, overflow: 'hidden',
+      }}>
+        <button
+          onClick={() => toggle(sectionKey)}
+          style={{
+            width: '100%', padding: '13px 20px', background: color,
+            color: '#fff', border: 'none', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontWeight: 700, fontSize: 14,
+            fontFamily: "'Barlow Condensed', sans-serif",
+            letterSpacing: '0.06em',
+          }}
+        >
+          <div>
+            <div>{title}</div>
+            <div style={{ fontSize: 12, fontWeight: 400, marginTop: 2, opacity: 0.9 }}>
+              {fmtCurrency(total)}
+            </div>
+          </div>
+          <span style={{ fontSize: 16, opacity: 0.85 }}>{open ? '▲' : '▼'}</span>
+        </button>
+        {open && (
+          <div style={{ padding: '12px 20px' }}>
+            {details.map((d, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  paddingBottom: 10, marginBottom: 10,
+                  borderBottom: i < details.length - 1
+                    ? '1px solid rgba(0,212,184,0.1)'
+                    : 'none',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, color: '#e8eef6', fontWeight: 500 }}>{d.label}</div>
+                  {d.percentage !== undefined && d.percentage > 0 && (
+                    <div style={{ fontSize: 11, color: '#7c8aa3', marginTop: 2 }}>
+                      {d.percentage.toFixed(1)}% del total
+                    </div>
+                  )}
+                </div>
+                <div style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 13, fontWeight: 700,
+                  color: d.color || color,
+                  minWidth: 130, textAlign: 'right',
+                }}>
+                  {fmtCurrency(d.amount)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      height: '100%', width: '100%', overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        padding: '14px 24px',
+        borderBottom: '1px solid rgba(0,212,184,0.14)',
+        flexShrink: 0, flexWrap: 'wrap',
+      }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'rgba(13,21,38,0.9)',
+            border: '1px solid rgba(0,212,184,0.35)',
+            borderRadius: 8, color: '#00d4b8', cursor: 'pointer',
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: 13, fontWeight: 600, padding: '7px 16px',
+            letterSpacing: '0.06em', flexShrink: 0,
+          }}
+        >
+          ← {deptName.toUpperCase()}
+        </button>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 22, fontWeight: 600, color: '#e8eef6',
+            letterSpacing: '0.02em', lineHeight: 1.1,
+          }}>
+            {muniName}
+          </div>
+          <div style={{
+            fontSize: 11, color: '#7c8aa3',
+            fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
+          }}>
+            <span style={{ color: '#5eead4' }}>{deptName}</span>
+          </div>
+        </div>
+
+        {/* Year pills */}
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          {DETAIL_YEARS.map(y => (
+            <button
+              key={y}
+              onClick={() => setMuniYear(y)}
+              style={{
+                background: muniYear === y ? 'rgba(0,212,184,0.18)' : 'transparent',
+                border: `1px solid ${muniYear === y ? 'rgba(0,212,184,0.6)' : 'rgba(0,212,184,0.2)'}`,
+                borderRadius: 6,
+                color: muniYear === y ? '#00d4b8' : '#7c8aa3',
+                cursor: 'pointer',
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 12,
+                fontWeight: muniYear === y ? 600 : 400,
+                padding: '5px 10px',
+                transition: '0.15s',
+              }}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div
+        className="simho-scroll"
+        style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}
+      >
+        {loading && (
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            alignItems: 'center', height: 200,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              border: '3px solid rgba(0,212,184,0.15)',
+              borderTopColor: '#00d4b8',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          </div>
+        )}
+
+        {error && !loading && (
+          <div style={{
+            background: 'rgba(239,90,90,0.1)',
+            border: '1px solid rgba(239,90,90,0.3)',
+            borderRadius: 10, padding: '12px 16px', color: '#ef5a5a',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && !fiscal && (
+          <div style={{
+            background: 'rgba(0,212,184,0.06)',
+            border: '1px solid rgba(0,212,184,0.22)',
+            borderRadius: 10, padding: '16px 20px',
+          }}>
+            <p style={{ color: '#5eead4', fontSize: 14, margin: 0 }}>
+              No hay datos disponibles para {muniName} en {muniYear}.
+            </p>
+          </div>
+        )}
+
+        {fiscal && !loading && (
+          <>
+            <FiscalSection title="INFORMACIÓN GENERAL"               color="#1d6fa4" details={fiscal.general.details}                sectionKey="general"               total={fiscal.general.total} />
+            <FiscalSection title="INGRESOS TRIBUTARIOS"              color="#0e7c56" details={fiscal.ingresos_tributarios.details}     sectionKey="ingresos_tributarios"  total={fiscal.ingresos_tributarios.total} />
+            <FiscalSection title="INGRESOS NO TRIBUTARIOS"           color="#b07005" details={fiscal.ingresos_no_tributarios.details}  sectionKey="ingresos_no_tributarios" total={fiscal.ingresos_no_tributarios.total} />
+            <FiscalSection title="INGRESOS DE CAPITAL"               color="#8b3074" details={fiscal.ingresos_capital.details}         sectionKey="ingresos_capital"      total={fiscal.ingresos_capital.total} />
+            <FiscalSection title="GASTOS DE FUNCIONAMIENTO"          color="#b03a3a" details={fiscal.gastos_funcionamiento.details}    sectionKey="gastos_funcionamiento" total={fiscal.gastos_funcionamiento.total} />
+            <FiscalSection title="GASTOS DE CAPITAL Y DEUDA PÚBLICA" color="#5b3d99" details={fiscal.gastos_capital.details}           sectionKey="gastos_capital"        total={fiscal.gastos_capital.total} />
+            <FiscalSection title="TOTAL EGRESOS"                     color="#374776" details={fiscal.total_egresos.details}            sectionKey="total_egresos"         total={fiscal.total_egresos.total} />
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── Department drill-down panel ──────────────────────────────────────────────
@@ -115,7 +445,7 @@ function DeptDetailPanel({
   stats: DeptStats;
   year: number;
   onBack: () => void;
-  onSelectMuni: () => void;
+  onSelectMuni: (name: string) => void;
   topoData: any;
 }) {
   const [search, setSearch] = useState('');
@@ -154,15 +484,10 @@ function DeptDetailPanel({
           style={{
             background: 'rgba(13,21,38,0.9)',
             border: '1px solid rgba(0,212,184,0.35)',
-            borderRadius: 8,
-            color: '#00d4b8',
-            cursor: 'pointer',
+            borderRadius: 8, color: '#00d4b8', cursor: 'pointer',
             fontFamily: "'Barlow Condensed', sans-serif",
-            fontSize: 13,
-            fontWeight: 600,
-            padding: '7px 16px',
-            letterSpacing: '0.06em',
-            flexShrink: 0,
+            fontSize: 13, fontWeight: 600, padding: '7px 16px',
+            letterSpacing: '0.06em', flexShrink: 0,
           }}
         >
           ← NACIONAL
@@ -220,21 +545,26 @@ function DeptDetailPanel({
         display: 'flex', flex: 1, overflow: 'hidden',
         padding: '18px 24px', gap: 20,
       }}>
-        {/* Mini map */}
+        {/* Municipality map */}
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{
             fontSize: 9, color: '#4a5a73',
             fontFamily: "'IBM Plex Mono', monospace",
             letterSpacing: '0.1em',
           }}>
-            LOCALIZACIÓN
+            MUNICIPIOS (click para detalle)
           </div>
           <div style={{
             background: 'rgba(13,21,38,0.74)',
             border: '1px solid rgba(0,212,184,0.14)',
             borderRadius: 10, padding: 8, overflow: 'hidden',
           }}>
-            <MiniMap topoData={topoData} selectedDept={deptName} />
+            <DeptMiniMap
+              topoData={topoData}
+              selectedDept={deptName}
+              municipalities={stats.municipalities}
+              onSelectMuni={onSelectMuni}
+            />
           </div>
         </div>
 
@@ -248,7 +578,7 @@ function DeptDetailPanel({
             fontFamily: "'IBM Plex Mono', monospace",
             letterSpacing: '0.1em', flexShrink: 0,
           }}>
-            MUNICIPIOS ({stats.muniCount})
+            LISTA ({stats.muniCount})
           </div>
           <input
             type="text"
@@ -268,7 +598,7 @@ function DeptDetailPanel({
             {filtered.map(m => (
               <div
                 key={m.name}
-                onClick={onSelectMuni}
+                onClick={() => onSelectMuni(m.name)}
                 style={{
                   padding: '9px 12px', borderRadius: 8, cursor: 'pointer',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -307,7 +637,6 @@ function DeptDetailPanel({
 // ── MapaInteractivo ──────────────────────────────────────────────────────────
 
 export default function MapaInteractivo() {
-  const { setNav } = useSimho();
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -315,6 +644,7 @@ export default function MapaInteractivo() {
   const [topoData, setTopoData] = useState<any>(null);
   const [view, setView] = useState<MapView>('nation');
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
+  const [selectedMuni, setSelectedMuni] = useState<string | null>(null);
   const [indicator, setIndicator] = useState<Indicator>('budget');
   const [year, setYear] = useState<number>(2024);
 
@@ -329,7 +659,6 @@ export default function MapaInteractivo() {
 
   const deptStats = useMemo(() => {
     const map = new Map<string, DeptStats>();
-
     municipalities.forEach(m => {
       const dept = m.department || 'Sin depto';
       if (!map.has(dept)) {
@@ -353,7 +682,6 @@ export default function MapaInteractivo() {
         population: m.population || 0,
       });
     });
-
     map.forEach(d => { if (d.muniCount > 0) d.autonomia /= d.muniCount; });
     return map;
   }, [municipalities]);
@@ -369,7 +697,6 @@ export default function MapaInteractivo() {
 
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
-  // Re-attach ResizeObserver when view changes (container mounts/unmounts)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -393,7 +720,6 @@ export default function MapaInteractivo() {
     svg.selectAll('*').remove();
 
     const features = (topojson.feature(topoData, topoData.objects.hnd) as any).features;
-
     const projection = d3.geoMercator().fitExtent([[24, 24], [W - 24, H - 24]], {
       type: 'FeatureCollection', features,
     });
@@ -445,7 +771,6 @@ export default function MapaInteractivo() {
         deptStats.forEach((_, k) => {
           if (normalizeName(k) === normalizeName(topoName)) deptKey = k;
         });
-
         d3.select(this)
           .attr('stroke', 'rgba(0,212,184,0.9)')
           .attr('stroke-width', 1.8)
@@ -496,15 +821,38 @@ export default function MapaInteractivo() {
 
   const selectedDeptStats = selectedDept ? deptStats.get(selectedDept) : null;
 
+  const handleSelectMuni = useCallback((name: string) => {
+    setSelectedMuni(name);
+    setView('muni');
+  }, []);
+
+  const handleBackToDept = useCallback(() => {
+    setSelectedMuni(null);
+    setView('dept');
+  }, []);
+
+  const handleBackToNation = useCallback(() => {
+    setSelectedDept(null);
+    setSelectedMuni(null);
+    setView('nation');
+  }, []);
+
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-      {view === 'dept' && selectedDept && selectedDeptStats ? (
+      {view === 'muni' && selectedMuni && selectedDept ? (
+        <MuniDetailView
+          muniName={selectedMuni}
+          deptName={selectedDept}
+          initialYear={year <= 2024 ? year : 2024}
+          onBack={handleBackToDept}
+        />
+      ) : view === 'dept' && selectedDept && selectedDeptStats ? (
         <DeptDetailPanel
           deptName={selectedDept}
           stats={selectedDeptStats}
           year={year}
-          onBack={() => { setView('nation'); setSelectedDept(null); }}
-          onSelectMuni={() => setNav('muniDetail')}
+          onBack={handleBackToNation}
+          onSelectMuni={handleSelectMuni}
           topoData={topoData}
         />
       ) : (
@@ -539,10 +887,8 @@ export default function MapaInteractivo() {
                     color: indicator === ind.key ? '#00d4b8' : '#aab6c9',
                     cursor: 'pointer',
                     fontFamily: "'Barlow Condensed', sans-serif",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    padding: '6px 12px',
-                    transition: '0.15s',
+                    fontSize: 12, fontWeight: 500,
+                    padding: '6px 12px', transition: '0.15s',
                   }}
                 >
                   {ind.label}

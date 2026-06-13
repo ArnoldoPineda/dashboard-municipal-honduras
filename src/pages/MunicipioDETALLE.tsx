@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import useMunicipalityDetails from '../hooks/useMunicipalityDetails';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase } from '../services/supabaseClient';
 
 interface ExpandedSection {
   [key: string]: boolean;
@@ -57,7 +58,26 @@ const selectStyle: React.CSSProperties = {
 
 export default function MunicipioDETALLE() {
   const { isMobile } = useMediaQuery();
-  const { municipalities, loading: muniLoading } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
+  const { municipalities } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
+
+  // Dedicated departments query — no year filter, guaranteed to return all 18
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [deptsLoading, setDeptsLoading] = useState(true);
+  useEffect(() => {
+    supabase
+      .from('municipalities')
+      .select('department')
+      .limit(500)
+      .then(({ data }) => {
+        if (data) {
+          const depts = [...new Set(
+            data.map((d: any) => d.department).filter(Boolean) as string[]
+          )].sort();
+          setDepartments(depts);
+        }
+        setDeptsLoading(false);
+      });
+  }, []);
 
   const [selectedYear, setSelectedYear] = useState(2024);
   const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -77,10 +97,6 @@ export default function MunicipioDETALLE() {
     selectedYear,
     selectedDepartment
   );
-
-  const departments = useMemo(() => {
-    return [...new Set(municipalities.map((m) => m.department).filter(Boolean))].sort();
-  }, [municipalities]);
 
   const municipiosByDept = useMemo(() => {
     return selectedDepartment
@@ -234,7 +250,7 @@ export default function MunicipioDETALLE() {
               onChange={e => { setSelectedDepartment(e.target.value); setSelectedMunicipio(''); }}
               style={selectStyle}
             >
-              {muniLoading
+              {deptsLoading
                 ? <option value="">Cargando departamentos…</option>
                 : <option value="">— Selecciona Departamento —</option>
               }

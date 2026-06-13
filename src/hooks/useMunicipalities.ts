@@ -90,7 +90,7 @@ export const useMunicipalitiesMultiYear = (
           query = query.in('year', selectedYears);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.limit(5000);
 
         if (error) {
           throw error;

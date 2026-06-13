@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { useMunicipalities } from '../hooks/useMunicipalities.ts';

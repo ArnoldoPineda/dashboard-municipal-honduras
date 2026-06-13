@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';

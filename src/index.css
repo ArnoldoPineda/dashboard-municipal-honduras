@@ -1,18 +1,238 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
+/* ============================================================
+   SIMHO Design System — CSS Variables
+   ============================================================ */
+:root {
+  --bg: #0a0f1e;
+  --bg-card: rgba(13, 21, 38, 0.74);
+  --bg-sidebar: linear-gradient(rgba(11, 17, 32, 0.97), rgba(8, 12, 24, 0.94));
+  --teal: #00d4b8;
+  --teal-dim: rgba(0, 212, 184, 0.12);
+  --teal-border: rgba(0, 212, 184, 0.14);
+  --teal-glow: rgba(0, 212, 184, 0.35);
+  --amber: #f59e0b;
+  --red: #ef5a5a;
+  --green: #1f9d57;
+  --text: #e8eef6;
+  --text-secondary: #7c8aa3;
+  --text-muted: #4a5a73;
+  --text-inactive: #aab6c9;
+  --sidebar-w: 236px;
+  --radius-card: 10px;
+  --transition: 0.16s;
+}
+
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
   margin: 0;
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  background-color: #f5f5f5;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  font-family: 'Barlow Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text);
+  overflow: hidden;
 }
 
-h1 {
-  color: #333;
+#root { height: 100%; }
+
+/* ============================================================
+   SIMHO Scrollbar
+   ============================================================ */
+.simho-scroll::-webkit-scrollbar { width: 8px; }
+.simho-scroll::-webkit-scrollbar-track { background: transparent; }
+.simho-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 184, 0.25);
+  border-radius: 4px;
+}
+.simho-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 184, 0.45);
 }
 
-p {
-  color: #666;
+/* ============================================================
+   SIMHO Form Controls
+   ============================================================ */
+input.simho-search {
+  background: rgba(13, 21, 38, 0.8);
+  border: 1px solid rgba(0, 212, 184, 0.22);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  padding: 7px 12px;
+  width: 100%;
+  transition: border-color var(--transition);
 }
+input.simho-search::placeholder { color: var(--text-muted); }
+input.simho-search:focus {
+  outline: none;
+  border-color: rgba(0, 212, 184, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(0, 212, 184, 0.1);
+}
+
+select.simho-select {
+  background: rgba(13, 21, 38, 0.8);
+  border: 1px solid rgba(0, 212, 184, 0.22);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: border-color var(--transition);
+}
+select.simho-select:focus {
+  outline: none;
+  border-color: rgba(0, 212, 184, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(0, 212, 184, 0.12);
+}
+select.simho-select option { background: #0d1628; color: var(--text); }
+
+/* ============================================================
+   SIMHO Card
+   ============================================================ */
+.simho-card {
+  background: var(--bg-card);
+  border: 1px solid var(--teal-border);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 14px rgba(0, 212, 184, 0.35); }
+  50%       { box-shadow: 0 0 22px rgba(0, 212, 184, 0.6); }
+}
+
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.simho-view-in {
+  animation: viewIn 0.22s ease both;
+}
+
+/* ============================================================
+   SIMHO dark overrides — legacy Tailwind pages inside .simho-content
+   ============================================================ */
+.simho-content {
+  overflow-y: auto;
+}
+
+/* ── White / gray card backgrounds ── */
+.simho-content .bg-white {
+  background: rgba(13,21,38,0.74) !important;
+  border: 1px solid rgba(0,212,184,0.14) !important;
+}
+.simho-content .bg-gray-50 { background: rgba(8,13,26,0.55) !important; }
+.simho-content .bg-gray-100 { background: rgba(13,18,32,0.65) !important; }
+.simho-content .bg-gray-200 { background: rgba(20,28,48,0.75) !important; }
+.simho-content .bg-blue-50  { background: rgba(0,212,184,0.06) !important; }
+.simho-content .bg-red-50   { background: rgba(239,90,90,0.07) !important; }
+.simho-content .bg-green-50 { background: rgba(31,157,87,0.07) !important; }
+.simho-content .bg-yellow-50 { background: rgba(245,158,11,0.07) !important; }
+.simho-content .bg-purple-50 { background: rgba(139,92,246,0.07) !important; }
+.simho-content .bg-orange-50 { background: rgba(249,115,22,0.07) !important; }
+.simho-content .bg-emerald-50 { background: rgba(16,185,129,0.07) !important; }
+.simho-content .bg-blue-100 { background: rgba(0,212,184,0.1) !important; }
+
+/* Active button: blue → teal */
+.simho-content .bg-blue-600 { background: rgba(0,212,184,0.2) !important; color: #5eead4 !important; }
+.simho-content .bg-green-600 { background: rgba(31,157,87,0.22) !important; color: #6ee7b7 !important; }
+
+/* ── Shadows → subtle teal ring ── */
+.simho-content .shadow,
+.simho-content .shadow-sm,
+.simho-content .shadow-md,
+.simho-content .shadow-lg {
+  box-shadow: 0 0 0 1px rgba(0,212,184,0.08) !important;
+}
+
+/* ── Text colors ── */
+.simho-content .text-gray-900 { color: #e8eef6 !important; }
+.simho-content .text-gray-800 { color: #cfd8e8 !important; }
+.simho-content .text-gray-700 { color: #b0bdd4 !important; }
+.simho-content .text-gray-600 { color: #7c8aa3 !important; }
+.simho-content .text-gray-500 { color: #4a5a73 !important; }
+.simho-content .text-blue-600 { color: #00d4b8 !important; }
+.simho-content .text-blue-700 { color: #5eead4 !important; }
+.simho-content .text-blue-900 { color: #a0f0e8 !important; }
+.simho-content .text-green-600 { color: #1f9d57 !important; }
+.simho-content .text-green-800 { color: #34d399 !important; }
+.simho-content .text-green-900 { color: #6ee7b7 !important; }
+.simho-content .text-red-600   { color: #ef5a5a !important; }
+.simho-content .text-red-800   { color: #fca5a5 !important; }
+.simho-content .text-yellow-600 { color: #f59e0b !important; }
+.simho-content .text-yellow-900 { color: #fde68a !important; }
+.simho-content .text-emerald-600 { color: #10b981 !important; }
+.simho-content .text-emerald-700 { color: #34d399 !important; }
+.simho-content .text-purple-700 { color: #c084fc !important; }
+.simho-content .text-orange-700 { color: #fb923c !important; }
+
+/* ── Borders ── */
+.simho-content .border-gray-100 { border-color: rgba(0,212,184,0.08) !important; }
+.simho-content .border-gray-200 { border-color: rgba(0,212,184,0.12) !important; }
+.simho-content .border-gray-300 { border-color: rgba(0,212,184,0.18) !important; }
+.simho-content .border-blue-200 { border-color: rgba(0,212,184,0.25) !important; }
+.simho-content .border-blue-600 { border-color: #00d4b8 !important; }
+.simho-content .border-red-200  { border-color: rgba(239,90,90,0.3) !important; }
+.simho-content .border-green-600 { border-color: #1f9d57 !important; }
+.simho-content .border-yellow-200 { border-color: rgba(245,158,11,0.3) !important; }
+.simho-content .divide-gray-200 > * + * { border-color: rgba(0,212,184,0.1) !important; }
+.simho-content .divide-y > * + * { border-color: rgba(0,212,184,0.1) !important; }
+
+/* ── Badge colors ── */
+.simho-content .bg-yellow-400 { background: #f59e0b !important; }
+.simho-content .bg-gray-400   { background: rgba(170,182,201,0.5) !important; }
+.simho-content .bg-orange-600 { background: rgba(249,115,22,0.7) !important; }
+.simho-content .bg-gray-200.text-gray-700 { background: rgba(20,28,48,0.8) !important; color: #aab6c9 !important; }
+
+/* ── Form controls ── */
+.simho-content select,
+.simho-content input[type="text"],
+.simho-content input[type="number"] {
+  background: rgba(8,13,24,0.8) !important;
+  color: #e8eef6 !important;
+  border-color: rgba(0,212,184,0.25) !important;
+}
+.simho-content select option { background: #0d1526; color: #e8eef6; }
+.simho-content label { color: #aab6c9; }
+
+/* ── Hover states ── */
+.simho-content .hover\:bg-gray-50:hover  { background: rgba(0,212,184,0.05) !important; }
+.simho-content .hover\:bg-gray-100:hover { background: rgba(13,18,32,0.9) !important; }
+.simho-content .hover\:bg-gray-200:hover { background: rgba(20,28,48,0.9) !important; }
+.simho-content .hover\:bg-gray-300:hover { background: rgba(25,35,58,0.9) !important; }
+.simho-content .hover\:bg-blue-50:hover  { background: rgba(0,212,184,0.08) !important; }
+.simho-content .hover\:bg-blue-100:hover { background: rgba(0,212,184,0.12) !important; }
+
+/* ── Recharts dark theme ── */
+.simho-content .recharts-cartesian-grid-horizontal line,
+.simho-content .recharts-cartesian-grid-vertical line {
+  stroke: rgba(0,212,184,0.08) !important;
+}
+.simho-content .recharts-text tspan,
+.simho-content .recharts-text { fill: #7c8aa3 !important; }
+.simho-content .recharts-label { fill: #7c8aa3 !important; }
+.simho-content .recharts-legend-item-text { color: #aab6c9 !important; }
+.simho-content .recharts-tooltip-wrapper .bg-white {
+  background: rgba(8,14,28,0.95) !important;
+  border-color: rgba(0,212,184,0.3) !important;
+  color: #e8eef6 !important;
+}
+.simho-content .recharts-default-tooltip {
+  background: rgba(8,14,28,0.95) !important;
+  border: 1px solid rgba(0,212,184,0.3) !important;
+  color: #e8eef6 !important;
+}
+.simho-content .recharts-default-tooltip .recharts-tooltip-label { color: #e8eef6 !important; }
+.simho-content .recharts-default-tooltip .recharts-tooltip-item { color: #aab6c9 !important; }

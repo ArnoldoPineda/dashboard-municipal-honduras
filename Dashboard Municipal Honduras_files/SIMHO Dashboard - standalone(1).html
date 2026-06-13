@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<!-- saved from url=(0320)https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/v1/design/projects/800e70c0-f106-4297-98c8-66eb2cd35e2b/serve/SIMHO%20Dashboard%20-%20standalone.html?t=a8d74119d803b49c13e659e17c6e2e67e857e4214ff9c3f3dc30acb60644c053.b40f239b-3447-4f32-bbb0-36f133e73443.e3d8cd71-1a92-467e-bc56-3b15c0a444d6.1781348042 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>
+    .sc-placeholder{background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;overflow:hidden}
+    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes sc-veil-pulse{0%,100%{opacity:.4}50%{opacity:1}}
+    html.sc-dc-streaming .sc-placeholder,
+    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
+      background:color-mix(in srgb,currentColor 5%,transparent);
+      border-color:transparent}
+    html.sc-dc-streaming .sc-placeholder::before,
+    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
+      background-size:400% 100%;animation:sc-shine .73s ease infinite}
+    html.sc-dc-streaming::after{content:'';position:fixed;inset:0;
+      z-index:2147483646;pointer-events:none;
+      box-shadow:inset 0 0 90px rgba(217,119,87,.16),inset 0 0 22px rgba(217,119,87,.1);
+      animation:sc-veil-pulse 1.36s ease-in-out infinite}
+    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
+      color:rgba(0,0,0,.7);word-break:break-word}
+    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
+      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;color:transparent;
+      user-select:none}
+    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
+      color:rgba(0,0,0,.5);background:rgba(0,0,0,.05);border-radius:3px;
+      padding:0 3px}
+    .sc-host.sc-has-error{position:relative}
+    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
+      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
+      border-radius:4px;white-space:pre-wrap;pointer-events:none}
+    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts — keep both
+       in sync until dc-runtime regains a build step. */
+    @media print {
+      @page { margin: 0.5cm; }
+      html, body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      section, article, figure, table { break-inside: avoid; }
+      *, *::before, *::after {
+        animation-delay: -99s !important; animation-duration: .001s !important;
+        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+        animation-play-state: running !important; transition-duration: 0s !important;
+      }
+    }
+  </style><script>window.__resources = {};</script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/05eb6ff3-b91d-40ca-b649-eac58e59e031"></script>
+<style>x-dc{display:none!important}</style><script src="./react.production.min.js.descarga" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script><script src="./react-dom.production.min.js.descarga" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script><style></style><style>html,body{height:100%;margin:0}#dc-root,#dc-root>.sc-host{height:100%}</style><link rel="preconnect" href="https://fonts.googleapis.com/" data-dc-tpl="1"><link rel="preconnect" href="https://fonts.gstatic.com/" data-dc-tpl="2"><style data-dc-tpl="3">/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/0c87c6ab-64f6-4b46-85bd-a89817f2268b") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/d29fd6fb-dbd8-4378-9e6f-99601cc5745e") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/dfb34e3e-bae4-494a-99a5-8e883a17e110") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/3c349d1d-59bb-4014-89f8-8c2fcac74af3") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/15d0cc35-678e-434c-a417-d4fd02267e52") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/b7f99541-1a67-45f3-b453-967337857198") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/c4cc0367-6179-4ad4-9a12-446c5e9ae8b4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/55c0c26e-5097-4fde-99df-fec249c387c9") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/ff03d089-9633-48ff-96da-193d2886490c") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/889d61ae-f045-45df-bb13-9b218cd4f619") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/65449cdf-fa2e-49d0-9867-bb45aa2a52af") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/1a5e334d-7b98-4184-b35f-4790b13b817c") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/149e4b3b-66e9-4599-8eb7-f287a4eb14c1") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/a76fd97b-a713-46ac-88de-0ac0528ab120") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/dec9f120-5923-476c-8c95-afa2f653fcf1") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/55901910-edf3-475e-96be-13fcd08f0f65") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/6da3b439-6cf9-46b7-95cb-d2ddeb77afbe") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/a74d335e-7ede-49b4-9056-d9db64d04f61") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/fd0724d5-46aa-43cb-b14d-20c8af2d7a8e") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/049e9973-d9a8-4665-a9f4-32ee303be4f1") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/36321e9d-e11e-4cc3-8d9d-d8f0346ed6d5") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/e25f40e8-f95f-4d43-bcb8-d06643893616") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/d96e0676-565d-40e6-a8e6-720b2e303579") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/f5a13002-632d-4bb1-96e4-b9c7aff95131") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/9bc2fea6-7554-4238-9012-7503d8f665fa") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/2ecfbb0c-e81d-427d-b1ad-13a54cdb50ae") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/adcbfc81-381c-4a6d-b585-10ec1b1a5277") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/b62330d5-e4bb-4354-a474-dd9d75611d1f") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/d72b3a6d-1703-4dd3-9605-d35ea921f66c") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/63034746-727b-4d32-a139-45bac4831384") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style><style data-dc-tpl="4">
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; background:#0a0f1e; }
+    @keyframes viewIn{ from{ transform:translateY(16px);} to{ transform:none;} }
+    @keyframes pulseGlow{ 0%,100%{ box-shadow:0 0 14px rgba(0,212,184,.35);} 50%{ box-shadow:0 0 22px rgba(0,212,184,.6);} }
+    .simho-scroll::-webkit-scrollbar{ width:8px; }
+    .simho-scroll::-webkit-scrollbar-track{ background:transparent; }
+    .simho-scroll::-webkit-scrollbar-thumb{ background:rgba(0,212,184,.25); border-radius:4px; }
+    .simho-scroll::-webkit-scrollbar-thumb:hover{ background:rgba(0,212,184,.45); }
+    input.simho-search::placeholder{ color:#4a5a73; }
+    input.simho-search:focus{ outline:none; border-color:rgba(0,212,184,.55)!important; }
+    select.simho-select:focus{ outline:none; border-color:rgba(0,212,184,.65)!important; box-shadow:0 0 0 3px rgba(0,212,184,.12); }
+    select.simho-select option{ background:#0d1628; color:#e8eef6; }
+  </style><script src="blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/1403d6f7-ca28-4141-8635-519fe57d44d1" data-dc-tpl="5"></script><script src="blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/ca2961c2-ccf3-4b1c-ad2d-096cc860a373" data-dc-tpl="6"></script><script src="blob:https://800e70c0-f106-4297-98c8-66eb2cd35e2b.claudeusercontent.com/e7ad9012-4841-4b5e-9fde-c7c63881312e" data-dc-tpl="7"></script></head>
+<body>
+<div id="dc-root"><div class="sc-host" data-sc-name="SIMHO Dashboard - standalone"><div data-dc-tpl="8" style="position: fixed; inset: 0px; background: rgb(10, 15, 30); font-family: &quot;Barlow Condensed&quot;, sans-serif; color: rgb(232, 238, 246); overflow: hidden; display: flex;">
+
+  <div data-dc-tpl="9" style="position: absolute; inset: 0px; pointer-events: none; background-image: linear-gradient(rgba(0, 212, 184, 0.043) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 212, 184, 0.043) 1px, transparent 1px); background-size: 42px 42px; opacity: 0.55;"></div>
+  <div data-dc-tpl="10" style="position: absolute; inset: 0px; pointer-events: none; background: radial-gradient(120% 78% at 50% -12%, rgba(0, 212, 184, 0.1), transparent 58%);"></div>
+  <div data-dc-tpl="11" style="position: absolute; inset: 0px; pointer-events: none; background: radial-gradient(90% 60% at 88% 108%, rgba(245, 158, 11, 0.06), transparent 60%);"></div>
+
+  <aside data-dc-tpl="12" style="width: 236px; flex: 0 0 auto; height: 100%; position: relative; z-index: 5; border-right: 1px solid rgba(0, 212, 184, 0.14); background: linear-gradient(rgba(11, 17, 32, 0.97), rgba(8, 12, 24, 0.94)); display: flex; flex-direction: column; padding: 18px 14px;">
+    <div data-dc-tpl="13" style="display: flex; align-items: center; gap: 12px; padding: 4px 8px 18px;">
+      <div data-dc-tpl="14" style="width: 34px; height: 34px; border: 1.5px solid rgb(0, 212, 184); border-radius: 8px; display: flex; align-items: center; justify-content: center; animation: 3.4s ease-in-out 0s infinite normal none running pulseGlow; flex: 0 0 auto;">
+        <div data-dc-tpl="15" style="width: 12px; height: 12px; background: rgb(0, 212, 184); border-radius: 3px; box-shadow: rgb(0, 212, 184) 0px 0px 10px;"></div>
+      </div>
+      <div data-dc-tpl="16" style="line-height: 1;">
+        <div data-dc-tpl="17" style="font-size: 20px; font-weight: 600; letter-spacing: 0.16em;">SIMHO</div>
+        <div data-dc-tpl="18" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; color: rgb(124, 138, 163); letter-spacing: 0.06em; margin-top: 4px;">INTELIGENCIA MUNICIPAL</div>
+      </div>
+    </div>
+
+    <div data-dc-tpl="19" style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 0%; overflow-y: auto;">
+      <div data-dc-tpl="20" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8.5px; color: rgb(74, 90, 115); letter-spacing: 0.14em; padding: 8px 10px 5px;">NAVEGACIÓN</div>
+
+      <div data-dc-tpl="21" style="position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; color: rgb(170, 182, 201); transition: color 0.16s;">
+        <div data-dc-tpl="23" style="position: absolute; inset: 0px; border-radius: 10px; background: rgba(0, 212, 184, 0.12); box-shadow: rgb(0, 212, 184) 2px 0px 0px inset;"></div>
+        <svg data-dc-tpl="24" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="position: relative; z-index: 1;"><path data-dc-tpl="25" d="M9 4 4 6v14l5-2 6 2 5-2V4l-5 2-6-2z" stroke-linejoin="round"></path><path data-dc-tpl="26" d="M9 4v14M15 6v14"></path></svg>
+        <span data-dc-tpl="27" style="position: relative; z-index: 1;">Mapa Interactivo</span>
+      </div>
+      <div data-dc-tpl="28" style="position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; color: rgb(170, 182, 201); transition: color 0.16s;">
+        
+        <svg data-dc-tpl="31" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="position: relative; z-index: 1;"><path data-dc-tpl="32" d="M4 20h16" stroke-linecap="round"></path><rect data-dc-tpl="33" x="5.5" y="12" width="3.4" height="6" rx="1"></rect><rect data-dc-tpl="34" x="10.3" y="7" width="3.4" height="11" rx="1"></rect><rect data-dc-tpl="35" x="15.1" y="9.5" width="3.4" height="8.5" rx="1"></rect></svg>
+        <span data-dc-tpl="36" style="position: relative; z-index: 1;">Dashboard Nacional</span>
+      </div>
+      <div data-dc-tpl="37" style="position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; color: rgb(170, 182, 201); transition: color 0.16s;">
+        
+        <svg data-dc-tpl="40" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="position: relative; z-index: 1;"><path data-dc-tpl="41" d="M5 21V8l7-4 7 4v13" stroke-linejoin="round"></path><path data-dc-tpl="42" d="M9.5 21v-5h5v5M4 21h16M9.5 11h.01M14.5 11h.01" stroke-linecap="round"></path></svg>
+        <span data-dc-tpl="43" style="position: relative; z-index: 1;">Detalle Municipio</span>
+      </div>
+      <div data-dc-tpl="44" style="position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; color: rgb(170, 182, 201); transition: color 0.16s;">
+        
+        <svg data-dc-tpl="47" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="position: relative; z-index: 1;"><circle data-dc-tpl="48" cx="12" cy="12" r="8"></circle><path data-dc-tpl="49" d="M12 7.5v9M9.8 10c0-1.1 1-1.8 2.2-1.8s2.2.6 2.2 1.6-1 1.5-2.2 1.5-2.2.6-2.2 1.6 1 1.7 2.2 1.7 2.2-.7 2.2-1.8" stroke-linecap="round"></path></svg>
+        <span data-dc-tpl="50" style="position: relative; z-index: 1;">Datos Financieros</span>
+      </div>
+      <div data-dc-tpl="51" style="position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; color: rgb(170, 182, 201); transition: color 0.16s;">
+        
+        <svg data-dc-tpl="54" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="position: relative; z-index: 1;"><path data-dc-tpl="55" d="M4 16l5-5 4 4 7-7" stroke-linecap="round" stroke-linejoin="round"></path><path data-dc-tpl="56" d="M17 8h4v4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <span data-dc-tpl="57" style="position: relative; z-index: 1;">Análisis</span>
+      </div>
+      <div data-dc-tpl="58" style="position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; color: rgb(170, 182, 201); transition: color 0.16s;">
+        
+        <svg data-dc-tpl="61" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="position: relative; z-index: 1;"><path data-dc-tpl="62" d="M12 4v16M6 8h12" stroke-linecap="round"></path><path data-dc-tpl="63" d="M6 8l-2.6 5h5.2zM18 8l-2.6 5h5.2z" stroke-linejoin="round"></path><path data-dc-tpl="64" d="M9 20h6" stroke-linecap="round"></path></svg>
+        <span data-dc-tpl="65" style="position: relative; z-index: 1;">Comparativos</span>
+      </div>
+      <div data-dc-tpl="66" style="position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; color: rgb(170, 182, 201); transition: color 0.16s;">
+        
+        <svg data-dc-tpl="69" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="position: relative; z-index: 1;"><path data-dc-tpl="70" d="M8 4h8v5a4 4 0 0 1-8 0V4z" stroke-linejoin="round"></path><path data-dc-tpl="71" d="M8 6H5.5v1A2.8 2.8 0 0 0 8 9.7M16 6h2.5v1A2.8 2.8 0 0 1 16 9.7M10 14.5h4M9 20h6M12 14v6" stroke-linecap="round"></path></svg>
+        <span data-dc-tpl="72" style="position: relative; z-index: 1;">Rankings</span>
+      </div>
+    </div>
+
+    <div data-dc-tpl="73" style="border-top: 1px solid rgba(255, 255, 255, 0.06); padding: 13px 10px 2px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8.5px; color: rgb(74, 90, 115); line-height: 1.7;">
+      <div data-dc-tpl="74">FUENTE: AMHON / SEFIN / INE</div>
+      <div data-dc-tpl="75" style="color: rgb(93, 110, 137);">EJERCICIO FISCAL <span class="sc-interp">2024</span></div>
+    </div>
+  </aside>
+
+  <div data-dc-tpl="76" style="position: relative; flex: 1 1 0%; min-width: 0px; height: 100%; z-index: 2;">
+
+  
+  <div data-dc-tpl="78">
+  <header data-dc-tpl="79" style="position: relative; z-index: 6; height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0px 28px; border-bottom: 1px solid rgba(0, 212, 184, 0.14); background: linear-gradient(rgba(10, 15, 30, 0.92), rgba(10, 15, 30, 0.35));">
+    <div data-dc-tpl="80" style="display: flex; align-items: center; gap: 14px;">
+      <div data-dc-tpl="81" style="width: 36px; height: 36px; border: 1.5px solid rgb(0, 212, 184); border-radius: 8px; display: flex; align-items: center; justify-content: center; animation: 3.4s ease-in-out 0s infinite normal none running pulseGlow;">
+        <div data-dc-tpl="82" style="width: 13px; height: 13px; background: rgb(0, 212, 184); border-radius: 3px; box-shadow: rgb(0, 212, 184) 0px 0px 10px;"></div>
+      </div>
+      <div data-dc-tpl="83" style="line-height: 1;">
+        <div data-dc-tpl="84" style="font-size: 23px; font-weight: 600; letter-spacing: 0.16em;">SIMHO</div>
+        <div data-dc-tpl="85" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(124, 138, 163); letter-spacing: 0.085em; margin-top: 4px;">SISTEMA DE INFORMACIÓN MUNICIPAL DE HONDURAS</div>
+      </div>
+    </div>
+    <div data-dc-tpl="86" style="display: flex; align-items: center; gap: 22px;">
+      <div data-dc-tpl="87" style="display: flex; align-items: center; gap: 10px;">
+        <span data-dc-tpl="88" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(74, 90, 115); letter-spacing: 0.12em;">INDICADOR</span>
+        <div data-dc-tpl="89" style="display: flex; border: 1px solid rgba(0, 212, 184, 0.25); border-radius: 8px; overflow: hidden;">
+          <button data-dc-tpl="90" style="padding: 7px 13px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; letter-spacing: 0.08em; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; transition: 0.2s; background: rgb(0, 212, 184); color: rgb(4, 35, 31); font-weight: 600;">PRESUPUESTO</button>
+          <button data-dc-tpl="91" style="padding: 7px 13px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; letter-spacing: 0.08em; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; transition: 0.2s; background: transparent; color: rgb(124, 138, 163);">POBLACIÓN</button>
+        </div>
+      </div>
+      <div data-dc-tpl="92" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(74, 90, 115); text-align: right; line-height: 1.6;">
+        <div data-dc-tpl="93">EJERCICIO FISCAL 2024</div>
+        <div data-dc-tpl="94" style="color: rgb(124, 138, 163);">18 DEPARTAMENTOS · 298 MUNICIPIOS</div>
+      </div>
+    </div>
+  </header>
+
+  <main data-dc-tpl="95" style="position: absolute; inset: 72px 0px 0px;">
+
+    
+    
+      <div data-dc-tpl="97" data-screen-label="Vista Nacional" style="position: absolute; inset: 0px; animation: 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0s 1 normal none running viewIn;">
+        <div data-dc-tpl="98" style="position: absolute; inset: 0px;">
+          <svg data-dc-tpl="99" viewBox="0 0 964 728" width="964" height="728" style="width: 100%; height: 100%; display: block;"><defs><filter id="hnGlow" x="-50%" y="-50%" width="200%" height="200%"><fedropshadow dx="0" dy="0" stdDeviation="6" flood-color="#00d4b8" flood-opacity="0.9"></fedropshadow></filter></defs><g><path d="M424.464,255.377L424.544,256.352L423.662,256.406L423.502,256.514L423.421,256.785L423.502,257.218L423.662,257.868L423.822,258.626L424.063,260.358L424.464,261.333L425.186,262.253L426.87,263.66L427.912,264.689L429.195,267.719L429.596,268.369L430.719,268.747L431.36,269.072L431.761,269.072L432.483,269.018L432.884,269.451L433.205,269.83L433.365,272.644L433.445,275.403L432.884,276.972L431.841,278.108L429.035,279.19L426.469,280.704L423.903,279.568L420.695,279.081L417.728,279.406L416.846,279.622L416.124,279.893L415.082,280.109L414.12,280.001L412.836,279.514L411.714,279.352L407.384,279.622L403.214,278.432L401.209,278.054L399.846,278.324L397.28,279.136L394.794,280.271L389.982,282.976L387.015,284.057L384.449,284.652L380.841,284.652L379.077,284.869L376.831,284.382L375.468,282.381L367.048,284.652L361.756,284.49L359.591,284.869L355.18,288.762L353.256,290.925L352.133,291.844L350.048,293.034L342.43,295.845L338.821,298.385L337.699,299.412L337.137,299.736L332.246,299.682L323.906,297.683L322.703,297.737L321.581,297.52L320.458,296.71L319.175,296.223L318.293,296.115L317.491,296.331L316.85,296.764L316.208,296.98L315.727,297.412L315.005,297.737L314.444,297.953L313.722,297.845L313.081,297.683L311.316,296.818L310.354,296.169L309.632,295.574L308.75,294.493L307.948,293.196L307.307,290.114L307.227,288.546L307.066,287.302L305.062,285.95L303.939,285.842L303.378,286.113L298.807,288.708L297.123,288.492L292.151,289.844L286.939,290.276L285.094,289.519L280.443,284.274L280.042,283.679L279.722,282.922L279.08,279.19L278.92,277.404L277.877,273.185L276.594,270.858L274.67,269.83L266.089,263.877L267.773,263.444L268.816,262.848L269.538,261.603L269.538,260.196L269.217,259.059L268.415,258.463L267.533,258.734L267.052,257.11L265.288,255.053L265.207,253.753L265.849,252.67L267.693,250.775L268.575,249.529L269.618,246.604L270.34,245.413L271.623,244.221L272.745,243.517L273.387,242.379L273.066,239.508L273.788,239.237L275.873,239.508L277.797,240.212L283.009,243.354L285.014,243.571L285.014,242.813L283.811,241.621L285.014,240.212L289.104,237.72L286.859,240.808L286.057,242.704L287.099,243.571L287.741,244.384L298.727,254.403L302.255,255.973L306.024,255.215L306.665,254.511L307.868,252.562L308.43,251.966L309.552,251.858L312.599,252.02L313.241,251.479L313.963,249.421L315.647,248.338L318.052,248.121L330.161,250.883L340.746,254.619L351.572,255.811L364.081,258.734L368.251,259.059L372.742,258.626L379.959,256.46L382.044,256.135L382.364,255.756L384.289,254.24L384.77,254.024L385.412,253.428L386.855,253.97L388.298,254.782L388.86,255.215L393.832,255.648L416.766,253.645L420.615,253.753L424.223,255.215ZM418.53,234.902L417.969,235.552L417.407,235.173L417.808,234.577L418.129,233.873ZM421.256,233.656L420.775,234.035L420.454,233.547L419.973,233.06L419.893,232.68L420.615,232.193L421.256,232.572Z" fill="rgb(8, 114, 106)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M593.263,231.325L593.263,343.262L586.206,334.952L582.357,331.389L565.918,324.101L563.994,322.859L557.178,314.541L550.923,305.303L546.753,301.898L533.923,296.98L521.894,286.545L512.432,281.407L510.026,280.866L508.984,281.407L507.781,281.894L506.899,282.056L505.776,281.57L504.974,280.866L504.172,280.542L503.531,280.434L500.965,281.786L501.125,282.868L500.804,283.787L499.842,284.869L497.356,286.924L495.031,288.384L493.748,288.33L492.385,287.41L491.583,287.14L490.781,286.978L489.979,287.356L489.418,288.005L486.531,292.709L479.394,299.736L472.658,303.411L472.177,304.168L471.375,304.168L470.573,303.79L469.611,303.52L468.408,303.411L466.323,303.682L465.28,304.168L463.356,304.546L461.111,305.627L458.464,306.275L455.738,305.681L448.521,301.79L448.36,298.601L447.559,296.98L447.478,296.385L448.2,290.871L448.04,289.303L447.719,288.276L447.318,287.951L446.837,287.897L446.516,288.059L446.356,288.384L446.195,288.546L446.035,288.546L445.875,288.384L445.634,288.167L445.313,288.059L444.912,287.951L444.592,287.843L444.271,287.627L443.87,287.14L443.549,286.816L443.228,286.653L442.908,286.491L442.667,286.437L441.945,286.491L438.978,285.734L433.365,285.95L432.162,285.842L431.601,285.626L431.28,285.193L429.997,283.571L426.469,280.704L429.035,279.19L431.841,278.108L432.884,276.972L433.445,275.403L433.365,272.644L433.205,269.83L432.884,269.451L432.483,269.018L431.761,269.072L431.36,269.072L430.719,268.747L429.596,268.369L429.195,267.719L427.912,264.689L426.87,263.66L425.186,262.253L424.464,261.333L424.063,260.358L423.822,258.626L423.662,257.868L423.502,257.218L423.421,256.785L423.502,256.514L423.662,256.406L424.544,256.352L424.464,255.377L427.19,257.11L429.035,257.597L431.922,257.814L434.247,257.435L436.172,256.514L447.318,249.529L450.205,246.334L451.568,245.196L455.658,243.571L459.667,242.596L476.507,241.946L477.95,241.512L479.153,240.917L483.724,237.557L486.21,234.794L487.252,231.867L485.328,229.374L477.95,228.29L474.342,227.423L474.983,226.068L478.031,225.797L487.092,227.585L493.347,228.778L497.757,229.266L503.29,230.892L508.823,232.301L510.748,232.735L512.031,233.331L512.352,234.74L512.272,236.365L512.592,237.72L513.474,237.72L513.394,236.907L513.635,236.528L514.036,236.311L514.276,236.04L516.201,236.094L517.243,237.666L519.328,239.345L521.814,241.187L527.026,243.409L535.928,245.738L542.022,245.25L550.763,244.329L563.433,244.004L570.168,241.133L578.749,234.902L584.362,231.542Z" fill="rgb(10, 97, 92)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M359.992,349.682L360.312,351.031L360.713,351.894L361.996,353.35L363.039,354.375L365.765,355.831L367.128,357.287L368.812,358.204L369.294,358.582L369.534,358.905L368.411,359.822L367.449,363.111L366.326,364.135L367.048,366.669L367.449,367.532L368.251,368.825L368.812,370.119L369.053,373.407L369.374,374.7L370.336,376.047L371.298,380.52L374.907,389.57L376.35,392.209L377.874,393.933L378.916,394.794L381.242,395.387L382.284,396.517L386.374,400.34L388.619,403.194L388.539,405.347L388.058,407.285L388.138,408.307L388.459,409.438L389.662,411.375L390.063,412.29L390.303,414.12L390.624,415.788L392.148,419.877L392.067,421.545L383.327,428.268L379.478,431.979L378.596,435.958L376.35,439.991L370.657,445.044L369.213,448.806L367.93,450.633L367.69,451.278L367.85,451.708L368.812,451.977L369.454,452.353L369.935,452.944L370.015,453.374L368.812,455.845L366.326,456.168L364.482,455.845L362.878,455.845L360.392,456.813L361.034,458.962L364.161,463.152L367.369,465.569L368.251,466.052L368.572,466.804L368.812,468.147L368.411,472.926L367.128,475.396L365.765,476.846L363.841,477.866L359.751,477.168L360.232,478.886L360.392,479.798L360.312,480.818L359.671,481.999L359.43,483.556L359.591,485.918L359.109,491.499L356.864,496.972L354.94,499.6L354.378,500.03L352.534,500.03L349.647,499.493L348.685,499.01L346.039,496.596L344.274,495.791L343.472,496.757L343.232,497.186L343.072,498.152L342.991,499.869L343.072,501.532L343.392,502.819L344.114,503.731L345.477,506.252L345.397,508.129L344.515,509.416L343.633,511.346L343.312,513.437L343.232,513.974L342.671,513.866L337.057,511.4L333.369,512.633L327.595,510.542L323.585,511.025L322.383,510.488L321.019,509.738L316.288,510.327L314.684,508.772L312.439,506.573L312.199,505.018L313,502.98L313.161,502.497L312.68,502.336L311.958,502.336L311.477,502.497L310.114,502.175L308.75,501.8L306.505,501.853L305.222,502.229L304.821,503.624L304.5,506.788L303.859,509.416L303.939,511.132L304.42,512.74L303.458,513.277L302.335,512.901L299.208,510.971L295.038,507.807L294.717,507.378L294.156,507.056L293.755,506.842L291.59,507.11L287.981,506.413L283.17,503.087L282.288,501.746L282.528,496.489L282.609,492.894L285.816,488.708L286.778,485.918L287.099,485.435L287.42,484.629L288.302,480.335L288.462,478.027L286.297,462.131L286.377,459.66L288.863,456.705L289.745,455.899L290.467,455.523L291.269,455.523L294.958,455.093L298.326,453.535L299.769,452.675L300.491,451.762L300.571,451.117L301.854,448.537L304.18,447.086L307.227,446.387L308.109,445.904L308.59,445.151L308.59,444.452L308.43,443.915L308.029,443.162L307.868,442.947L307.628,442.786L307.227,442.625L306.826,442.464L306.264,442.087L305.623,441.496L304.901,440.69L304.581,439.991L304.26,438.7L304.099,433.915L304.26,432.625L304.581,431.925L305.142,431.71L305.703,431.71L306.345,431.818L307.788,432.517L308.67,432.194L309.312,431.764L312.359,427.569L313.562,424.987L313.161,424.127L310.354,421.867L310.114,421.545L310.033,421.168L310.434,420.845L310.675,420.307L310.755,419.177L310.515,418.586L310.194,418.155L307.467,415.68L305.543,414.442L304.981,413.581L304.5,412.451L304.18,411.483L303.859,409.599L309.793,403.624L310.835,401.471L310.915,400.879L311.076,400.179L311.156,399.479L311.156,397.702L311.316,397.217L311.717,396.948L312.118,397.002L312.68,397.163L313.161,397.433L313.722,397.648L314.203,397.756L314.604,397.81L314.925,397.756L315.246,397.81L315.406,398.025L315.566,398.51L315.727,398.725L316.128,398.94L316.609,399.048L317.09,399.156L318.373,399.263L320.137,396.14L320.538,394.471L320.538,393.825L320.458,393.125L320.298,392.209L320.378,391.778L320.538,391.617L320.699,391.778L320.859,391.94L321.1,392.101L321.501,391.994L321.661,391.671L321.741,390.917L321.901,390.593L322.142,390.432L322.543,390.378L323.184,390.163L324.227,389.355L324.628,389.193L325.029,389.085L325.59,388.87L326.152,388.601L327.034,387.954L327.274,387.685L327.274,387.469L327.194,387.254L327.274,386.769L328.557,383.429L329.279,380.574L328.718,376.425L328.236,374.539L328.317,372.652L328.637,371.466L329.038,370.874L329.359,370.496L329.68,370.389L332.166,370.173L334.09,368.718L332.887,366.885L332.727,366.022L332.166,365.375L331.685,364.998L329.68,364.081L331.925,360.9L332.647,359.175L333.85,357.449L336.175,355.4L336.576,354.699L336.737,353.998L336.897,351.517L336.817,350.276L338.902,348.496L344.515,347.74L345.638,347.848L347.001,348.118L347.963,348.604L349.727,349.089L356.062,348.819Z" fill="rgb(1, 205, 179)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M879.781,342.831L879.781,342.885L879.861,343.101L879.7,343.155L879.62,343.101L879.54,342.939ZM865.747,340.942L865.828,341.05L865.828,340.996L865.908,341.212L865.747,341.32L865.667,341.212L865.587,341.05ZM875.53,336.463L875.45,336.571L875.29,336.355L875.53,336.085ZM876.814,335.492L876.814,335.599L876.894,335.545L876.894,335.761L876.733,335.815L876.733,335.761L876.573,335.599ZM863.342,332.685L862.861,333.063L862.7,332.847ZM882.908,332.793L882.667,332.793L882.667,332.361ZM882.427,330.741L882.347,330.795L882.106,330.472ZM881.705,329.338L881.705,329.446L881.785,329.392L881.785,329.608L881.705,329.716L881.625,329.662L881.465,329.446ZM880.422,328.96L880.021,329.23L879.861,328.906ZM870.398,328.042L870.318,328.528L870.078,328.366ZM876.733,327.664L876.573,327.718L876.413,327.556L876.733,327.178ZM874.969,323.993L874.809,324.533L874.408,324.101ZM863.502,323.777L863.261,324.101L863.101,323.831L863.342,323.291ZM871.762,321.887L871.601,321.887L871.441,321.347ZM793.416,249.583L793.336,249.854L793.176,249.529ZM792.534,247.579L792.454,247.796L792.294,247.688L792.374,247.633L792.454,247.579ZM792.294,247.309L792.294,247.417L792.374,247.417L792.374,247.579L792.374,247.633L792.294,247.688L792.213,247.633L792.053,247.471ZM792.133,247.038L792.213,247.146L792.133,247.146ZM792.133,246.929L792.133,246.984L791.732,246.604ZM797.506,240.537L797.426,240.808L797.426,240.754L797.346,240.537ZM797.827,240.05L797.907,240.104L797.987,240.321L797.827,240.375L797.747,240.321L797.666,240.158ZM797.265,239.67L797.105,239.779L797.105,239.67L797.185,239.4ZM795.982,239.345L796.063,239.508L795.902,239.508ZM796.464,239.508L796.383,239.508L796.464,239.345ZM796.784,238.424L796.704,238.695L796.624,238.587ZM795.421,235.011L795.501,235.119L795.501,235.065L795.581,235.282L795.421,235.39L795.341,235.282L795.18,235.119ZM794.699,234.902L794.539,234.956L794.379,234.902L794.539,234.74ZM593.263,382.944L593.263,382.89L593.263,353.944L593.263,343.262L593.263,231.325L599.037,233.276L610.343,238.424L624.537,242.65L631.193,244.979L632.877,246.225L632.155,247.742L630.712,250.016L630.712,251.912L630.712,254.944L633.117,257.381L635.443,257.705L638.33,256.731L638.731,254.294L639.051,253.157L640.174,253.266L640.976,254.782L643.061,256.19L646.028,255.756L648.834,256.081L654.608,256.839L655.651,255.594L657.495,254.782L655.009,253.699L652.042,253.049L642.74,251.479L639.292,249.962L636.325,248.5L635.282,246.55L640.014,247.579L656.132,250.612L666.637,251.695L673.613,252.074L676.019,252.887L682.354,258.247L691.014,265.284L703.764,276.16L716.114,286.816L723.01,292.601L731.991,298.115L734.156,299.412L736.321,300.385L740.491,301.088L741.534,301.628L742.336,302.817L742.336,303.736L741.614,304.384L739.85,304.6L737.765,303.79L733.354,300.277L730.067,299.142L727.821,297.52L726.699,297.034L723.17,296.98L721.566,296.655L720.203,295.304L720.765,295.088L721.246,294.709L721.807,294.547L720.845,293.034L716.915,288.654L716.114,288.654L714.831,289.303L713.307,288.33L711.623,286.978L710.099,286.221L707.694,286.545L706.651,287.302L705.769,288.33L704.085,289.465L703.363,288.978L700.156,287.843L701.599,286.491L702.241,285.734L702.562,284.923L702,284.652L700.717,284.436L699.354,284.382L698.472,284.598L698.151,285.896L698.873,288.005L700.236,290.222L701.679,292.006L701.439,292.223L701.278,292.331L701.198,292.493L700.958,292.871L700.156,292.871L696.627,286.004L695.344,284.598L693.981,284.328L692.458,284.652L690.453,285.301L689.009,285.247L687.005,284.761L685.641,284.598L686.524,287.356L687.245,288.276L689.41,289.033L689.491,290.06L689.09,291.412L688.849,292.871L689.651,292.871L689.972,291.033L692.377,289.898L693.42,286.545L694.543,286.167L695.585,286.816L697.189,290.817L699.113,294.061L699.755,296.818L697.269,297.953L696.066,299.304L696.948,302.385L698.953,305.735L700.958,307.842L703.925,309.463L706.491,310.058L707.533,308.923L706.491,305.357L708.014,306.6L709.458,308.275L709.939,310.112L708.977,312.057L710.58,314.109L712.906,314.487L718.599,313.731L718.599,314.541L717.477,314.541L716.755,314.758L715.392,315.406L715.392,316.162L716.434,318.214L717.798,320.105L719.722,321.509L722.208,322.049L724.373,321.779L727.1,321.077L729.746,320.051L731.51,318.7L729.986,317.296L725.015,314.541L724.213,313.731L723.812,312.921L723.331,312.327L722.208,312.057L721.005,312.003L712.024,308.815L710.5,307.842L707.774,303.898L706.491,302.871L707.533,301.952L708.656,301.304L711.302,300.385L721.727,304.979L723.411,307.464L724.133,308.761L725.736,309.95L727.661,310.814L731.029,311.516L732.392,312.543L733.595,313.893L734.637,315.406L733.835,315.946L732.953,316.756L732.232,317.08L732.232,317.836L734.156,318.268L735.84,317.08L737.043,316.918L737.925,320.483L737.685,324.965L737.925,326.206L738.807,327.07L739.689,327.016L740.251,326.152L740.251,324.533L741.133,324.533L742.175,326.908L743.137,326.368L745.142,322.805L746.987,321.725L749.392,321.023L753.562,320.483L754.123,319.889L753.883,317.134L754.043,316.162L754.845,315.622L755.567,315.676L756.449,316L764.067,317.458L766.072,317.08L766.072,317.836L765.35,318.538L765.43,319.024L765.831,319.565L766.072,320.483L766.072,324.101L765.43,325.937L764.067,326.692L762.704,326.206L762.142,324.101L761.661,323.507L760.699,323.075L759.416,322.859L758.454,322.805L757.732,323.291L757.09,324.425L756.369,326.206L755.807,326.854L755.326,327.232L754.925,327.826L754.765,329.122L755.006,330.202L755.727,330.418L756.529,330.094L757.171,329.5L756.529,328.474L756.449,327.718L756.689,326.962L757.171,326.206L758.053,326.206L758.293,329.176L759.095,331.335L760.539,332.145L762.864,331.173L763.506,330.472L764.548,328.69L765.27,327.934L766.152,327.34L771.444,325.451L771.364,325.019L770.883,323.723L770.322,322.967L769.68,322.427L769.039,321.671L768.558,320.483L768.157,318.754L767.275,316.432L765.831,315.028L763.666,316.162L760.138,314.055L758.454,313.677L756.369,314.541L755.647,313.731L755.888,313.299L756.369,312.057L754.444,311.84L749.392,309.95L748.35,309.139L747.147,307.788L744.661,306.978L742.817,305.951L743.538,303.682L745.463,302.763L747.307,303.736L748.911,305.357L750.355,306.167L751.638,306.6L764.308,313.245L780.105,319.241L786.119,323.723L787.562,325.991L789.407,333.818L791.492,338.676L794.619,343.316L798.148,346.23L812.662,352.002L811.138,352.272L807.129,352.002L805.525,352.326L802.398,353.782L797.185,353.674L796.704,353.782L795.341,353.189L794.459,352.595L794.539,351.948L795.902,351.247L790.77,350.707L788.765,350.869L787.001,352.002L786.36,350.438L785.157,349.629L783.633,349.035L782.19,347.848L781.067,350.006L779.223,352.002L776.817,353.458L774.091,353.782L772.968,353.189L771.605,350.977L770.963,350.384L769.44,350.114L768.237,350.222L767.836,350.869L768.638,352.002L767.996,352.811L767.836,353.566L767.756,355.4L766.553,354.321L765.911,354.861L765.751,356.263L766.152,357.935L765.51,357.611L763.746,357.072L763.987,357.449L764.308,358.312L764.548,358.743L762.864,359.229L759.897,361.601L757.01,362.68L756.449,363.974L756.208,365.591L755.727,367.1L754.845,367.1L753.883,365.807L751.718,365.16L749.071,365.052L746.746,365.375L744.581,366.4L744.1,367.747L745.222,371.251L744.34,371.251L743.939,370.227L743.057,369.688L741.854,369.472L740.331,369.58L740.571,371.466L738.166,372.437L731.59,372.814L732.472,374.269L733.034,374.862L733.916,375.455L731.751,375.509L729.425,376.263L727.34,377.395L725.897,378.688L725.255,377.826L724.854,377.556L724.373,377.395L723.491,377.071L724.133,378.203L724.213,378.688L722.769,378.311L720.845,376.263L719.401,375.455L718.84,378.257L718.84,379.388L719.401,380.358L707.854,381.005L705.849,380.735L705.609,379.819L704.967,379.496L703.043,379.55L701.76,379.388L701.359,378.957L701.038,378.365L698.311,376.64L697.51,376.748L696.227,377.826L697.59,380.681L698.392,381.759L699.434,382.783L699.434,383.699L698.632,384.183L698.071,384.13L697.59,383.86L696.547,383.699L695.505,383.914L694.863,384.399L694.462,384.991L693.741,385.422L690.854,386.23L689.17,386.392L687.726,385.8L684.92,382.783L684.038,382.028L682.995,381.436L681.391,380.843L679.868,380.951L679.226,382.406L679.868,388.116L679.226,390.755L676.821,392.048L675.538,391.94L672.651,391.294L670.887,391.132L670.005,390.486L669.122,387.362L668,386.177L666.476,388.439L664.872,391.509L662.707,394.202L658.297,395.763L655.25,397.433L653.967,397.81L652.122,397.271L650.919,396.248L649.717,395.548L647.872,396.087L648.273,393.717L648.674,392.855L640.174,392.586L637.528,392.048L632.957,390.055L630.712,389.839L628.547,391.132L626.782,386.985L625.499,384.938L623.174,383.321L623.254,381.705L622.933,380.25L620.608,379.927L620.688,379.712L621.57,378.526L621.971,378.149L620.207,375.293L617.641,373.353L614.594,372.437L611.466,372.598L604.49,373.892L602.565,374.97L597.192,380.197L595.107,381.705ZM789.968,226.068L789.728,226.23L789.487,225.634ZM789.407,225.634L789.166,225.688L789.086,225.309Z" fill="rgb(13, 58, 61)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M372.501,217.067L372.742,218.477L370.577,218.369L368.732,218.857L365.525,220.158L362.798,221.731L360.954,220.321L358.789,219.616L359.831,218.206L365.043,215.603L368.091,214.952L369.775,214.681L371.378,214.247L372.742,214.301L373.463,215.061ZM452.129,178.208L449.643,179.457L447.318,178.751L443.79,179.62L441.304,179.077L439.219,179.403L438.417,179.837L436.813,180.923L436.091,181.195L435.049,181.249L433.365,181.684L431.28,183.204L426.95,185.322L422.7,186.897L418.289,190.046L414.2,191.349L411.553,191.62L409.709,193.357L407.704,195.311L405.379,196.94L404.657,195.04L405.539,192.054L408.907,189.231L413.558,186.3L417.167,184.779L424.223,181.358L431.841,178.859L436.893,177.339L440.422,176.904L445.073,177.23L448.761,177.447L454.535,177.501ZM458.865,175.166L459.747,175.546L460.71,175.329L461.271,175.492L460.87,176.361L459.828,177.121L459.106,176.958L458.464,176.741L457.743,176.795L456.941,177.013L456.299,177.176L456.299,176.578L458.224,175.383ZM488.135,176.469L482.12,180.543L481.639,179.457L482.842,177.284L484.446,174.242L486.29,173.373L488.135,170.113L489.498,168.374L493.347,166.635L495.592,167.45L497.356,168.918L496.795,170.439L494.149,170.711L493.587,172.504L491.984,174.568L489.658,174.731ZM722.689,57.092L722.609,57.857L721.807,57.693L721.807,57.037ZM720.925,56.928L719.802,57.201L718.76,57.147L718.038,56.764L717.477,56L718.439,56.109L719.241,56.273L720.123,56.546Z" fill="rgb(14, 50, 55)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M593.263,343.262L593.263,353.944L593.263,382.89L593.263,382.944L593.023,383.106L591.419,384.668L590.376,386.554L589.735,391.024L589.334,391.778L588.772,392.048L586.928,392.532L587.57,393.717L590.857,396.087L588.291,398.563L587.57,399.479L590.617,399.479L590.456,399.909L589.735,401.525L585.565,405.724L583.079,406.908L581.074,405.401L579.23,403.355L577.065,402.817L576.183,404.539L575.621,407.877L575.461,414.012L574.98,414.819L572.334,417.725L572.173,418.478L572.414,420.307L572.334,421.114L569.046,423.589L570.97,424.826L573.055,426.762L574.579,429.183L574.659,431.925L573.296,433.915L570.89,435.367L568.003,436.335L565.117,436.872L560.626,436.872L559.423,437.141L556.616,438.539L555.494,438.808L554.852,439.507L554.371,440.313L553.569,441.335L553.248,442.195L552.928,442.571L552.447,442.679L551.164,442.517L550.682,442.571L549.56,443.7L548.197,445.474L547.074,447.355L546.192,450.472L545.23,452.783L543.946,455.093L542.583,456.813L539.536,459.176L537.531,460.358L533.281,461.54L532.64,463.098L532.399,465.032L531.277,466.697L529.111,467.449L527.187,467.771L527.107,467.717L525.663,463.796L525.182,463.259L524.22,462.561L523.338,462.024L522.135,461.11L521.654,460.197L521.493,458.962L521.493,457.565L521.012,455.04L520.291,453.535L519.168,452.245L517.324,450.687L516.281,450.365L515.72,450.472L515.559,451.386L515.158,451.493L514.357,451.439L509.866,450.042L504.333,448.806L503.611,448.913L503.13,449.451L501.687,452.245L501.205,452.675L500.484,452.89L498.88,452.622L497.757,451.977L496.234,450.902L495.031,450.741L494.069,450.848L493.587,451.171L493.106,451.601L492.625,451.923L491.422,452.46L491.021,452.836L490.701,453.266L490.46,453.857L490.38,455.093L490.219,455.631L489.979,456.168L489.337,456.598L488.455,456.92L486.851,456.974L486.05,456.813L484.767,455.684L482.441,452.622L477.87,450.526L476.988,449.773L476.427,448.806L476.266,447.731L475.785,446.065L475.064,444.452L473.62,442.034L472.417,440.958L471.134,440.313L469.049,439.829L468.568,439.829L468.087,439.991L467.686,440.313L467.365,440.69L466.964,441.711L466.483,442.195L465.521,442.249L462.554,441.55L459.186,440.313L458.384,439.399L455.257,433.7L454.134,432.409L453.172,431.872L451.648,431.603L448.601,431.549L447.398,431.71L445.153,432.356L443.389,433.216L442.186,433.969L441.464,434.184L440.823,434.507L440.261,434.937L439.139,436.012L436.492,437.625L435.61,438.001L434.247,438.217L425.667,437.679L424.544,437.303L423.983,436.819L423.341,435.152L422.78,434.345L422.219,433.754L420.054,432.141L417.327,431.388L416.926,431.065L414.52,428.699L407.945,426.87L405.459,426.547L404.577,426.709L404.096,426.547L403.615,426.063L403.053,424.826L401.85,423.481L401.369,423.158L400.888,423.105L399.685,423.266L399.284,423.481L398.883,423.643L397.761,423.75L397.119,423.643L392.067,421.545L392.148,419.877L390.624,415.788L390.303,414.12L390.063,412.29L389.662,411.375L388.459,409.438L388.138,408.307L388.058,407.285L388.539,405.347L388.619,403.194L386.374,400.34L382.284,396.517L381.242,395.387L378.916,394.794L377.874,393.933L376.35,392.209L374.907,389.57L371.298,380.52L370.336,376.047L369.374,374.7L369.053,373.407L368.812,370.119L368.251,368.825L367.449,367.532L367.048,366.669L366.326,364.135L367.449,363.111L368.411,359.822L369.534,358.905L369.294,358.582L368.812,358.204L367.128,357.287L365.765,355.831L363.039,354.375L361.996,353.35L360.713,351.894L360.312,351.031L359.992,349.682L361.675,346.715L362.076,346.338L362.798,345.852L363.279,345.852L364.242,346.068L367.77,345.097L370.095,342.939L371.86,341.752L372.501,340.618L372.661,339.701L372.742,338.946L372.822,338.136L373.062,337.273L373.624,336.193L374.426,334.844L374.666,334.142L374.666,333.71L374.586,333.225L374.586,332.847L375.548,330.795L374.586,323.453L374.666,322.427L375.067,320.807L375.468,320.321L375.949,319.943L376.751,319.781L378.515,318.862L378.916,318.7L379.879,317.944L380.199,316.918L385.652,315.73L389.261,318.7L390.223,318.97L391.506,319.187L393.671,319.187L394.553,318.97L395.355,318.592L396.478,317.674L397.681,317.296L398.483,315.568L399.365,314.433L400.567,311.354L400.968,310.652L401.61,310.166L402.091,310.274L402.652,310.382L403.294,310.436L404.096,310.112L414.12,304.654L415.563,304.276L416.846,304.276L419.653,305.141L421.337,306.059L422.86,307.086L423.903,308.059L424.865,309.085L425.426,309.95L425.827,310.652L426.549,311.3L427.832,311.732L430.639,311.732L432.242,311.57L435.29,310.112L441.785,306.113L443.309,305.627L448.521,301.79L455.738,305.681L458.464,306.275L461.111,305.627L463.356,304.546L465.28,304.168L466.323,303.682L468.408,303.411L469.611,303.52L470.573,303.79L471.375,304.168L472.177,304.168L472.658,303.411L479.394,299.736L486.531,292.709L489.418,288.005L489.979,287.356L490.781,286.978L491.583,287.14L492.385,287.41L493.748,288.33L495.031,288.384L497.356,286.924L499.842,284.869L500.804,283.787L501.125,282.868L500.965,281.786L503.531,280.434L504.172,280.542L504.974,280.866L505.776,281.57L506.899,282.056L507.781,281.894L508.984,281.407L510.026,280.866L512.432,281.407L521.894,286.545L533.923,296.98L546.753,301.898L550.923,305.303L557.178,314.541L563.994,322.859L565.918,324.101L582.357,331.389L586.206,334.952Z" fill="rgb(8, 120, 111)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M426.469,280.704L429.997,283.571L431.28,285.193L431.601,285.626L432.162,285.842L433.365,285.95L438.978,285.734L441.945,286.491L442.667,286.437L442.908,286.491L443.228,286.653L443.549,286.816L443.87,287.14L444.271,287.627L444.592,287.843L444.912,287.951L445.313,288.059L445.634,288.167L445.875,288.384L446.035,288.546L446.195,288.546L446.356,288.384L446.516,288.059L446.837,287.897L447.318,287.951L447.719,288.276L448.04,289.303L448.2,290.871L447.478,296.385L447.559,296.98L448.36,298.601L448.521,301.79L443.309,305.627L441.785,306.113L435.29,310.112L432.242,311.57L430.639,311.732L427.832,311.732L426.549,311.3L425.827,310.652L425.426,309.95L424.865,309.085L423.903,308.059L422.86,307.086L421.337,306.059L419.653,305.141L416.846,304.276L415.563,304.276L414.12,304.654L404.096,310.112L403.294,310.436L402.652,310.382L402.091,310.274L401.61,310.166L400.968,310.652L400.567,311.354L399.365,314.433L398.483,315.568L397.681,317.296L396.478,317.674L395.355,318.592L394.553,318.97L393.671,319.187L391.506,319.187L390.223,318.97L389.261,318.7L385.652,315.73L380.199,316.918L379.879,317.944L378.916,318.7L378.515,318.862L376.751,319.781L375.949,319.943L375.468,320.321L375.067,320.807L374.666,322.427L374.586,323.453L375.548,330.795L374.586,332.847L374.586,333.225L374.666,333.71L374.666,334.142L374.426,334.844L373.624,336.193L373.062,337.273L372.822,338.136L372.742,338.946L372.661,339.701L372.501,340.618L371.86,341.752L370.095,342.939L367.77,345.097L364.242,346.068L363.279,345.852L362.798,345.852L362.076,346.338L361.675,346.715L359.992,349.682L356.062,348.819L349.727,349.089L347.963,348.604L347.001,348.118L345.638,347.848L344.515,347.74L338.902,348.496L336.817,350.276L336.897,351.517L336.737,353.998L336.576,354.699L336.175,355.4L333.85,357.449L332.647,359.175L331.925,360.9L329.68,364.081L326.552,361.224L325.751,361.008L325.029,360.846L324.307,361.547L323.666,361.763L322.944,361.386L322.062,360.631L321.581,360.361L317.331,359.283L314.524,359.067L312.279,361.278L309.392,362.734L307.628,362.734L306.345,362.464L305.783,362.087L305.463,361.763L305.463,361.493L305.463,361.17L305.463,360.9L305.142,360.145L305.062,359.606L304.661,358.743L304.5,358.096L304.5,357.503L304.581,356.371L304.42,355.777L304.099,355.022L303.458,354.699L302.977,354.052L302.496,353.728L301.373,353.35L300.812,352.919L300.25,352.433L300.01,352.002L299.769,351.463L299.448,349.952L299.047,348.873L297.845,347.039L296.962,346.122L295.439,345.043L294.717,344.773L294.156,344.611L293.835,344.719L293.434,344.881L289.986,347.417L289.585,348.442L284.453,349.629L283.09,349.467L272.184,349.629L271.542,344.18L271.623,343.37L271.943,342.507L272.424,342.183L272.585,341.752L272.585,341.104L272.424,340.187L271.943,338.946L271.863,338.136L268.415,334.682L266.571,335.006L266.009,334.952L265.288,334.682L265.047,333.494L264.646,333.009L263.363,332.955L262.962,332.847L262.561,332.415L262,332.199L260.316,332.253L259.594,332.145L259.354,331.551L259.193,331.065L258.872,330.526L258.391,329.986L256.627,328.636L255.424,328.312L253.179,328.15L250.693,328.798L250.212,328.42L250.212,327.934L250.533,326.746L250.453,325.937L250.853,324.209L250.853,322.751L250.693,322.589L250.453,322.427L249.731,322.751L249.25,322.805L248.769,321.887L249.811,320.159L249.57,318.862L249.891,318.052L250.052,317.242L250.052,316.378L249.891,315.568L251.254,314.109L251.575,313.515L251.575,313.083L251.415,312.705L251.335,312.327L251.495,311.948L252.056,311.624L253.66,311.192L254.302,310.814L255.424,309.95L255.986,309.679L256.387,309.301L257.269,308.275L260.075,303.466L261.839,302.006L262.24,301.034L261.839,299.358L260.637,298.169L259.193,297.412L258.471,296.71L259.193,295.628L260.476,295.628L261.759,296.547L262.722,296.71L263.042,294.547L262.401,292.979L261.438,291.466L260.957,289.79L262.321,287.519L263.443,286.707L264.085,284.977L264.566,283.03L265.368,281.353L265.689,281.407L266.41,281.678L267.212,281.786L268.014,281.353L267.934,280.921L268.736,277.783L269.057,277.404L267.292,274.591L264.245,272.102L262.321,269.884L264.005,267.936L261.839,267.449L262.481,266.258L266.089,263.877L274.67,269.83L276.594,270.858L277.877,273.185L278.92,277.404L279.08,279.19L279.722,282.922L280.042,283.679L280.443,284.274L285.094,289.519L286.939,290.276L292.151,289.844L297.123,288.492L298.807,288.708L303.378,286.113L303.939,285.842L305.062,285.95L307.066,287.302L307.227,288.546L307.307,290.114L307.948,293.196L308.75,294.493L309.632,295.574L310.354,296.169L311.316,296.818L313.081,297.683L313.722,297.845L314.444,297.953L315.005,297.737L315.727,297.412L316.208,296.98L316.85,296.764L317.491,296.331L318.293,296.115L319.175,296.223L320.458,296.71L321.581,297.52L322.703,297.737L323.906,297.683L332.246,299.682L337.137,299.736L337.699,299.412L338.821,298.385L342.43,295.845L350.048,293.034L352.133,291.844L353.256,290.925L355.18,288.762L359.591,284.869L361.756,284.49L367.048,284.652L375.468,282.381L376.831,284.382L379.077,284.869L380.841,284.652L384.449,284.652L387.015,284.057L389.982,282.976L394.794,280.271L397.28,279.136L399.846,278.324L401.209,278.054L403.214,278.432L407.384,279.622L411.714,279.352L412.836,279.514L414.12,280.001L415.082,280.109L416.124,279.893L416.846,279.622L417.728,279.406L420.695,279.081L423.903,279.568Z" fill="rgb(7, 133, 121)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M285.255,563.099L282.609,563.528L281.245,563.313L280.764,563.099L280.203,562.725L280.203,561.975L281.005,561.975L280.604,561.333L279.882,559.995L279.401,559.352L281.326,558.71L282.849,558.496L286.297,558.603L286.698,559.459L286.458,561.333ZM285.495,549.072L286.618,549.447L289.826,548.751L291.51,548.697L291.51,549.447L289.505,550.411L290.868,555.176L289.104,556.89L283.651,555.123L281.165,553.57L281.486,551.482L283.009,549.233L284.052,548.536ZM282.609,492.894L282.528,496.489L282.288,501.746L283.17,503.087L287.981,506.413L291.59,507.11L293.755,506.842L294.156,507.056L294.717,507.378L295.038,507.807L299.208,510.971L302.335,512.901L303.458,513.277L304.42,512.74L304.661,513.009L306.665,514.724L307.708,515.26L308.51,515.85L308.991,516.654L308.67,521.426L309.231,522.337L309.713,523.302L309.873,524.106L311.557,527.804L315.727,530.912L315.326,533.43L315.566,534.556L316.208,536.377L317.491,538.895L317.732,541.359L316.449,544.305L314.043,546.18L312.279,544.573L311.477,543.984L310.434,543.77L308.029,544.198L307.147,544.038L306.024,542.859L304.019,544.359L303.378,545.002L302.816,546.18L302.576,547.787L302.977,548.643L303.057,549.34L301.934,550.304L301.213,550.357L297.123,550.304L295.279,550.732L294.236,550.786L293.113,550.304L293.113,549.447L294.797,549.447L294.797,548.697L292.552,548.215L290.307,547.412L288.222,547.251L286.698,548.697L285.896,548.697L286.137,547.519L287.42,544.52L285.816,543.877L285.495,542.591L285.896,539.163L285.255,537.342L283.811,537.663L282.208,539.056L281.005,540.395L282.127,543.823L280.363,547.037L277.236,549.393L273.868,550.304L271.783,549.875L269.057,548.215L266.811,547.465L266.651,546.608L266.651,545.805L266.25,545.43L265.047,545.377L264.245,545.162L262.641,544.573L271.863,540.288L273.868,537.984L274.189,536.431L273.948,534.823L273.307,533.377L272.424,532.359L270.74,531.662L268.255,532.519L267.052,532.091L265.769,529.304L266.49,525.982L269.297,519.174L269.538,516.976L269.457,512.472L269.939,510.327L270.901,508.879L272.104,507.753L272.665,506.466L271.943,504.428L272.505,502.443L274.91,496.972L275.953,495.255L273.868,494.396L270.58,491.552L272.344,491.177L277.236,491.016L280.042,492.894Z" fill="rgb(12, 70, 70)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M329.68,364.081L331.685,364.998L332.166,365.375L332.727,366.022L332.887,366.885L334.09,368.718L332.166,370.173L329.68,370.389L329.359,370.496L329.038,370.874L328.637,371.466L328.317,372.652L328.236,374.539L328.718,376.425L329.279,380.574L328.557,383.429L327.274,386.769L327.194,387.254L327.274,387.469L327.274,387.685L327.034,387.954L326.152,388.601L325.59,388.87L325.029,389.085L324.628,389.193L324.227,389.355L323.184,390.163L322.543,390.378L322.142,390.432L321.901,390.593L321.741,390.917L321.661,391.671L321.501,391.994L321.1,392.101L320.859,391.94L320.699,391.778L320.538,391.617L320.378,391.778L320.298,392.209L320.458,393.125L320.538,393.825L320.538,394.471L320.137,396.14L318.373,399.263L317.09,399.156L316.609,399.048L316.128,398.94L315.727,398.725L315.566,398.51L315.406,398.025L315.246,397.81L314.925,397.756L314.604,397.81L314.203,397.756L313.722,397.648L313.161,397.433L312.68,397.163L312.118,397.002L311.717,396.948L311.316,397.217L311.156,397.702L311.156,399.479L311.076,400.179L310.915,400.879L310.835,401.471L309.793,403.624L303.859,409.599L304.18,411.483L304.5,412.451L304.981,413.581L305.543,414.442L307.467,415.68L310.194,418.155L310.515,418.586L310.755,419.177L310.675,420.307L310.434,420.845L310.033,421.168L310.114,421.545L310.354,421.867L313.161,424.127L313.562,424.987L312.359,427.569L309.312,431.764L308.67,432.194L307.788,432.517L306.345,431.818L305.703,431.71L305.142,431.71L304.581,431.925L304.26,432.625L304.099,433.915L304.26,438.7L304.581,439.991L304.901,440.69L305.623,441.496L306.264,442.087L306.826,442.464L307.227,442.625L307.628,442.786L307.868,442.947L308.029,443.162L308.43,443.915L308.59,444.452L308.59,445.151L308.109,445.904L307.227,446.387L304.18,447.086L301.854,448.537L300.571,451.117L300.491,451.762L299.769,452.675L298.326,453.535L294.958,455.093L291.269,455.523L290.467,455.523L289.745,455.899L288.863,456.705L286.377,459.66L286.297,462.131L282.127,462.561L280.604,463.689L277.557,466.697L277.476,462.615L276.755,461.325L275.953,460.251L274.67,459.606L272.585,457.833L271.302,457.081L270.019,456.544L268.816,456.275L266.891,455.523L266.41,455.093L266.33,454.663L266.49,454.019L266.731,453.535L267.292,451.654L265.689,449.72L261.599,448L261.278,445.581L261.599,444.775L261.839,444.614L262.16,444.506L262.401,444.56L263.042,444.829L267.453,443.754L269.778,443.969L271.623,443.7L273.146,443.324L275.632,442.41L276.755,441.872L278.278,440.69L280.042,440.958L281.887,440.582L282.929,440.152L283.491,439.722L284.613,438.27L284.934,436.711L283.972,435.797L284.774,434.507L284.373,432.141L284.052,431.226L282.609,428.107L282.127,427.677L276.835,429.828L275.873,429.559L274.59,429.452L272.184,428.591L270.981,427.946L267.373,427.193L267.052,427.085L265.929,425.902L265.849,425.687L261.198,424.396L259.594,422.728L258.391,420.899L258.872,420.469L258.953,420.2L259.033,419.823L258.953,419.393L258.071,417.671L254.302,412.882L252.938,411.536L253.019,410.406L253.019,409.168L252.537,408.63L251.816,408.038L249.009,406.639L248.047,405.885L247.325,404.378L247.085,403.624L246.924,402.332L246.844,401.902L245.882,400.071L244.759,398.617L242.674,397.81L240.669,396.356L236.58,395.333L235.698,395.225L234.575,394.848L233.933,394.579L232.33,392.317L233.853,389.786L232.731,386.715L232.009,385.476L232.089,383.806L232.41,382.89L232.971,382.352L234.334,381.759L234.896,381.328L238.504,377.61L242.674,376.802L242.835,371.52L243.476,373.461L244.278,374.646L245.481,375.509L254.783,368.879L256.467,366.615L259.033,363.92L259.514,363.596L262.08,363.003L264.325,361.925L269.618,357.988L271.623,356.209L272.184,353.62L272.184,349.629L283.09,349.467L284.453,349.629L289.585,348.442L289.986,347.417L293.434,344.881L293.835,344.719L294.156,344.611L294.717,344.773L295.439,345.043L296.962,346.122L297.845,347.039L299.047,348.873L299.448,349.952L299.769,351.463L300.01,352.002L300.25,352.433L300.812,352.919L301.373,353.35L302.496,353.728L302.977,354.052L303.458,354.699L304.099,355.022L304.42,355.777L304.581,356.371L304.5,357.503L304.5,358.096L304.661,358.743L305.062,359.606L305.142,360.145L305.463,360.9L305.463,361.17L305.463,361.493L305.463,361.763L305.783,362.087L306.345,362.464L307.628,362.734L309.392,362.734L312.279,361.278L314.524,359.067L317.331,359.283L321.581,360.361L322.062,360.631L322.944,361.386L323.666,361.763L324.307,361.547L325.029,360.846L325.751,361.008L326.552,361.224Z" fill="rgb(7, 124, 113)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M266.089,263.877L262.481,266.258L261.839,267.449L264.005,267.936L262.321,269.884L264.245,272.102L267.292,274.591L269.057,277.404L268.736,277.783L267.934,280.921L268.014,281.353L267.212,281.786L266.41,281.678L265.689,281.407L265.368,281.353L264.566,283.03L264.085,284.977L263.443,286.707L262.321,287.519L260.957,289.79L261.438,291.466L262.401,292.979L263.042,294.547L262.722,296.71L261.759,296.547L260.476,295.628L259.193,295.628L258.471,296.71L259.193,297.412L260.637,298.169L261.839,299.358L262.24,301.034L261.839,302.006L260.075,303.466L257.269,308.275L256.387,309.301L255.986,309.679L255.424,309.95L254.302,310.814L253.66,311.192L252.056,311.624L251.495,311.948L251.335,312.327L251.415,312.705L251.575,313.083L251.575,313.515L251.254,314.109L249.891,315.568L250.052,316.378L250.052,317.242L249.891,318.052L249.57,318.862L249.811,320.159L248.769,321.887L249.25,322.805L249.731,322.751L250.453,322.427L250.693,322.589L250.853,322.751L250.853,324.209L250.453,325.937L250.533,326.746L250.212,327.934L250.212,328.42L250.693,328.798L253.179,328.15L255.424,328.312L256.627,328.636L258.391,329.986L258.872,330.526L259.193,331.065L259.354,331.551L259.594,332.145L260.316,332.253L262,332.199L262.561,332.415L262.962,332.847L263.363,332.955L264.646,333.009L265.047,333.494L265.288,334.682L266.009,334.952L266.571,335.006L268.415,334.682L271.863,338.136L271.943,338.946L272.424,340.187L272.585,341.104L272.585,341.752L272.424,342.183L271.943,342.507L271.623,343.37L271.542,344.18L272.184,349.629L272.184,353.62L271.623,356.209L269.618,357.988L264.325,361.925L262.08,363.003L259.514,363.596L259.033,363.92L256.467,366.615L254.783,368.879L245.481,375.509L244.278,374.646L243.476,373.461L242.835,371.52L242.594,366.507L241.632,363.704L238.023,360.307L235.377,360.253L234.896,360.038L234.495,358.096L235.297,352.973L236.018,351.948L237.542,346.446L238.985,344.827L238.504,343.964L237.702,343.64L236.9,342.885L236.099,342.507L233.452,341.59L230.084,339.377L228.721,337.758L227.839,335.707L228.481,333.44L233.292,328.258L233.933,326.368L231.608,325.667L230.084,324.641L229.122,323.939L226.636,318.7L225.754,306.87L225.353,306.275L222.466,305.735L221.344,305.141L219.74,304.06L217.976,302.601L214.528,300.493L213.726,299.682L213.245,298.926L213.004,298.223L212.844,297.52L212.924,296.655L213.164,295.196L213.164,294.547L212.924,293.412L213.004,292.439L212.844,291.952L212.042,291.249L210.438,290.33L199.292,286.87L193.037,285.896L186.381,288.276L186.301,288.276L194.32,281.948L199.773,276.593L203.301,270.425L204.023,269.559L206.428,269.505L208.353,268.802L210.037,267.828L212.042,266.962L212.763,267.882L213.565,266.258L213.485,264.905L213.886,263.823L215.249,263.335L215.891,263.606L221.264,267.449L224.07,268.315L227.198,266.962L234.014,259.654L236.9,257.814L236.259,255.865L237.462,255.486L242.033,256.135L248.929,251.966L249.731,250.287L249.971,249.096L249.33,248.554L248.047,248.175L247.004,247.309L246.443,246.442L246.924,246.063L251.896,245.954L253.82,245.359L255.745,243.95L259.193,242.813L269.297,242.108L271.382,241.512L272.104,239.779L273.066,239.508L273.387,242.379L272.745,243.517L271.623,244.221L270.34,245.413L269.618,246.604L268.575,249.529L267.693,250.775L265.849,252.67L265.207,253.753L265.288,255.053L267.052,257.11L267.533,258.734L268.415,258.463L269.217,259.059L269.538,260.196L269.538,261.603L268.816,262.848L267.773,263.444Z" fill="rgb(0, 212, 184)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M258.391,420.899L253.179,424.826L251.736,425.579L250.292,426.225L249.089,426.225L248.127,426.009L247.325,425.687L246.764,425.74L246.443,426.386L246.122,427.999L246.603,431.71L244.759,435.313L244.118,436.066L242.995,436.872L241.632,437.41L240.91,438.001L240.429,439.561L240.509,440.475L239.547,442.141L234.655,442.356L230.646,445.689L228.721,447.677L227.679,450.15L226.716,451.547L226.396,451.869L223.028,453.589L221.745,454.771L215.41,461.862L214.608,462.561L214.207,462.4L213.886,462.776L213.886,463.313L214.688,464.548L215.41,465.354L216.452,467.61L215.41,473.678L215.57,473.946L215.57,474L215.329,473.893L213.565,473.732L212.443,474.161L212.362,474.591L212.443,476.953L212.683,477.383L213.726,478.349L213.966,478.671L213.405,480.335L212.683,480.496L211.641,480.335L210.197,480.979L209.476,481.785L208.994,482.643L208.594,483.341L207.631,484.254L206.348,484.683L204.985,484.79L203.702,485.274L202.9,486.776L202.098,486.454L201.216,486.186L200.254,486.025L199.452,486.025L199.131,486.454L199.051,487.206L199.051,487.957L198.891,488.279L198.009,488.225L196.164,487.474L195.042,487.42L190.31,488.44L188.145,489.352L185.98,490.694L182.853,490.855L183.895,489.138L183.815,487.206L182.532,484.039L182.211,482.912L182.452,481.087L182.853,479.637L182.933,478.242L182.291,476.899L182.211,476.631L182.692,476.685L182.772,476.631L183.093,476.47L184.376,474.698L184.456,474.376L184.777,473.785L186.782,472.335L190.551,470.617L197.126,466.75L199.692,464.333L200.815,463.904L201.376,463.743L201.697,463.581L202.018,463.098L202.018,462.131L202.098,461.379L202.339,460.842L202.9,460.143L203.301,459.821L203.622,458.102L202.82,452.783L202.579,450.15L202.66,449.666L202.66,448.484L202.82,448L202.66,446.764L200.494,445.527L198.009,444.99L197.287,444.936L196.645,444.99L196.084,445.097L195.603,445.044L195.042,444.882L194.4,444.506L193.678,444.022L192.876,443.646L192.235,443.27L191.674,442.84L191.433,442.195L191.513,441.335L192.636,438.862L192.796,436.657L191.593,430.635L190.791,429.559L190.391,429.183L187.824,428.86L185.419,426.709L183.093,423.589L182.291,418.532L182.692,417.617L184.617,416.326L187.504,415.465L192.876,415.519L195.603,415.142L198.81,413.42L200.093,411.375L200.334,409.976L200.976,407.661L203.301,403.463L201.938,395.817L200.815,393.609L209.957,394.256L216.773,393.556L221.985,393.071L225.914,393.879L229.363,394.202L230.165,393.609L232.33,392.317L233.933,394.579L234.575,394.848L235.698,395.225L236.58,395.333L240.669,396.356L242.674,397.81L244.759,398.617L245.882,400.071L246.844,401.902L246.924,402.332L247.085,403.624L247.325,404.378L248.047,405.885L249.009,406.639L251.816,408.038L252.537,408.63L253.019,409.168L253.019,410.406L252.938,411.536L254.302,412.882L258.071,417.671L258.953,419.393L259.033,419.823L258.953,420.2L258.872,420.469Z" fill="rgb(11, 85, 82)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M286.297,462.131L288.462,478.027L288.302,480.335L287.42,484.629L287.099,485.435L286.778,485.918L285.816,488.708L282.609,492.894L280.042,492.894L277.236,491.016L272.344,491.177L270.58,491.552L268.656,489.943L268.014,489.513L266.33,488.923L265.689,488.547L264.806,487.098L263.604,483.932L262.561,483.019L260.797,483.127L259.594,484.093L258.632,485.327L257.509,486.132L256.306,486.24L254.061,485.757L252.858,485.649L251.976,485.971L250.453,487.152L249.891,487.42L249.089,487.206L247.405,486.079L246.684,485.918L246.443,485.864L244.679,486.347L239.386,489.03L238.344,486.025L236.5,483.717L234.334,481.731L232.57,479.691L230.886,475.235L229.523,474.107L226.396,473.946L220.301,474.644L218.457,474.591L215.57,474L215.57,473.946L215.41,473.678L216.452,467.61L215.41,465.354L214.688,464.548L213.886,463.313L213.886,462.776L214.207,462.4L214.608,462.561L215.41,461.862L221.745,454.771L223.028,453.589L226.396,451.869L226.716,451.547L227.679,450.15L228.721,447.677L230.646,445.689L234.655,442.356L239.547,442.141L240.509,440.475L240.429,439.561L240.91,438.001L241.632,437.41L242.995,436.872L244.118,436.066L244.759,435.313L246.603,431.71L246.122,427.999L246.443,426.386L246.764,425.74L247.325,425.687L248.127,426.009L249.089,426.225L250.292,426.225L251.736,425.579L253.179,424.826L258.391,420.899L259.594,422.728L261.198,424.396L265.849,425.687L265.929,425.902L267.052,427.085L267.373,427.193L270.981,427.946L272.184,428.591L274.59,429.452L275.873,429.559L276.835,429.828L282.127,427.677L282.609,428.107L284.052,431.226L284.373,432.141L284.774,434.507L283.972,435.797L284.934,436.711L284.613,438.27L283.491,439.722L282.929,440.152L281.887,440.582L280.042,440.958L278.278,440.69L276.755,441.872L275.632,442.41L273.146,443.324L271.623,443.7L269.778,443.969L267.453,443.754L263.042,444.829L262.401,444.56L262.16,444.506L261.839,444.614L261.599,444.775L261.278,445.581L261.599,448L265.689,449.72L267.292,451.654L266.731,453.535L266.49,454.019L266.33,454.663L266.41,455.093L266.891,455.523L268.816,456.275L270.019,456.544L271.302,457.081L272.585,457.833L274.67,459.606L275.953,460.251L276.755,461.325L277.476,462.615L277.557,466.697L280.604,463.689L282.127,462.561Z" fill="rgb(11, 79, 77)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M242.835,371.52L242.674,376.802L238.504,377.61L234.896,381.328L234.334,381.759L232.971,382.352L232.41,382.89L232.089,383.806L232.009,385.476L232.731,386.715L233.853,389.786L232.33,392.317L230.165,393.609L229.363,394.202L225.914,393.879L221.985,393.071L216.773,393.556L209.957,394.256L200.815,393.609L203.301,389.409L203.943,385.692L203.221,384.291L201.777,384.453L199.773,384.183L198.089,383.268L196.164,380.089L195.523,379.281L198.81,373.622L196.405,372.167L193.277,372.221L191.834,370.173L191.593,369.849L190.23,369.31L189.268,369.364L187.905,370.658L186.702,372.598L184.857,374.161L183.975,374.485L181.81,371.736L178.603,366.4L176.037,359.552L170.503,358.743L169.621,359.229L165.532,360.469L161.362,361.224L160.64,361.008L159.918,360.523L159.518,359.822L159.277,359.067L159.036,358.474L158.716,357.449L160.239,353.458L161.442,349.251L161.602,347.093L162.645,344.773L165.532,342.291L165.772,341.428L165.692,340.511L165.452,339.809L164.489,338.352L164.008,337.704L163.206,334.682L164.65,332.793L164.569,332.361L164.329,331.875L163.367,331.173L161.442,330.31L159.036,327.718L156.871,325.235L157.032,323.561L157.192,322.805L157.112,321.833L152.22,315.676L151.819,315.19L162.003,307.248L172.187,299.304L182.452,291.303L186.301,288.276L186.381,288.276L193.037,285.896L199.292,286.87L210.438,290.33L212.042,291.249L212.844,291.952L213.004,292.439L212.924,293.412L213.164,294.547L213.164,295.196L212.924,296.655L212.844,297.52L213.004,298.223L213.245,298.926L213.726,299.682L214.528,300.493L217.976,302.601L219.74,304.06L221.344,305.141L222.466,305.735L225.353,306.275L225.754,306.87L226.636,318.7L229.122,323.939L230.084,324.641L231.608,325.667L233.933,326.368L233.292,328.258L228.481,333.44L227.839,335.707L228.721,337.758L230.084,339.377L233.452,341.59L236.099,342.507L236.9,342.885L237.702,343.64L238.504,343.964L238.985,344.827L237.542,346.446L236.018,351.948L235.297,352.973L234.495,358.096L234.896,360.038L235.377,360.253L238.023,360.307L241.632,363.704L242.594,366.507Z" fill="rgb(9, 111, 103)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M165.532,360.469L166.093,364.297L165.612,367.532L164.088,368.664L164.329,369.957L164.088,370.496L163.206,371.574L162.565,372.167L162.084,373.083L161.763,374.107L161.602,375.724L161.683,377.502L162.485,378.85L163.687,381.544L164.249,383.752L164.249,384.453L164.169,385.153L163.286,385.261L159.918,386.23L155.668,386.554L149.815,385.853L148.131,386.446L147.89,388.224L147.97,388.762L149.253,391.832L152.782,395.225L153.664,396.517L155.027,399.048L155.428,406.423L152.621,406.639L150.376,406.262L149.414,406.262L148.291,406.423L147.168,406.746L145.244,407.446L144.442,408.038L144.041,409.007L144.041,410.46L144.041,410.944L144.362,411.321L144.442,411.698L144.121,411.913L142.918,412.29L141.475,412.021L140.112,410.783L138.508,410.406L136.423,409.491L134.338,407.338L132.814,404.862L132.574,404.001L132.654,400.825L131.932,399.156L124.394,393.448L123.432,391.724L122.55,388.062L120.786,385.53L113.729,384.561L112.206,385.099L108.437,386.23L106.592,386.769L106.111,385.961L105.069,384.991L103.786,383.375L101.54,377.987L100.418,376.155L98.092,373.299L97.05,371.736L96.488,370.065L96.649,367.747L97.531,366.346L100.418,363.812L101.621,362.194L102.503,360.9L103.946,357.449L103.946,354.267L101.621,352.11L103.545,346.5L104.908,344.342L106.512,342.993L107.314,342.345L110.923,340.511L122.791,336.517L126.88,334.574L141.715,323.021L151.819,315.19L152.22,315.676L157.112,321.833L157.192,322.805L157.032,323.561L156.871,325.235L159.036,327.718L161.442,330.31L163.367,331.173L164.329,331.875L164.569,332.361L164.65,332.793L163.206,334.682L164.008,337.704L164.489,338.352L165.452,339.809L165.692,340.511L165.772,341.428L165.532,342.291L162.645,344.773L161.602,347.093L161.442,349.251L160.239,353.458L158.716,357.449L159.036,358.474L159.277,359.067L159.518,359.822L159.918,360.523L160.64,361.008L161.362,361.224Z" fill="rgb(9, 104, 98)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M200.815,393.609L201.938,395.817L203.301,403.463L200.976,407.661L200.334,409.976L200.093,411.375L198.81,413.42L195.603,415.142L192.876,415.519L187.504,415.465L184.617,416.326L182.692,417.617L182.291,418.532L183.093,423.589L185.419,426.709L187.824,428.86L190.391,429.183L190.791,429.559L191.593,430.635L192.796,436.657L192.636,438.862L191.513,441.335L191.433,442.195L191.674,442.84L192.235,443.27L192.876,443.646L193.678,444.022L194.4,444.506L195.042,444.882L195.603,445.044L196.084,445.097L196.645,444.99L197.287,444.936L198.009,444.99L200.494,445.527L202.66,446.764L202.82,448L202.66,448.484L202.66,449.666L202.579,450.15L202.82,452.783L203.622,458.102L203.301,459.821L202.9,460.143L202.339,460.842L202.098,461.379L202.018,462.131L202.018,463.098L201.697,463.581L201.376,463.743L200.815,463.904L199.692,464.333L197.126,466.75L190.551,470.617L186.782,472.335L184.777,473.785L184.456,474.376L184.376,474.698L183.093,476.47L182.772,476.631L182.853,476.524L182.933,476.255L183.013,475.879L181.971,474.859L180.848,474.376L175.636,473.946L166.735,471.1L163.768,470.939L160.801,471.369L160.079,471.637L160.079,471.423L160.079,470.832L159.838,469.812L159.277,469.006L158.395,468.254L157.914,468.039L155.348,467.717L153.503,466.536L153.583,464.817L154.305,462.829L154.385,460.788L153.583,459.391L152.541,459.499L151.338,460.251L149.895,460.788L144.763,460.412L142.678,460.734L141.956,457.296L140.192,453.696L137.706,450.579L134.819,448.699L132.975,448.699L131.371,449.397L129.928,450.203L128.805,450.472L127.762,449.72L127.361,448.43L127.281,447.409L127.442,444.184L127.201,440.26L126.239,437.303L126.399,436.389L126.88,435.743L127.682,435.044L128.404,434.238L129.446,432.571L130.168,431.71L130.89,431.173L132.814,430.957L136.583,429.183L137.225,428.161L137.947,426.493L138.107,424.934L138.347,423.75L139.069,423.481L139.871,423.481L140.994,424.88L141.635,425.472L142.998,426.117L146.046,426.009L144.602,424.073L144.522,423.481L144.522,422.621L144.843,421.491L145.003,421.222L145.244,421.168L145.965,421.706L148.451,422.083L151.899,420.953L152.782,420.415L153.503,419.823L153.824,419.339L154.145,417.94L157.192,408.899L156.791,407.069L156.47,406.854L155.428,406.423L155.027,399.048L153.664,396.517L152.782,395.225L149.253,391.832L147.97,388.762L147.89,388.224L148.131,386.446L149.815,385.853L155.668,386.554L159.918,386.23L163.286,385.261L164.169,385.153L164.249,384.453L164.249,383.752L163.687,381.544L162.485,378.85L161.683,377.502L161.602,375.724L161.763,374.107L162.084,373.083L162.565,372.167L163.206,371.574L164.088,370.496L164.329,369.957L164.088,368.664L165.612,367.532L166.093,364.297L165.532,360.469L169.621,359.229L170.503,358.743L176.037,359.552L178.603,366.4L181.81,371.736L183.975,374.485L184.857,374.161L186.702,372.598L187.905,370.658L189.268,369.364L190.23,369.31L191.593,369.849L191.834,370.173L193.277,372.221L196.405,372.167L198.81,373.622L195.523,379.281L196.164,380.089L198.089,383.268L199.773,384.183L201.777,384.453L203.221,384.291L203.943,385.692L203.301,389.409Z" fill="rgb(10, 97, 92)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M155.428,406.423L156.47,406.854L156.791,407.069L157.192,408.899L154.145,417.94L153.824,419.339L153.503,419.823L152.782,420.415L151.899,420.953L148.451,422.083L145.965,421.706L145.244,421.168L145.003,421.222L144.843,421.491L144.522,422.621L144.522,423.481L144.602,424.073L146.046,426.009L142.998,426.117L141.635,425.472L140.994,424.88L139.871,423.481L139.069,423.481L138.347,423.75L138.107,424.934L137.947,426.493L137.225,428.161L136.583,429.183L132.814,430.957L130.89,431.173L130.168,431.71L129.446,432.571L128.404,434.238L127.682,435.044L126.88,435.743L126.399,436.389L126.239,437.303L127.201,440.26L127.442,444.184L127.281,447.409L127.201,446.871L126.8,445.366L125.758,443.539L124.635,442.249L121.668,439.991L121.107,438.915L120.706,435.206L119.904,433.7L118.059,432.732L114.05,432.248L112.687,431.119L113.168,429.936L113.248,428.699L113.008,427.462L112.446,426.386L111.725,425.472L111.163,424.934L110.522,424.772L109.479,425.095L108.517,426.063L106.833,429.344L105.71,430.366L100.257,428.699L97.29,426.601L91.356,425.31L87.668,423.589L83.177,422.836L81.333,422.567L81.092,418.801L81.333,416.864L82.054,415.303L83.257,414.496L85.903,413.851L86.866,412.828L87.988,410.675L89.672,408.899L93.281,405.724L94.404,404.432L94.965,403.463L95.847,402.871L97.852,402.601L99.295,402.871L102.262,403.893L103.545,403.786L104.989,402.44L105.55,400.448L105.55,398.294L105.069,392.209L105.47,391.455L106.753,390.055L107.074,389.139L106.833,387.039L106.592,386.769L108.437,386.23L112.206,385.099L113.729,384.561L120.786,385.53L122.55,388.062L123.432,391.724L124.394,393.448L131.932,399.156L132.654,400.825L132.574,404.001L132.814,404.862L134.338,407.338L136.423,409.491L138.508,410.406L140.112,410.783L141.475,412.021L142.918,412.29L144.121,411.913L144.442,411.698L144.362,411.321L144.041,410.944L144.041,410.46L144.041,409.007L144.442,408.038L145.244,407.446L147.168,406.746L148.291,406.423L149.414,406.262L150.376,406.262L152.621,406.639Z" fill="rgb(12, 70, 70)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M333.369,512.633L332.246,517.727L333.048,519.281L334.331,519.71L335.293,520.836L336.095,521.479L336.576,523.784L336.897,525.285L338.581,526.25L343.954,526.571L344.916,527.321L344.996,528.5L346.039,530.751L348.043,532.412L349.487,532.573L350.289,532.305L353.897,530.215L356.543,527.161L356.864,525.338L357.265,524.374L358.548,523.141L360.312,522.605L361.194,522.015L362.477,520.997L364.402,518.96L365.284,517.619L365.765,516.494L366.166,514.295L366.407,513.866L367.209,514.135L367.77,514.403L371.298,514.027L371.699,514.939L376.27,511.99L377.232,511.614L379.237,511.4L380.119,511.454L380.921,511.293L381.883,509.791L382.685,509.094L383.567,508.933L385.251,508.236L385.412,508.182L385.011,514.617L385.251,515.689L385.732,516.333L386.214,516.708L387.256,517.459L387.657,518.263L387.737,520.193L387.015,524.052L387.096,526.089L390.865,540.609L390.704,542.484L389.181,545.805L389.02,547.519L389.421,548.751L390.143,549.072L390.945,549.286L391.747,549.982L392.548,551.535L392.789,552.231L393.511,555.712L393.27,557.532L392.308,559.138L390.704,560.637L389.902,561.226L389.02,561.761L387.978,562.082L386.855,561.708L380.119,558.389L378.034,558.228L376.19,558.763L374.586,559.834L368.973,564.705L368.01,565.883L367.209,567.488L366.326,570.913L366.166,571.234L366.407,571.93L367.289,573.856L367.449,574.124L366.487,580.49L366.727,581.239L367.449,581.56L367.85,581.988L367.529,583.165L366.968,583.753L365.204,584.663L364.562,585.144L361.836,589.476L360.473,590.92L357.506,592.845L355.02,594.022L354.378,596L353.015,595.893L350.289,594.236L348.605,594.075L321.661,595.786L321.741,595.733L322.864,594.931L323.184,593.433L324.067,592.257L325.35,591.348L326.953,590.76L326.953,590.011L323.666,589.904L321.34,589.423L319.576,588.407L318.052,586.642L317.25,585.465L317.09,584.823L317.331,582.898L318.052,582.63L321.661,582.095L322.864,581.721L316.048,579.902L312.199,579.474L310.033,580.169L309.312,580.169L308.991,575.515L307.387,570.753L305.142,566.525L302.816,563.528L302.095,561.601L301.934,561.493L301.613,561.012L300.972,561.065L300.17,561.226L299.609,561.065L298.807,559.995L298.406,559.031L298.566,558.014L299.609,556.89L300.571,556.247L302.576,555.337L303.618,554.427L305.944,551.053L306.826,550.304L308.43,550.625L310.274,550.196L314.043,548.697L313.882,547.68L313.882,546.983L314.043,546.18L316.449,544.305L317.732,541.359L317.491,538.895L316.208,536.377L315.566,534.556L315.326,533.43L315.727,530.912L311.557,527.804L309.873,524.106L309.713,523.302L309.231,522.337L308.67,521.426L308.991,516.654L308.51,515.85L307.708,515.26L306.665,514.724L304.661,513.009L304.42,512.74L303.939,511.132L303.859,509.416L304.5,506.788L304.821,503.624L305.222,502.229L306.505,501.853L308.75,501.8L310.114,502.175L311.477,502.497L311.958,502.336L312.68,502.336L313.161,502.497L313,502.98L312.199,505.018L312.439,506.573L314.684,508.772L316.288,510.327L321.019,509.738L322.383,510.488L323.585,511.025L327.595,510.542Z" fill="rgb(8, 114, 106)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><path d="M527.187,467.771L526.144,467.986L523.578,468.791L522.456,470.51L521.333,471.691L517.243,472.926L517.564,474.215L517.243,474.322L516.923,474.322L516.762,474.483L516.762,475.02L516.04,475.02L515.078,474.752L512.673,476.792L511.149,477.544L509.064,477.383L507.861,477.114L507.3,477.758L507.139,480.389L506.017,484.039L505.536,486.401L505.937,487.42L507.701,487.957L508.422,489.406L508.102,491.231L507.139,493.216L506.338,493.967L506.097,494.182L506.017,494.128L505.776,494.074L504.253,492.304L501.847,492.089L499.12,492.196L496.554,491.284L494.63,488.977L493.507,486.508L492.144,484.415L489.578,483.288L487.974,483.395L486.851,483.824L485.809,484.039L484.125,483.502L483.403,482.751L480.837,479.369L472.578,473.356L472.177,470.134L473.46,467.556L473.54,466.213L464.559,467.556L462.875,468.362L461.592,469.597L460.95,470.617L460.549,471.798L459.667,473.302L458.304,474.752L456.861,475.503L455.497,476.04L454.294,476.846L450.205,483.234L442.507,491.499L440.662,494.45L439.78,498.045L439.058,499.869L437.695,501.424L435.931,502.283L433.846,502.819L427.752,503.194L426.95,503.087L425.827,502.712L425.105,502.229L423.261,500.298L421.577,500.566L419.973,501.371L418.289,501.961L416.204,501.371L412.275,499.225L407.704,499.493L398.082,501.317L392.949,500.673L390.544,500.888L387.897,502.229L386.534,503.141L385.973,503.677L385.732,504.374L385.492,506.091L385.412,508.182L385.251,508.236L383.567,508.933L382.685,509.094L381.883,509.791L380.921,511.293L380.119,511.454L379.237,511.4L377.232,511.614L376.27,511.99L371.699,514.939L371.298,514.027L367.77,514.403L367.209,514.135L366.407,513.866L366.166,514.295L365.765,516.494L365.284,517.619L364.402,518.96L362.477,520.997L361.194,522.015L360.312,522.605L358.548,523.141L357.265,524.374L356.864,525.338L356.543,527.161L353.897,530.215L350.289,532.305L349.487,532.573L348.043,532.412L346.039,530.751L344.996,528.5L344.916,527.321L343.954,526.571L338.581,526.25L336.897,525.285L336.576,523.784L336.095,521.479L335.293,520.836L334.331,519.71L333.048,519.281L332.246,517.727L333.369,512.633L337.057,511.4L342.671,513.866L343.232,513.974L343.312,513.437L343.633,511.346L344.515,509.416L345.397,508.129L345.477,506.252L344.114,503.731L343.392,502.819L343.072,501.532L342.991,499.869L343.072,498.152L343.232,497.186L343.472,496.757L344.274,495.791L346.039,496.596L348.685,499.01L349.647,499.493L352.534,500.03L354.378,500.03L354.94,499.6L356.864,496.972L359.109,491.499L359.591,485.918L359.43,483.556L359.671,481.999L360.312,480.818L360.392,479.798L360.232,478.886L359.751,477.168L363.841,477.866L365.765,476.846L367.128,475.396L368.411,472.926L368.812,468.147L368.572,466.804L368.251,466.052L367.369,465.569L364.161,463.152L361.034,458.962L360.392,456.813L362.878,455.845L364.482,455.845L366.326,456.168L368.812,455.845L370.015,453.374L369.935,452.944L369.454,452.353L368.812,451.977L367.85,451.708L367.69,451.278L367.93,450.633L369.213,448.806L370.657,445.044L376.35,439.991L378.596,435.958L379.478,431.979L383.327,428.268L392.067,421.545L397.119,423.643L397.761,423.75L398.883,423.643L399.284,423.481L399.685,423.266L400.888,423.105L401.369,423.158L401.85,423.481L403.053,424.826L403.615,426.063L404.096,426.547L404.577,426.709L405.459,426.547L407.945,426.87L414.52,428.699L416.926,431.065L417.327,431.388L420.054,432.141L422.219,433.754L422.78,434.345L423.341,435.152L423.983,436.819L424.544,437.303L425.667,437.679L434.247,438.217L435.61,438.001L436.492,437.625L439.139,436.012L440.261,434.937L440.823,434.507L441.464,434.184L442.186,433.969L443.389,433.216L445.153,432.356L447.398,431.71L448.601,431.549L451.648,431.603L453.172,431.872L454.134,432.409L455.257,433.7L458.384,439.399L459.186,440.313L462.554,441.55L465.521,442.249L466.483,442.195L466.964,441.711L467.365,440.69L467.686,440.313L468.087,439.991L468.568,439.829L469.049,439.829L471.134,440.313L472.417,440.958L473.62,442.034L475.064,444.452L475.785,446.065L476.266,447.731L476.427,448.806L476.988,449.773L477.87,450.526L482.441,452.622L484.767,455.684L486.05,456.813L486.851,456.974L488.455,456.92L489.337,456.598L489.979,456.168L490.219,455.631L490.38,455.093L490.46,453.857L490.701,453.266L491.021,452.836L491.422,452.46L492.625,451.923L493.106,451.601L493.587,451.171L494.069,450.848L495.031,450.741L496.234,450.902L497.757,451.977L498.88,452.622L500.484,452.89L501.205,452.675L501.687,452.245L503.13,449.451L503.611,448.913L504.333,448.806L509.866,450.042L514.357,451.439L515.158,451.493L515.559,451.386L515.72,450.472L516.281,450.365L517.324,450.687L519.168,452.245L520.291,453.535L521.012,455.04L521.493,457.565L521.493,458.962L521.654,460.197L522.135,461.11L523.338,462.024L524.22,462.561L525.182,463.259L525.663,463.796L527.107,467.717Z" fill="rgb(9, 107, 100)" stroke="rgba(6,11,22,0.92)" stroke-width="1" style="cursor: pointer; transition: fill 0.5s;"></path><g style="pointer-events: none;"><circle cx="340.9724656115788" cy="270.2333041102413" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="340.9724656115788" y="264.2333041102413" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">ATLÁNTIDA</text><circle cx="522.2463089718821" cy="272.99564675548436" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="522.2463089718821" y="266.99564675548436" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">COLÓN</text><circle cx="337.572760652233" cy="437.31739451167954" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="337.572760652233" y="431.31739451167954" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">FRANCISCO MORAZÁN</text><circle cx="668.384382274971" cy="323.4452165071259" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="668.384382274971" y="317.4452165071259" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">GRACIAS A DIOS</text><circle cx="432.8322848307818" cy="186.30361789757427" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="432.8322848307818" y="180.30361789757427" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">ISLAS DE LA BAHÍA</text><circle cx="484.25584586975" cy="371.4302202276584" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="484.25584586975" y="365.4302202276584" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">OLANCHO</text><circle cx="335.8373252251761" cy="314.22862335985246" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="335.8373252251761" y="308.22862335985246" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">YORO</text><circle cx="288.82899324868714" cy="527.6509139285438" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="288.82899324868714" y="521.6509139285438" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">VALLE</text><circle cx="284.376645866368" cy="396.9752596310946" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="284.376645866368" y="390.9752596310946" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">COMAYAGUA</text><circle cx="242.11435070854776" cy="302.18966579781085" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="242.11435070854776" y="296.18966579781085" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">CORTÉS</text><circle cx="216.46508720755133" cy="432.55757773821597" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="216.46508720755133" y="426.55757773821597" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">INTIBUCÁ</text><circle cx="254.85500833387806" cy="460.3359859370337" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="254.85500833387806" y="454.3359859370337" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">LA PAZ</text><circle cx="200.0905226433554" cy="339.52758930705727" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="200.0905226433554" y="333.52758930705727" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">SANTA BÁRBARA</text><circle cx="135.47123873106273" cy="363.1364567011423" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="135.47123873106273" y="357.1364567011423" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">COPÁN</text><circle cx="171.30788442689558" cy="423.37336054659806" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="171.30788442689558" y="417.37336054659806" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">LEMPIRA</text><circle cx="118.19018160700473" cy="413.39387994830844" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="118.19018160700473" y="407.39387994830844" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">OCOTEPEQUE</text><circle cx="345.1184613635635" cy="551.1050796846275" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="345.1184613635635" y="545.1050796846275" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">CHOLUTECA</text><circle cx="420.8792459763059" cy="470.51452031678394" r="1.6" fill="rgba(255,255,255,.45)"></circle><text x="420.8792459763059" y="464.51452031678394" text-anchor="middle" fill="rgba(232,238,246,.5)" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 8px; letter-spacing: 0.06em;">EL PARAÍSO</text></g></g></svg>
+        </div>
+
+        <div data-dc-tpl="100" style="position: absolute; top: 24px; left: 30px; max-width: 340px; pointer-events: none;">
+          <div data-dc-tpl="101" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 10px; color: rgb(0, 212, 184); letter-spacing: 0.18em;">REPÚBLICA DE HONDURAS</div>
+          <div data-dc-tpl="102" style="font-size: 34px; font-weight: 600; letter-spacing: 0.01em; margin-top: 4px; line-height: 1.02;">Atlas Municipal<br data-dc-tpl="103">Nacional</div>
+          <div data-dc-tpl="104" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 10.5px; color: rgb(124, 138, 163); margin-top: 12px; line-height: 1.6;">Coropleta por <span data-dc-tpl="105" style="color: rgb(232, 238, 246);"><span class="sc-interp">presupuesto 2024</span></span>.<br data-dc-tpl="106">Seleccione un departamento para explorar sus municipios.</div>
+        </div>
+
+        <div data-dc-tpl="107" style="position: absolute; top: 26px; right: 30px; background: rgba(13, 21, 38, 0.7); border: 1px solid rgba(0, 212, 184, 0.16); border-radius: 10px; padding: 13px 15px; backdrop-filter: blur(6px);">
+          <div data-dc-tpl="108" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9px; color: rgb(124, 138, 163); letter-spacing: 0.12em;"><span class="sc-interp">presupuesto 2024</span></div>
+          <div data-dc-tpl="109" style="width: 172px; height: 9px; border-radius: 5px; margin-top: 9px; background: linear-gradient(90deg, rgb(14, 47, 52), rgb(10, 125, 114), rgb(0, 212, 184));"></div>
+          <div data-dc-tpl="110" style="display: flex; justify-content: space-between; margin-top: 6px; font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(159, 176, 198);">
+            <span data-dc-tpl="111"><span class="sc-interp">L 575 M</span></span><span data-dc-tpl="112"><span class="sc-interp">L 12.7 mil M</span></span>
+          </div>
+        </div>
+
+        <div data-dc-tpl="113" style="position: absolute; left: 0px; right: 0px; bottom: 26px; display: flex; justify-content: center; gap: 18px; padding: 0px 30px;">
+          <div data-dc-tpl="114" style="flex: 0 1 280px; background: rgba(13, 21, 38, 0.74); border: 1px solid rgba(0, 212, 184, 0.16); border-radius: 12px; padding: 16px 20px; backdrop-filter: blur(6px); position: relative; overflow: hidden;">
+            <div data-dc-tpl="115" style="position: absolute; left: 0px; top: 14px; bottom: 14px; width: 3px; background: rgb(0, 212, 184); border-radius: 2px;"></div>
+            <div data-dc-tpl="116" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(124, 138, 163); letter-spacing: 0.13em;">MUNICIPIOS</div>
+            <div data-dc-tpl="117" style="font-size: 38px; font-weight: 600; line-height: 1; margin-top: 8px;"><span class="sc-interp">298</span></div>
+            <div data-dc-tpl="118" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(159, 176, 198); margin-top: 6px;">en <span class="sc-interp">18</span> departamentos</div>
+          </div>
+          <div data-dc-tpl="119" style="flex: 0 1 280px; background: rgba(13, 21, 38, 0.74); border: 1px solid rgba(0, 212, 184, 0.16); border-radius: 12px; padding: 16px 20px; backdrop-filter: blur(6px); position: relative; overflow: hidden;">
+            <div data-dc-tpl="120" style="position: absolute; left: 0px; top: 14px; bottom: 14px; width: 3px; background: rgb(0, 212, 184); border-radius: 2px;"></div>
+            <div data-dc-tpl="121" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(124, 138, 163); letter-spacing: 0.13em;">POBLACIÓN NACIONAL</div>
+            <div data-dc-tpl="122" style="font-size: 38px; font-weight: 600; line-height: 1; margin-top: 8px;"><span class="sc-interp">9,145,000</span></div>
+            <div data-dc-tpl="123" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(159, 176, 198); margin-top: 6px;">habitantes · proyección 2024</div>
+          </div>
+          <div data-dc-tpl="124" style="flex: 0 1 280px; background: rgba(13, 21, 38, 0.74); border: 1px solid rgba(245, 158, 11, 0.22); border-radius: 12px; padding: 16px 20px; backdrop-filter: blur(6px); position: relative; overflow: hidden;">
+            <div data-dc-tpl="125" style="position: absolute; left: 0px; top: 14px; bottom: 14px; width: 3px; background: rgb(245, 158, 11); border-radius: 2px;"></div>
+            <div data-dc-tpl="126" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(124, 138, 163); letter-spacing: 0.13em;">PRESUPUESTO AGREGADO</div>
+            <div data-dc-tpl="127" style="font-size: 38px; font-weight: 600; line-height: 1; margin-top: 8px; color: rgb(248, 210, 138);"><span class="sc-interp">L 65.6 mil M</span></div>
+            <div data-dc-tpl="128" style="font-family: &quot;IBM Plex Mono&quot;, monospace; font-size: 9.5px; color: rgb(159, 176, 198); margin-top: 6px;">transferencias + ingresos propios</div>
+          </div>
+        </div>
+      </div>
+    
+
+    
+    
+
+    
+    
+
+  </main>
+  </div>
+  
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+  </div>
+
+  <div data-dc-tpl="681" style="position: fixed; z-index: 60; pointer-events: none; opacity: 0; transition: opacity 0.14s; transform: translate(-50%, -128%); background: rgba(8, 12, 24, 0.96); border: 1px solid rgba(0, 212, 184, 0.42); border-radius: 9px; padding: 8px 12px; box-shadow: rgba(0, 0, 0, 0.6) 0px 10px 32px; white-space: nowrap;"></div></div></div></div>
+<script type="text/x-dc" data-dc-script="">
+class Component extends DCLogic {
+  state = {
+    view: "nation", deptCode: null, munId: null, indicator: "budget", deptSearch: "", ready: false,
+    nav: "map", dashYear: 2024,
+    mdYear: 2024, mdDept: "HN.FM", mdMuni: "HN.FM-1",
+    mdOpen: { general: true, trib: false, notrib: false, capital: false, func: false, deuda: false },
+    anYear: 2024, anDept: "all",
+    cmpMode: "munis", cmpIndicator: "budget",
+    cmpDepts: ["HN.FM", "HN.CR"], cmpMunis: ["HN.FM-1", "HN.CR-1", "HN.AT-1"], cmpYears: [2023, 2024],
+    cmpRadarDepts: ["HN.FM", "HN.CR", "HN.AT"], cmpRadarYear: 2024,
+    rkYear: 2024, rkDept: "all", rkType: "poblacion", rkPage: 0,
+    dfYear: 2024, dfDept: "all", dfSearch: "", dfCat: "all", dfPage: 0, dfBudgetMin: 0
+  };
+
+  /* ---------- lifecycle ---------- */
+  componentDidMount() {
+    this._poll = setInterval(() => {
+      if (window.d3 && window.topojson && window.HN) {
+        clearInterval(this._poll);
+        this.d3 = window.d3;
+        this.HN = window.HN;
+        this.features = window.topojson.feature(this.HN.topo, this.HN.topo.objects.hnd).features;
+        this.featByCode = {};
+        this.features.forEach((f) => { this.featByCode[f.id] = f; });
+        this.setState({ ready: true }, () => this.redraw());
+      }
+    }, 50);
+    this._onResize = () => this.redraw();
+    window.addEventListener("resize", this._onResize);
+  }
+  componentWillUnmount() {
+    clearInterval(this._poll);
+    window.removeEventListener("resize", this._onResize);
+  }
+  componentDidUpdate() {
+    if (!this.state.ready) return;
+    const s = this.state;
+    const key = [s.nav, s.view, s.deptCode, s.munId, s.indicator, s.dashYear, s.mdMuni, s.mdYear,
+      s.anYear, s.anDept, s.cmpMode, s.cmpIndicator, s.cmpRadarYear,
+      s.cmpDepts.join(","), s.cmpMunis.join(","), s.cmpYears.join(","), s.cmpRadarDepts.join(",")].join("|");
+    if (key !== this._drawKey) { this._drawKey = key; this.redraw(); }
+  }
+
+  /* ---------- helpers ---------- */
+  fmtInt = (n) => Math.round(n).toLocaleString("es-HN");
+  fmtL = (n) => {
+    if (n >= 1e9) return "L " + (n / 1e9).toLocaleString("es-HN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " mil M";
+    if (n >= 1e6) return "L " + Math.round(n / 1e6).toLocaleString("es-HN") + " M";
+    return "L " + Math.round(n).toLocaleString("es-HN");
+  };
+  norm = (s) => (s || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  indVal = (code) => { const d = this.HN.byCode[code]; return this.state.indicator === "budget" ? d.budget : d.population; };
+  findMuni = (id) => {
+    if (!id || !this.HN) return null;
+    const code = id.split("-")[0];
+    const d = this.HN.byCode[code];
+    return d ? d.municipalities.find((m) => m.id === id) : null;
+  };
+  selectDept = (code) => { this.hideTip(); this.setState({ view: "dept", deptCode: code, munId: null, deptSearch: "" }); };
+
+  _seed(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    return h >>> 0;
+  }
+  _rng(a) {
+    return function () {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ---------- tooltip ---------- */
+  showTip(event, f) {
+    const t = this.tooltip; if (!t) return;
+    const d = this.HN.byCode[f.id];
+    const v = this.state.indicator === "budget" ? this.fmtL(d.budget) : this.fmtInt(d.population) + " hab";
+    t.innerHTML =
+      '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:600;letter-spacing:.02em">' + f.properties.name + "</div>" +
+      '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#00d4b8;margin-top:2px">' + v + "</div>" +
+      '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:9px;color:#7c8aa3;margin-top:1px">' + d.muniCount + " municipios · cap. " + d.capital + "</div>";
+    this.moveTip(event);
+    t.style.opacity = "1";
+  }
+  showNodeTip(event, p, dept) {
+    const t = this.tooltip; if (!t) return;
+    const m = dept.municipalities.find((x) => x.id === p.id);
+    t.innerHTML =
+      '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:600;letter-spacing:.02em">' + p.name + "</div>" +
+      '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#00d4b8;margin-top:2px">' + this.fmtInt(m.population) + " hab · " + this.fmtL(m.budget) + "</div>" +
+      '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:9px;color:#7c8aa3;margin-top:1px">' + (p.isCapital ? "Cabecera departamental" : "Municipio") + "</div>";
+    this.moveTip(event);
+    t.style.opacity = "1";
+  }
+  moveTip(event) { const t = this.tooltip; if (!t) return; t.style.left = event.clientX + "px"; t.style.top = event.clientY + "px"; }
+  hideTip() { if (this.tooltip) this.tooltip.style.opacity = "0"; }
+
+  /* ---------- draw dispatch ---------- */
+  redraw() {
+    if (!this.state.ready || !this.HN) return;
+    const s = this.state;
+    if (s.nav === "map") {
+      if (s.view === "nation") this.drawNation();
+      else if (s.view === "dept") this.drawDept();
+      else if (s.view === "muni") this.drawMuniCharts();
+    } else if (s.nav === "dashboard") {
+      this.drawDashboard();
+    } else if (s.nav === "muniDetail") {
+      this.drawDetalle();
+    } else if (s.nav === "analisis") {
+      this.drawAnalisis();
+    } else if (s.nav === "comparativos") {
+      this.drawComparativos();
+    }
+  }
+  setNav(k) { this.hideTip(); this.setState({ nav: k }); }
+
+  /* ---------- VIEW 1: national choropleth ---------- */
+  drawNation() {
+    const wrap = this.nationWrap, svg = this.nationSvg; if (!wrap || !svg) return;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const d3 = this.d3, self = this;
+    const sel = d3.select(svg); sel.selectAll("*").remove();
+    sel.attr("viewBox", "0 0 " + W + " " + H).attr("width", W).attr("height", H);
+
+    const fc = { type: "FeatureCollection", features: this.features };
+    const proj = d3.geoMercator().fitExtent([[64, 56], [W - 64, H - 132]], fc);
+    const path = d3.geoPath(proj);
+
+    const vals = this.HN.departments.map((d) => (this.state.indicator === "budget" ? d.budget : d.population));
+    const color = d3.scaleSequentialSqrt()
+      .domain([d3.min(vals) * 0.85, d3.max(vals)])
+      .interpolator((t) => d3.interpolateRgb("#0e2f34", "#00d4b8")(t));
+
+    const defs = sel.append("defs");
+    const fl = defs.append("filter").attr("id", "hnGlow").attr("x", "-50%").attr("y", "-50%").attr("width", "200%").attr("height", "200%");
+    fl.append("feDropShadow").attr("dx", 0).attr("dy", 0).attr("stdDeviation", 6).attr("flood-color", "#00d4b8").attr("flood-opacity", 0.9);
+
+    const g = sel.append("g");
+    g.selectAll("path").data(this.features).join("path")
+      .attr("d", path)
+      .attr("fill", (f) => color(this.indVal(f.id)))
+      .attr("stroke", "rgba(6,11,22,0.92)")
+      .attr("stroke-width", 1)
+      .style("cursor", "pointer")
+      .style("transition", "fill .5s ease")
+      .on("mouseenter", function (event, f) {
+        d3.select(this).raise().attr("stroke", "#00d4b8").attr("stroke-width", 2).style("filter", "url(#hnGlow)");
+        self.showTip(event, f);
+      })
+      .on("mousemove", (event) => self.moveTip(event))
+      .on("mouseleave", function () {
+        d3.select(this).attr("stroke", "rgba(6,11,22,0.92)").attr("stroke-width", 1).style("filter", null);
+        self.hideTip();
+      })
+      .on("click", (event, f) => self.selectDept(f.id));
+
+    // faint centroid markers + abbreviations for orientation
+    const labels = g.append("g").style("pointer-events", "none");
+    this.features.forEach((f) => {
+      const c = path.centroid(f);
+      if (!isFinite(c[0])) return;
+      labels.append("circle").attr("cx", c[0]).attr("cy", c[1]).attr("r", 1.6).attr("fill", "rgba(255,255,255,.45)");
+      labels.append("text").attr("x", c[0]).attr("y", c[1] - 6).attr("text-anchor", "middle")
+        .text(f.properties.name.toUpperCase())
+        .attr("fill", "rgba(232,238,246,.5)")
+        .style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8px").style("letter-spacing", ".06em");
+    });
+  }
+
+  /* ---------- VIEW 2: department mini map + nodes ---------- */
+  placeNodes(f, proj, munis, W, H) {
+    const d3 = this.d3, path = d3.geoPath(proj);
+    const c = path.centroid(f);
+    const rng = this._rng(this._seed(f.id));
+    const pts = [];
+    munis.forEach((m, i) => {
+      if (i === 0) { pts.push({ id: m.id, name: m.name, isCapital: true, x: c[0], y: c[1] }); return; }
+      let placed = null;
+      for (let k = 0; k < 500; k++) {
+        const x = 30 + rng() * (W - 60), y = 30 + rng() * (H - 60);
+        const ll = proj.invert([x, y]); if (!ll) continue;
+        if (!d3.geoContains(f, ll)) continue;
+        let ok = true;
+        for (const q of pts) { const dx = q.x - x, dy = q.y - y; if (dx * dx + dy * dy < 230) { ok = false; break; } }
+        if (ok) { placed = { id: m.id, name: m.name, isCapital: false, x: x, y: y }; break; }
+      }
+      if (!placed) { const a = rng() * 6.283, rr = 16 + rng() * 46; placed = { id: m.id, name: m.name, isCapital: false, x: c[0] + Math.cos(a) * rr, y: c[1] + Math.sin(a) * rr }; }
+      pts.push(placed);
+    });
+    return pts;
+  }
+  drawDept() {
+    const code = this.state.deptCode, f = this.featByCode[code];
+    const wrap = this.deptWrap, svg = this.deptSvg;
+    if (!code || !f || !wrap || !svg) return;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const d3 = this.d3, self = this;
+    const sel = d3.select(svg); sel.selectAll("*").remove();
+    sel.attr("viewBox", "0 0 " + W + " " + H).attr("width", W).attr("height", H);
+
+    const proj = d3.geoMercator().fitExtent([[34, 34], [W - 34, H - 34]], f);
+    const path = d3.geoPath(proj);
+
+    const defs = sel.append("defs");
+    const fl = defs.append("filter").attr("id", "hnGlow").attr("x", "-60%").attr("y", "-60%").attr("width", "220%").attr("height", "220%");
+    fl.append("feDropShadow").attr("dx", 0).attr("dy", 0).attr("stdDeviation", 5).attr("flood-color", "#00d4b8").attr("flood-opacity", 0.95);
+
+    sel.append("path").attr("d", path(f))
+      .attr("fill", "rgba(0,212,184,0.055)")
+      .attr("stroke", "rgba(0,212,184,0.55)").attr("stroke-width", 1.4)
+      .style("filter", "drop-shadow(0 0 16px rgba(0,212,184,0.22))");
+
+    const dept = this.HN.byCode[code];
+    const pts = this.placeNodes(f, proj, dept.municipalities, W, H);
+    const cap = pts.find((p) => p.isCapital) || pts[0];
+
+    const g = sel.append("g");
+    g.selectAll("line").data(pts.filter((p) => p !== cap)).join("line")
+      .attr("x1", cap.x).attr("y1", cap.y).attr("x2", (p) => p.x).attr("y2", (p) => p.y)
+      .attr("stroke", "rgba(0,212,184,0.13)").attr("stroke-width", 0.8);
+
+    const node = g.selectAll("g.node").data(pts).join("g").attr("class", "node")
+      .attr("transform", (p) => "translate(" + p.x + "," + p.y + ")")
+      .style("cursor", "pointer")
+      .on("mouseenter", function (event, p) {
+        d3.select(this).select("circle.dot").attr("r", p.isCapital ? 9 : 6).style("filter", "url(#hnGlow)");
+        self.showNodeTip(event, p, dept);
+      })
+      .on("mousemove", (event) => self.moveTip(event))
+      .on("mouseleave", function (event, p) {
+        d3.select(this).select("circle.dot").attr("r", p.isCapital ? 7 : 4.5).style("filter", null);
+        self.hideTip();
+      })
+      .on("click", (event, p) => self.setState({ view: "muni", munId: p.id }));
+
+    node.append("circle").attr("class", "halo").attr("r", (p) => (p.isCapital ? 7 : 4.5))
+      .attr("fill", "none").attr("stroke", (p) => (p.isCapital ? "rgba(245,158,11,.35)" : "rgba(0,212,184,.3)")).attr("stroke-width", 6);
+    node.append("circle").attr("class", "dot").attr("r", (p) => (p.isCapital ? 7 : 4.5))
+      .attr("fill", (p) => (p.isCapital ? "#f59e0b" : "#00d4b8")).attr("stroke", "#0a0f1e").attr("stroke-width", 1.2)
+      .style("transition", "r .15s ease");
+    const shortCap = (name) => {
+      let n = name.replace(/\s*\(.*?\)\s*/g, "").trim();
+      n = n.replace(/^Distrito Central$/i, "D. Central");
+      return n.length > 16 ? n.slice(0, 15).trim() + "…" : n;
+    };
+    node.filter((p) => p.isCapital).append("text")
+      .attr("x", (p) => (p.x > W - 120 ? -12 : 12))
+      .attr("y", 4)
+      .attr("text-anchor", (p) => (p.x > W - 120 ? "end" : "start"))
+      .text((p) => shortCap(p.name))
+      .attr("fill", "#f6c66b").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "10px").style("font-weight", "500");
+  }
+
+  /* ---------- VIEW 3: charts ---------- */
+  drawMuniCharts() {
+    const muni = this.findMuni(this.state.munId); if (!muni) return;
+    const dept = this.HN.byCode[muni.deptCode];
+    if (!this.barsEl || !this.donutEl || !this.sparkEl) { requestAnimationFrame(() => this.redraw()); return; }
+    this.drawBars(muni, dept);
+    this.drawDonut(muni);
+    this.drawSpark(muni);
+  }
+  drawBars(muni, dept) {
+    const el = this.barsEl, d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 360;
+    const metrics = [
+      { label: "Presupuesto", m: muni.budget, a: dept.avg.budget, fmt: this.fmtL },
+      { label: "Ingresos propios", m: muni.ownRevenue, a: dept.avg.ownRevenue, fmt: this.fmtL },
+      { label: "Transferencia", m: muni.transfer, a: dept.avg.transfer, fmt: this.fmtL },
+      { label: "Población", m: muni.population, a: dept.avg.population, fmt: this.fmtInt }
+    ];
+    const rowH = 52, padT = 4, H = padT + metrics.length * rowH;
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H);
+    metrics.forEach((mt, i) => {
+      const max = Math.max(mt.m, mt.a) || 1;
+      const g = svg.append("g").attr("transform", "translate(0," + (padT + i * rowH) + ")");
+      g.append("text").attr("x", 0).attr("y", 11).text(mt.label.toUpperCase())
+        .attr("fill", "#7c8aa3").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "9.5px").style("letter-spacing", ".08em");
+      g.append("text").attr("x", W).attr("y", 11).attr("text-anchor", "end").text(mt.fmt(mt.m))
+        .attr("fill", "#e8eef6").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "10.5px");
+      g.append("rect").attr("x", 0).attr("y", 20).attr("width", W).attr("height", 8).attr("rx", 4).attr("fill", "rgba(255,255,255,0.05)");
+      g.append("rect").attr("x", 0).attr("y", 20).attr("width", 0).attr("height", 8).attr("rx", 4).attr("fill", "#00d4b8")
+        .transition().duration(750).ease(d3.easeCubicOut).attr("width", W * mt.m / max);
+      g.append("rect").attr("x", 0).attr("y", 32).attr("width", W).attr("height", 5).attr("rx", 2.5).attr("fill", "rgba(255,255,255,0.04)");
+      g.append("rect").attr("x", 0).attr("y", 32).attr("width", 0).attr("height", 5).attr("rx", 2.5).attr("fill", "rgba(245,158,11,0.85)")
+        .transition().duration(750).ease(d3.easeCubicOut).attr("width", W * mt.a / max);
+    });
+  }
+  drawDonut(muni) {
+    const el = this.donutEl, d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 220, H = el.clientHeight || 180;
+    const size = Math.min(W, H), R = size / 2 - 6, r = R * 0.62;
+    const data = [
+      { k: "Transferencias", v: muni.transfer, c: "#f59e0b" },
+      { k: "Ingresos propios", v: muni.ownRevenue, c: "#00d4b8" },
+      { k: "Otros", v: muni.other, c: "#3a4a63" }
+    ];
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H);
+    const g = svg.append("g").attr("transform", "translate(" + W / 2 + "," + H / 2 + ")");
+    const pie = d3.pie().sort(null).value((d) => d.v);
+    const arc = d3.arc().innerRadius(r).outerRadius(R).padAngle(0.02).cornerRadius(3);
+    g.selectAll("path").data(pie(data)).join("path")
+      .attr("fill", (d) => d.data.c)
+      .each(function (d) { this._cur = { startAngle: d.startAngle, endAngle: d.startAngle }; })
+      .transition().duration(750).ease(d3.easeCubicOut)
+      .attrTween("d", function (d) { const i = d3.interpolate(this._cur, d); this._cur = i(1); return (t) => arc(i(t)); });
+    const pct = Math.round(muni.transfer / muni.budget * 100);
+    g.append("text").attr("text-anchor", "middle").attr("y", -2).text(pct + "%")
+      .attr("fill", "#f8d28a").style("font-family", "'Barlow Condensed',sans-serif").style("font-size", "30px").style("font-weight", "600");
+    g.append("text").attr("text-anchor", "middle").attr("y", 16).text("TRANSFERENCIAS")
+      .attr("fill", "#7c8aa3").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8px").style("letter-spacing", ".1em");
+  }
+  drawSpark(muni) {
+    const el = this.sparkEl, d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 220, H = el.clientHeight || 170;
+    const m = { t: 16, r: 16, b: 22, l: 16 };
+    const data = muni.history;
+    const x = d3.scalePoint().domain(data.map((d) => d.year)).range([m.l, W - m.r]);
+    const ext = d3.extent(data, (d) => d.value);
+    const y = d3.scaleLinear().domain([ext[0] * 0.9, ext[1] * 1.06]).range([H - m.b, m.t]);
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H);
+    const defs = svg.append("defs");
+    const grad = defs.append("linearGradient").attr("id", "sparkFill").attr("x1", 0).attr("y1", 0).attr("x2", 0).attr("y2", 1);
+    grad.append("stop").attr("offset", "0%").attr("stop-color", "#00d4b8").attr("stop-opacity", 0.32);
+    grad.append("stop").attr("offset", "100%").attr("stop-color", "#00d4b8").attr("stop-opacity", 0);
+    const area = d3.area().x((d) => x(d.year)).y0(H - m.b).y1((d) => y(d.value)).curve(d3.curveMonotoneX);
+    const line = d3.line().x((d) => x(d.year)).y((d) => y(d.value)).curve(d3.curveMonotoneX);
+    svg.append("path").datum(data).attr("d", area).attr("fill", "url(#sparkFill)");
+    const p = svg.append("path").datum(data).attr("d", line).attr("fill", "none").attr("stroke", "#00d4b8").attr("stroke-width", 2);
+    const len = p.node().getTotalLength();
+    p.attr("stroke-dasharray", len).attr("stroke-dashoffset", len).transition().duration(850).ease(d3.easeCubicOut).attr("stroke-dashoffset", 0);
+    data.forEach((d, i) => {
+      const last = i === data.length - 1;
+      svg.append("circle").attr("cx", x(d.year)).attr("cy", y(d.value)).attr("r", last ? 4 : 2.6)
+        .attr("fill", last ? "#f59e0b" : "#00d4b8").attr("stroke", "#0a0f1e").attr("stroke-width", last ? 1.4 : 0);
+      svg.append("text").attr("x", x(d.year)).attr("y", H - 7).attr("text-anchor", "middle").text(d.year)
+        .attr("fill", "#4a5a73").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8px");
+    });
+    const lastD = data[data.length - 1];
+    svg.append("text").attr("x", x(lastD.year)).attr("y", y(lastD.value) - 9).attr("text-anchor", "end").text(this.fmtL(lastD.value))
+      .attr("fill", "#f8d28a").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "9px");
+  }
+
+  /* ---------- formatters for Dashboard Nacional ---------- */
+  fmtB(n) { return "L " + (n / 1e9).toLocaleString("es-HN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "B"; }
+  fmtM(n) { return (n / 1e6).toLocaleString("es-HN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "M"; }
+  budgetFactor(y) { return (this.HN.nacionalByYear[y] || {}).budgetFactor || 1; }
+  popFactor(y) { return (this.HN.nacionalByYear[y] || {}).popFactor || 1; }
+  propFactor(y) { return (this.HN.nacionalByYear[y] || {}).propFactor || 1; }
+  kpiSeries(metric, year, endVal) {
+    const rng = this._rng(this._seed(metric + "|" + year));
+    const n = 8, arr = [], start = endVal * (0.80 + rng() * 0.05);
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1), base = start + (endVal - start) * t;
+      const noise = (rng() - 0.5) * (endVal - start) * 0.16;
+      arr.push(Math.max(0, base + (i === n - 1 ? 0 : noise)));
+    }
+    arr[n - 1] = endVal;
+    return arr;
+  }
+
+  /* ---------- VIEW: Dashboard Nacional ---------- */
+  drawDashboard() {
+    const y = this.state.dashYear, bf = this.budgetFactor(y), pf = this.popFactor(y);
+    if (this.dashPopEl) {
+      const data = this.HN.departments.map((d) => ({ name: d.name, value: Math.round(d.population * pf) }))
+        .sort((a, b) => b.value - a.value).slice(0, 10);
+      this.drawHBars(this.dashPopEl, data, "#00d4b8", this.fmtInt);
+    }
+    if (this.dashBudEl) {
+      const data = this.HN.departments.map((d) => ({ name: d.name, value: Math.round(d.budget * bf) }))
+        .sort((a, b) => b.value - a.value).slice(0, 10);
+      this.drawHBars(this.dashBudEl, data, "#f59e0b", this.fmtL);
+    }
+    if (this.dashMapWrap && this.dashMapSvg) this.drawMiniChoro(bf);
+    const nac = this.HN.nacionalByYear[y];
+    if (this.kpiSpark1) this.drawKpiSpark(this.kpiSpark1, this.kpiSeries("muni", y, nac.municipios), "#00d4b8");
+    if (this.kpiSpark2) this.drawKpiSpark(this.kpiSpark2, this.kpiSeries("pop", y, nac.poblacion), "#00d4b8");
+    if (this.kpiSpark3) this.drawKpiSpark(this.kpiSpark3, this.kpiSeries("bud", y, nac.presupuesto), "#f59e0b");
+    if (this.kpiSpark4) this.drawKpiSpark(this.kpiSpark4, this.kpiSeries("auto", y, nac.autonomia), "#00d4b8");
+  }
+  drawHBars(el, data, color, fmt) {
+    const d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 300, H = el.clientHeight || 260;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const max = d3.max(data, (d) => d.value) || 1;
+    const rowH = H / data.length, barH = Math.min(12, rowH - 13);
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H);
+    data.forEach((d, i) => {
+      const g = svg.append("g").attr("transform", "translate(0," + (i * rowH) + ")");
+      g.append("text").attr("x", 0).attr("y", 10).text(d.name)
+        .attr("fill", "#cdd8e8").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "10px");
+      g.append("text").attr("x", W).attr("y", 10).attr("text-anchor", "end").text(fmt(d.value))
+        .attr("fill", "#9fb0c6").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "9px");
+      g.append("rect").attr("x", 0).attr("y", 15).attr("width", W).attr("height", barH).attr("rx", barH / 2).attr("fill", "rgba(255,255,255,0.05)");
+      g.append("rect").attr("x", 0).attr("y", 15).attr("width", 0).attr("height", barH).attr("rx", barH / 2).attr("fill", color)
+        .style("filter", "drop-shadow(0 0 5px " + color + "55)")
+        .transition().duration(700).ease(d3.easeCubicOut).attr("width", Math.max(2, W * d.value / max));
+    });
+  }
+  drawMiniChoro(bf) {
+    const wrap = this.dashMapWrap, svg = this.dashMapSvg;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const d3 = this.d3, self = this;
+    const sel = d3.select(svg); sel.selectAll("*").remove();
+    sel.attr("viewBox", "0 0 " + W + " " + H).attr("width", W).attr("height", H);
+    const fc = { type: "FeatureCollection", features: this.features };
+    const proj = d3.geoMercator().fitExtent([[12, 12], [W - 12, H - 12]], fc);
+    const path = d3.geoPath(proj);
+    const vals = this.HN.departments.map((d) => d.budget * bf);
+    const color = d3.scaleSequentialSqrt().domain([d3.min(vals) * 0.85, d3.max(vals)])
+      .interpolator((t) => d3.interpolateRgb("#0e2f34", "#00d4b8")(t));
+    const g = sel.append("g");
+    const paths = g.selectAll("path").data(this.features).join("path")
+      .attr("d", path).attr("fill", (f) => color(self.HN.byCode[f.id].budget * bf))
+      .attr("stroke", "rgba(6,11,22,0.9)").attr("stroke-width", 0.7)
+      .style("transition", "fill .4s ease")
+      .on("mouseenter", function () { d3.select(this).raise().attr("stroke", "#00d4b8").attr("stroke-width", 1.4); })
+      .on("mouseleave", function () { d3.select(this).attr("stroke", "rgba(6,11,22,0.9)").attr("stroke-width", 0.7); });
+    paths.append("title").text((f) => f.properties.name + " — " + self.fmtL(self.HN.byCode[f.id].budget * bf));
+  }
+  drawKpiSpark(el, series, color) {
+    const d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 200, H = el.clientHeight || 34;
+    if (!W) { requestAnimationFrame(() => this.redraw()); return; }
+    const x = d3.scaleLinear().domain([0, series.length - 1]).range([2, W - 2]);
+    const ext = d3.extent(series), pad = (ext[1] - ext[0]) * 0.2 || 1;
+    const yS = d3.scaleLinear().domain([ext[0] - pad, ext[1] + pad]).range([H - 3, 4]);
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H);
+    const gid = "kpiG" + Math.random().toString(36).slice(2, 7);
+    const grad = svg.append("defs").append("linearGradient").attr("id", gid).attr("x1", 0).attr("y1", 0).attr("x2", 0).attr("y2", 1);
+    grad.append("stop").attr("offset", "0%").attr("stop-color", color).attr("stop-opacity", 0.32);
+    grad.append("stop").attr("offset", "100%").attr("stop-color", color).attr("stop-opacity", 0);
+    const area = d3.area().x((d, i) => x(i)).y0(H).y1((d) => yS(d)).curve(d3.curveMonotoneX);
+    const line = d3.line().x((d, i) => x(i)).y((d) => yS(d)).curve(d3.curveMonotoneX);
+    svg.append("path").datum(series).attr("d", area).attr("fill", "url(#" + gid + ")");
+    const p = svg.append("path").datum(series).attr("d", line).attr("fill", "none").attr("stroke", color).attr("stroke-width", 1.8)
+      .style("filter", "drop-shadow(0 0 4px " + color + "99)");
+    const len = p.node().getTotalLength();
+    p.attr("stroke-dasharray", len).attr("stroke-dashoffset", len).transition().duration(700).attr("stroke-dashoffset", 0);
+    svg.append("circle").attr("cx", x(series.length - 1)).attr("cy", yS(series[series.length - 1])).attr("r", 2.6)
+      .attr("fill", color).style("filter", "drop-shadow(0 0 4px " + color + ")");
+  }
+
+  /* ---------- VIEW: Detalle Municipio ---------- */
+  financialBreakdown(muni) {
+    const split = (seed, total, labels) => {
+      const rng = this._rng(this._seed(muni.id + "|" + seed));
+      const w = labels.map(() => 0.5 + rng());
+      const ws = w.reduce((a, b) => a + b, 0);
+      return labels.map((l, i) => ({ label: l, amount: Math.round(total * w[i] / ws) }));
+    };
+    const own = muni.ownRevenue, transfer = muni.transfer, other = muni.other, budget = muni.budget;
+    const tribTotal = Math.round(own * 0.62), notribTotal = own - Math.round(own * 0.62);
+    const capTotal = other, funcTotal = Math.round(budget * 0.55), deudaTotal = budget - Math.round(budget * 0.55);
+    const trib = split("trib", tribTotal, ["Impuesto sobre Bienes Inmuebles", "Industria, Comercio y Servicios", "Impuesto Personal (Vecinal)", "Impuesto Pecuario", "Extracción de Recursos"]);
+    const notrib = split("notrib", notribTotal, ["Tasas por Servicios", "Derechos Administrativos", "Multas y Recargos", "Venta de Bienes y Servicios", "Rentas de la Propiedad"]);
+    const cap = split("cap", capTotal, ["Transferencias de Capital", "Donaciones Externas", "Préstamos y Endeudamiento", "Venta de Activos"]);
+    const func = split("func", funcTotal, ["Servicios Personales (Sueldos)", "Servicios No Personales", "Materiales y Suministros", "Transferencias Corrientes"]);
+    const deuda = split("deuda", deudaTotal, ["Inversión en Infraestructura", "Bienes de Capital", "Amortización de Deuda", "Intereses y Comisiones"]);
+    const sections = [
+      { key: "trib", title: "Ingresos Tributarios", accent: "#1f9d57", headerBg: "rgba(31,157,87,.15)", total: tribTotal, items: trib },
+      { key: "notrib", title: "Ingresos No Tributarios", accent: "#f59e0b", headerBg: "rgba(245,158,11,.13)", total: notribTotal, items: notrib },
+      { key: "capital", title: "Ingresos de Capital", accent: "#d6409f", headerBg: "rgba(214,64,159,.14)", total: capTotal, items: cap },
+      { key: "func", title: "Gastos de Funcionamiento", accent: "#c0463a", headerBg: "rgba(192,70,58,.15)", total: funcTotal, items: func },
+      { key: "deuda", title: "Gastos de Capital y Deuda Pública", accent: "#8b5cf6", headerBg: "rgba(139,92,246,.15)", total: deudaTotal, items: deuda }
+    ];
+    const allIncome = trib.concat(notrib).concat(cap);
+    const top5 = allIncome.slice().sort((a, b) => b.amount - a.amount).slice(0, 5);
+    const donut = [
+      { k: "Ingresos Propios", v: own, c: "#00d4b8" },
+      { k: "Transferencias", v: transfer, c: "#f59e0b" },
+      { k: "Ingresos de Capital", v: other, c: "#d6409f" }
+    ];
+    const cat = budget > 3e9 ? "A" : budget > 1.2e9 ? "B" : budget > 4e8 ? "C" : "D";
+    const general = [
+      { label: "Departamento", value: muni.deptName },
+      { label: "Categoría Municipal", value: "Categoría " + cat },
+      { label: "Población", value: this.fmtInt(muni.population) + " hab" },
+      { label: "Área", value: this.fmtInt(muni.area) + " km²" },
+      { label: "Densidad", value: (muni.population / muni.area).toFixed(1) + " hab/km²" },
+      { label: "IDH", value: muni.hdi.toFixed(3) }
+    ];
+    return { sections, top5, donut, general };
+  }
+  drawDetalle() {
+    const muni = this.findMuni(this.state.mdMuni); if (!muni) return;
+    const fb = this.financialBreakdown(muni);
+    if (this.detDonutEl) this.drawDonutGeneric(this.detDonutEl, fb.donut);
+    if (this.detBarsEl) this.drawHBars(this.detBarsEl, fb.top5.map((t) => ({ name: t.label, value: t.amount })), "#00d4b8", this.fmtL);
+  }
+  drawDonutGeneric(el, segs) {
+    const d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 240, H = el.clientHeight || 180;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const size = Math.min(W, H), R = size / 2 - 6, r = R * 0.62;
+    const total = segs.reduce((a, b) => a + b.v, 0) || 1;
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H);
+    const g = svg.append("g").attr("transform", "translate(" + W / 2 + "," + H / 2 + ")");
+    const pie = d3.pie().sort(null).value((d) => d.v);
+    const arc = d3.arc().innerRadius(r).outerRadius(R).padAngle(0.02).cornerRadius(3);
+    g.selectAll("path").data(pie(segs)).join("path").attr("fill", (d) => d.data.c)
+      .each(function (d) { this._cur = { startAngle: d.startAngle, endAngle: d.startAngle }; })
+      .transition().duration(700).attrTween("d", function (d) { const i = d3.interpolate(this._cur, d); this._cur = i(1); return (t) => arc(i(t)); });
+    g.append("text").attr("text-anchor", "middle").attr("y", -2).text(this.fmtL(total))
+      .attr("fill", "#e8eef6").style("font-family", "'Barlow Condensed',sans-serif").style("font-size", "19px").style("font-weight", "600");
+    g.append("text").attr("text-anchor", "middle").attr("y", 15).text("INGRESOS TOTALES")
+      .attr("fill", "#7c8aa3").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "7.5px").style("letter-spacing", ".1em");
+  }
+
+  /* ========================================================================
+     SHARED ANALYTICS HELPERS (Análisis / Comparativos / Rankings / Financieros)
+     ===================================================================== */
+  allMunis() {
+    if (this._allMunis) return this._allMunis;
+    const arr = [];
+    this.HN.departments.forEach((d) => { d.municipalities.forEach((m) => arr.push(m)); });
+    this._allMunis = arr;
+    return arr;
+  }
+  deptColor(code) {
+    if (!this._deptColorScale) {
+      const codes = this.HN.departments.map((d) => d.code);
+      const d3 = this.d3;
+      this._deptColorScale = d3.scaleOrdinal().domain(codes)
+        .range(codes.map((c, i) => d3.hsl(360 * i / codes.length, 0.6, 0.62) + ""));
+    }
+    return this._deptColorScale(code);
+  }
+  categoryOf(baseBudget) {
+    return baseBudget > 3e9 ? "A" : baseBudget > 1.2e9 ? "B" : baseBudget > 4e8 ? "C" : "D";
+  }
+  autonomyPct(m, year) {
+    const raw = m.ownRevenue / m.budget;
+    let a = (raw - 0.12) / (0.45 - 0.12);
+    a = Math.max(0, Math.min(1, a));
+    let pct = 2 + a * a * 58;
+    const jitter = (this._rng(this._seed(m.id + "|aj"))() - 0.5) * 5;
+    const yearWobble = (this._rng(this._seed(m.id + "|aw|" + year))() - 0.5) * 3.4;
+    pct = Math.max(1.5, pct + jitter + yearWobble);
+    const scale = (this.HN.nacionalByYear[year].autonomia) / (this.HN.nacionalByYear[2024].autonomia);
+    return pct * scale;
+  }
+  muniMetrics(m, year) {
+    const bf = this.budgetFactor(year), pf = this.popFactor(year), prf = this.propFactor(year);
+    const wB = 0.93 + this._rng(this._seed(m.id + "|wB|" + year))() * 0.14;
+    const wP = 0.96 + this._rng(this._seed(m.id + "|wP|" + year))() * 0.08;
+    const budget = Math.round(m.budget * bf * wB);
+    const own = Math.round(m.ownRevenue * prf * wB);
+    const transfer = Math.round(m.transfer * bf * wB);
+    const other = Math.round(m.other * bf * wB);
+    const population = Math.round(m.population * pf * wP);
+    const autonomy = this.autonomyPct(m, year);
+    const exec = 0.88 + this._rng(this._seed(m.id + "|x|" + year))() * 0.16;
+    const recaudado = Math.round((own + transfer + other) * exec);
+    const gasto = Math.round(budget * (0.95 + this._rng(this._seed(m.id + "|g|" + year))() * 0.12));
+    return {
+      id: m.id, name: m.name, deptCode: m.deptCode, deptName: m.deptName, isCapital: m.isCapital,
+      budget: budget, own: own, transfer: transfer, other: other, population: population,
+      autonomy: autonomy, recaudado: recaudado, superavit: recaudado - gasto,
+      tributario: Math.round(own * 0.62), gastoFunc: Math.round(budget * 0.55),
+      gastoCapital: budget - Math.round(budget * 0.55),
+      perCapita: budget / Math.max(1, population), category: this.categoryOf(m.budget)
+    };
+  }
+  deptAutonomyAvg(d, year) {
+    const vals = d.municipalities.map((m) => this.autonomyPct(m, year));
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+  deptMetrics(d, year) {
+    const bf = this.budgetFactor(year), pf = this.popFactor(year), prf = this.propFactor(year);
+    const budget = d.budget * bf, own = d.ownRevenue * prf, pop = d.population * pf;
+    const auton = this.deptAutonomyAvg(d, year);
+    return {
+      code: d.code, name: d.name, budget: budget, own: own, population: pop,
+      autonomy: auton, perCapita: budget / pop, tributario: own * 0.62,
+      capital: d.budget * 0.12 * bf, funcPct: 62 - (auton / 60) * 24
+    };
+  }
+  fmtPct(n) { return n.toFixed(1) + "%"; }
+  fmtSigned(n) { return (n >= 0 ? "+" : "−") + this.fmtL(Math.abs(n)).replace("L ", "L "); }
+
+  pillStyle(active, color) {
+    const c = color || "#00d4b8";
+    return "padding:6px 13px;font-family:'IBM Plex Mono',monospace;font-size:11px;border-radius:7px;cursor:pointer;transition:all .16s;border:1px solid;white-space:nowrap;" +
+      (active ? ("background:" + c + ";color:#04231f;border-color:" + c + ";font-weight:600;")
+              : ("background:transparent;color:#8493ab;border-color:rgba(0,212,184,.25);"));
+  }
+  yearPills(cur, setter, color) {
+    return [2021, 2022, 2023, 2024, 2025].map((y) => ({
+      label: String(y), active: cur === y, style: this.pillStyle(cur === y, color), onClick: () => setter(y)
+    }));
+  }
+
+  /* ---------- D3: scatter (Análisis) ---------- */
+  drawScatter(el, pts) {
+    const d3 = this.d3, self = this; el.innerHTML = "";
+    const W = el.clientWidth || 600, H = el.clientHeight || 320;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const m = { t: 16, r: 18, b: 40, l: 52 };
+    const x = d3.scaleLog().domain([d3.min(pts, (p) => p.x) * 0.8, d3.max(pts, (p) => p.x) * 1.1]).range([m.l, W - m.r]);
+    const y = d3.scaleLinear().domain([0, d3.max(pts, (p) => p.y) * 1.1]).range([H - m.b, m.t]);
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H);
+    y.ticks(5).forEach((t) => {
+      svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(t)).attr("y2", y(t)).attr("stroke", "rgba(255,255,255,0.05)");
+      svg.append("text").attr("x", m.l - 8).attr("y", y(t) + 3).attr("text-anchor", "end").text(t + "%")
+        .attr("fill", "#5d6e89").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8.5px");
+    });
+    [1e8, 3e8, 1e9, 3e9, 1e10].forEach((t) => {
+      if (t < x.domain()[0] || t > x.domain()[1]) return;
+      svg.append("text").attr("x", x(t)).attr("y", H - m.b + 14).attr("text-anchor", "middle").text(self.fmtL(t).replace("L ", ""))
+        .attr("fill", "#5d6e89").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8px");
+    });
+    svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", H - 4).attr("text-anchor", "middle").text("PRESUPUESTO →")
+      .attr("fill", "#7c8aa3").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8px").style("letter-spacing", ".1em");
+    svg.append("text").attr("transform", "rotate(-90)").attr("x", -(m.t + H - m.b) / 2).attr("y", 12).attr("text-anchor", "middle").text("AUTONOMÍA →")
+      .attr("fill", "#7c8aa3").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8px").style("letter-spacing", ".1em");
+    svg.append("g").selectAll("circle").data(pts).join("circle")
+      .attr("cx", (p) => x(p.x)).attr("cy", (p) => y(p.y)).attr("r", 0)
+      .attr("fill", (p) => p.c).attr("fill-opacity", 0.72).attr("stroke", "#0a0f1e").attr("stroke-width", 0.6)
+      .style("cursor", "pointer")
+      .on("mouseenter", function (event, p) {
+        d3.select(this).attr("r", 7).attr("fill-opacity", 1).attr("stroke", "#fff").attr("stroke-width", 1);
+        const t = self.tooltip;
+        t.innerHTML = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:600">' + p.muni + "</div>" +
+          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:9.5px;color:#9fb0c6;margin-top:1px">' + p.dept + "</div>" +
+          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#00d4b8;margin-top:3px">' + self.fmtL(p.x) + " · autonomía " + p.y.toFixed(1) + "%</div>";
+        t.style.left = event.clientX + "px"; t.style.top = event.clientY + "px"; t.style.opacity = "1";
+      })
+      .on("mousemove", (event) => { const t = self.tooltip; t.style.left = event.clientX + "px"; t.style.top = event.clientY + "px"; })
+      .on("mouseleave", function () { d3.select(this).attr("r", 3.6).attr("fill-opacity", 0.72).attr("stroke", "#0a0f1e").attr("stroke-width", 0.6); self.hideTip(); })
+      .transition().duration(600).delay((p, i) => i * 1.2).attr("r", 3.6);
+  }
+
+  /* ---------- D3: tall horizontal rank bars (Análisis top 20) ---------- */
+  drawRankBars(el, data, colorFn, fmt) {
+    const d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 360, rowH = 26, H = data.length * rowH;
+    const max = d3.max(data, (d) => d.value) || 1;
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H).attr("viewBox", "0 0 " + W + " " + H);
+    data.forEach((d, i) => {
+      const g = svg.append("g").attr("transform", "translate(0," + (i * rowH) + ")");
+      const col = typeof colorFn === "function" ? colorFn(d, i) : colorFn;
+      g.append("text").attr("x", 0).attr("y", 10).text((i + 1) + ". " + d.name)
+        .attr("fill", "#cdd8e8").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "10px");
+      g.append("text").attr("x", W).attr("y", 10).attr("text-anchor", "end").text(fmt(d.value))
+        .attr("fill", "#9fb0c6").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "9px");
+      g.append("rect").attr("x", 0).attr("y", 14).attr("width", W).attr("height", 7).attr("rx", 3.5).attr("fill", "rgba(255,255,255,0.05)");
+      g.append("rect").attr("x", 0).attr("y", 14).attr("width", 0).attr("height", 7).attr("rx", 3.5).attr("fill", col)
+        .style("filter", "drop-shadow(0 0 4px " + col + "55)")
+        .transition().duration(650).ease(d3.easeCubicOut).attr("width", Math.max(2, W * d.value / max));
+    });
+  }
+
+  drawAnalisis() {
+    const s = this.state, year = s.anYear;
+    let munis = this.allMunis();
+    if (s.anDept !== "all") munis = munis.filter((m) => m.deptCode === s.anDept);
+    const metr = munis.map((m) => this.muniMetrics(m, year));
+    if (this.anTopEl) {
+      const top = metr.slice().sort((a, b) => b.autonomy - a.autonomy).slice(0, 20)
+        .map((m) => ({ name: m.name, value: m.autonomy }));
+      this.drawRankBars(this.anTopEl, top, "#00d4b8", (v) => v.toFixed(1) + "%");
+    }
+    if (this.anDeptEl) {
+      const depts = this.HN.departments.map((d) => ({ name: d.name, value: this.deptAutonomyAvg(d, year) }))
+        .sort((a, b) => b.value - a.value);
+      this.drawRankBars(this.anDeptEl, depts, "#f59e0b", (v) => v.toFixed(1) + "%");
+    }
+    if (this.anScatterEl) {
+      const pts = metr.map((m) => ({ x: m.budget, y: m.autonomy, c: this.deptColor(m.deptCode), muni: m.name, dept: m.deptName }));
+      this.drawScatter(this.anScatterEl, pts);
+    }
+  }
+
+  /* ---------- D3: grouped bars (Comparativos A) ---------- */
+  drawGroupedBars(el, groups, seriesKeys, valueOf, color, fmt) {
+    const d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 600, H = el.clientHeight || 330;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const m = { t: 16, r: 14, b: 54, l: 56 };
+    const x0 = d3.scaleBand().domain(groups.map((g) => g.key)).range([m.l, W - m.r]).paddingInner(0.28);
+    const x1 = d3.scaleBand().domain(seriesKeys).range([0, x0.bandwidth()]).padding(0.12);
+    let max = 0;
+    groups.forEach((g) => seriesKeys.forEach((k) => { max = Math.max(max, valueOf(g, k)); }));
+    const y = d3.scaleLinear().domain([0, max * 1.1 || 1]).range([H - m.b, m.t]);
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H);
+    y.ticks(5).forEach((t) => {
+      svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(t)).attr("y2", y(t)).attr("stroke", "rgba(255,255,255,0.05)");
+      svg.append("text").attr("x", m.l - 8).attr("y", y(t) + 3).attr("text-anchor", "end").text(fmt(t).replace("L ", ""))
+        .attr("fill", "#5d6e89").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8px");
+    });
+    groups.forEach((g) => {
+      const gx = svg.append("g").attr("transform", "translate(" + x0(g.key) + ",0)");
+      seriesKeys.forEach((k) => {
+        gx.append("rect").attr("x", x1(k)).attr("y", H - m.b).attr("width", x1.bandwidth()).attr("height", 0).attr("rx", 2).attr("fill", color(k))
+          .transition().duration(600).ease(d3.easeCubicOut).attr("y", y(valueOf(g, k))).attr("height", H - m.b - y(valueOf(g, k)));
+      });
+      g.label.split("\n").forEach((ln, li) => {
+        svg.append("text").attr("x", x0(g.key) + x0.bandwidth() / 2).attr("y", H - m.b + 14 + li * 10).attr("text-anchor", "middle").text(ln)
+          .attr("fill", "#9fb0c6").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8.5px");
+      });
+    });
+  }
+
+  /* ---------- D3: radar (Comparativos B) ---------- */
+  drawRadar(el, axes, series) {
+    const d3 = this.d3; el.innerHTML = "";
+    const W = el.clientWidth || 420, H = el.clientHeight || 360;
+    if (!W || !H) { requestAnimationFrame(() => this.redraw()); return; }
+    const cx = W / 2, cy = H / 2 + 6, R = Math.min(W, H) / 2 - 52;
+    const svg = d3.select(el).append("svg").attr("width", W).attr("height", H);
+    const N = axes.length, ang = (i) => -Math.PI / 2 + i * 2 * Math.PI / N;
+    [0.25, 0.5, 0.75, 1].forEach((rr) => {
+      const pts = d3.range(N).map((i) => [cx + Math.cos(ang(i)) * R * rr, cy + Math.sin(ang(i)) * R * rr]);
+      svg.append("polygon").attr("points", pts.map((p) => p.join(",")).join(" ")).attr("fill", "none").attr("stroke", "rgba(255,255,255,0.07)");
+    });
+    axes.forEach((ax, i) => {
+      const ex = cx + Math.cos(ang(i)) * R, ey = cy + Math.sin(ang(i)) * R;
+      svg.append("line").attr("x1", cx).attr("y1", cy).attr("x2", ex).attr("y2", ey).attr("stroke", "rgba(255,255,255,0.09)");
+      const lx = cx + Math.cos(ang(i)) * (R + 20), ly = cy + Math.sin(ang(i)) * (R + 20);
+      const anchor = Math.abs(Math.cos(ang(i))) < 0.3 ? "middle" : (Math.cos(ang(i)) > 0 ? "start" : "end");
+      ax.label.split("\n").forEach((ln, li) => {
+        svg.append("text").attr("x", lx).attr("y", ly + li * 10 - (ax.label.split("\n").length - 1) * 5).attr("text-anchor", anchor).text(ln)
+          .attr("fill", "#9fb0c6").style("font-family", "'IBM Plex Mono',monospace").style("font-size", "8.5px");
+      });
+    });
+    series.forEach((s) => {
+      const pts = axes.map((ax, i) => {
+        const v = Math.max(0.08, Math.min(1, s.values[i]));
+        return [cx + Math.cos(ang(i)) * R * v, cy + Math.sin(ang(i)) * R * v];
+      });
+      svg.append("polygon").attr("points", pts.map((p) => p.join(",")).join(" "))
+        .attr("fill", s.color).attr("fill-opacity", 0.14).attr("stroke", s.color).attr("stroke-width", 2)
+        .style("filter", "drop-shadow(0 0 6px " + s.color + "66)");
+      pts.forEach((p) => svg.append("circle").attr("cx", p[0]).attr("cy", p[1]).attr("r", 3).attr("fill", s.color));
+    });
+  }
+
+  drawComparativos() {
+    const s = this.state;
+    if (s.cmpMode === "munis" && this.cmpBarsEl) {
+      const munis = s.cmpMunis.map((id) => this.findMuni(id)).filter(Boolean).slice(0, 6);
+      const groups = munis.map((m) => ({
+        key: m.id, label: m.name.length > 12 ? m.name.slice(0, 11) + "…" : m.name, m: m
+      }));
+      const years = s.cmpYears.slice().sort();
+      const ind = s.cmpIndicator;
+      const valueOf = (g, yr) => {
+        const mm = this.muniMetrics(g.m, +yr);
+        return ind === "budget" ? mm.budget : ind === "own" ? mm.own : ind === "autonomy" ? mm.autonomy
+          : ind === "func" ? mm.gastoFunc : mm.gastoCapital;
+      };
+      const palette = { 2021: "#5d7fb0", 2022: "#3a9bd6", 2023: "#00d4b8", 2024: "#f59e0b", 2025: "#d6409f" };
+      const fmt = ind === "autonomy" ? (v) => v.toFixed(0) + "%" : (v) => this.fmtL(v);
+      this.drawGroupedBars(this.cmpBarsEl, groups, years.map(String), valueOf, (k) => palette[k] || "#00d4b8", fmt);
+    }
+    if (s.cmpMode === "depts" && this.cmpRadarEl) {
+      const depts = s.cmpRadarDepts.map((c) => this.HN.byCode[c]).filter(Boolean).slice(0, 4);
+      const year = s.cmpRadarYear;
+      const dm = depts.map((d) => this.deptMetrics(d, year));
+      const axes = [
+        { label: "Autonomía", get: (x) => x.autonomy },
+        { label: "Presup.\nper cápita", get: (x) => x.perCapita },
+        { label: "Ingresos\nTributarios", get: (x) => x.tributario },
+        { label: "Gastos\nFuncion. %", get: (x) => x.funcPct },
+        { label: "Ingresos\nde Capital", get: (x) => x.capital }
+      ];
+      const norm = axes.map((ax) => {
+        const vals = dm.map(ax.get); const mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+        return { mn: mn, mx: mx };
+      });
+      const palette = ["#00d4b8", "#f59e0b", "#d6409f", "#8b5cf6"];
+      const series = dm.map((x, di) => ({
+        color: palette[di % palette.length],
+        values: axes.map((ax, ai) => {
+          const r = norm[ai]; const v = ax.get(x);
+          return r.mx === r.mn ? 0.7 : 0.25 + (v - r.mn) / (r.mx - r.mn) * 0.75;
+        })
+      }));
+      this.drawRadar(this.cmpRadarEl, axes, series);
+    }
+  }
+
+  /* ---------- render values ---------- */
+  renderVals() {
+    const s = this.state;
+    const baseBtn = "padding:7px 13px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;border:none;cursor:pointer;transition:all .2s;";
+    const on = "background:#00d4b8;color:#04231f;font-weight:600;";
+    const off = "background:transparent;color:#7c8aa3;";
+    const out = {
+      isNation: s.view === "nation",
+      isDept: s.view === "dept",
+      isMuni: s.view === "muni",
+      indicator: s.indicator,
+      indLabel: s.indicator === "budget" ? "presupuesto 2024" : "población 2024",
+      indBudgetStyle: baseBtn + (s.indicator === "budget" ? on : off),
+      indPopStyle: baseBtn + (s.indicator === "population" ? on : off),
+      setIndBudget: () => this.setState({ indicator: "budget" }),
+      setIndPop: () => this.setState({ indicator: "population" }),
+      goNation: () => this.setState({ view: "nation", deptCode: null, munId: null, deptSearch: "" }),
+      goDept: () => this.setState({ view: "dept", munId: null }),
+      onSearch: (e) => this.setState({ deptSearch: e.target.value }),
+      search: s.deptSearch || "",
+      setNationWrap: (el) => { this.nationWrap = el; },
+      setNationSvg: (el) => { this.nationSvg = el; },
+      setDeptWrap: (el) => { this.deptWrap = el; },
+      setDeptSvg: (el) => { this.deptSvg = el; },
+      setBars: (el) => { this.barsEl = el; },
+      setDonut: (el) => { this.donutEl = el; },
+      setSpark: (el) => { this.sparkEl = el; },
+      setTooltip: (el) => { this.tooltip = el; },
+      setDashMapWrap: (el) => { this.dashMapWrap = el; },
+      setDashMapSvg: (el) => { this.dashMapSvg = el; },
+      setDashPop: (el) => { this.dashPopEl = el; },
+      setDashBud: (el) => { this.dashBudEl = el; },
+      setKpiSpark1: (el) => { this.kpiSpark1 = el; },
+      setKpiSpark2: (el) => { this.kpiSpark2 = el; },
+      setKpiSpark3: (el) => { this.kpiSpark3 = el; },
+      setKpiSpark4: (el) => { this.kpiSpark4 = el; },
+      setDetDonut: (el) => { this.detDonutEl = el; },
+      setDetBars: (el) => { this.detBarsEl = el; },
+      setAnTop: (el) => { this.anTopEl = el; },
+      setAnDept: (el) => { this.anDeptEl = el; },
+      setAnScatter: (el) => { this.anScatterEl = el; },
+      setCmpBars: (el) => { this.cmpBarsEl = el; },
+      setCmpRadar: (el) => { this.cmpRadarEl = el; }
+    };
+
+    /* ----- safe defaults so first paint (pre-data) renders no empty holes ----- */
+    out.dashYear = s.dashYear;
+    out.dfYear = String(s.dfYear);
+    out.legMin = "—"; out.legMax = "—";
+    out.nat = { muniFmt: "—", deptFmt: "—", popFmt: "—", budgetFmt: "—" };
+
+    /* ----- top-level navigation ----- */
+    const navBase = "display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .16s;font-size:13.5px;font-weight:500;letter-spacing:.01em;white-space:nowrap;";
+    const navStyle = (k) => navBase + (s.nav === k
+      ? "background:rgba(0,212,184,.12);color:#5eead4;box-shadow:inset 2px 0 0 #00d4b8;"
+      : "background:transparent;color:#8493ab;");
+    out.isMapNav = s.nav === "map";
+    out.isDashboard = s.nav === "dashboard";
+    out.isMuniDetail = s.nav === "muniDetail";
+    out.isAnalisis = s.nav === "analisis";
+    out.isComparativos = s.nav === "comparativos";
+    out.isRankings = s.nav === "rankings";
+    out.isFinanciero = s.nav === "financiero";
+    out.navMap = () => this.setNav("map");
+    out.navDashboard = () => this.setNav("dashboard");
+    out.navMuniDetail = () => this.setNav("muniDetail");
+    out.navFinanciero = () => this.setNav("financiero");
+    out.navAnalisis = () => this.setNav("analisis");
+    out.navComparativos = () => this.setNav("comparativos");
+    out.navRankings = () => this.setNav("rankings");
+    out.navMapStyle = navStyle("map");
+    out.navDashboardStyle = navStyle("dashboard");
+    out.navMuniDetailStyle = navStyle("muniDetail");
+    out.navFinancieroStyle = navStyle("financiero");
+    out.navAnalisisStyle = navStyle("analisis");
+    out.navComparativosStyle = navStyle("comparativos");
+    out.navRankingsStyle = navStyle("rankings");
+
+    /* ----- Dashboard Nacional ----- */
+    if (this.HN) {
+      const nacY = this.HN.nacionalByYear[s.dashYear];
+      const yrBase = "padding:7px 15px;font-family:'IBM Plex Mono',monospace;font-size:11px;border-radius:8px;cursor:pointer;transition:all .18s;border:1px solid;";
+      const yearStyle = (y) => yrBase + (s.dashYear === y
+        ? "background:#00d4b8;color:#04231f;border-color:#00d4b8;font-weight:600;"
+        : "background:transparent;color:#8493ab;border-color:rgba(0,212,184,.25);");
+      out.dashYear = s.dashYear;
+      out.year2021Style = yearStyle(2021); out.year2022Style = yearStyle(2022);
+      out.dashYearPills = [2021, 2022, 2023, 2024, 2025].map((y) => ({
+        label: String(y), style: yearStyle(y), onClick: () => this.setState({ dashYear: y })
+      }));
+      out.nac = {
+        municipios: nacY.municipios,
+        departamentos: nacY.departamentos,
+        poblacionFmt: this.fmtM(nacY.poblacion),
+        presupuestoFmt: this.fmtB(nacY.presupuesto),
+        autonomiaFmt: nacY.autonomia.toFixed(2) + "%",
+        ingresosPropiosFmt: this.fmtB(nacY.ingresosPropios),
+        municipioMayor: nacY.municipioMayor
+      };
+    }
+
+    /* ----- Detalle Municipio ----- */
+    if (this.HN) {
+      out.mdYear = String(s.mdYear);
+      out.mdDept = s.mdDept;
+      out.mdMuni = s.mdMuni;
+      out.onMdYear = (e) => this.setState({ mdYear: +e.target.value });
+      out.onMdDept = (e) => {
+        const code = e.target.value;
+        const first = this.HN.byCode[code].municipalities[0].id;
+        this.setState({ mdDept: code, mdMuni: first });
+      };
+      out.onMdMuni = (e) => this.setState({ mdMuni: e.target.value });
+      out.mdDeptOptions = this.HN.departments.map((d) => ({ code: d.code, name: d.name }));
+      const mdDeptObj = this.HN.byCode[s.mdDept];
+      out.mdMuniOptions = mdDeptObj ? mdDeptObj.municipalities.map((m) => ({ id: m.id, name: m.name })) : [];
+      out.generalOpen = !!s.mdOpen.general;
+      out.generalCaret = s.mdOpen.general ? "▾" : "▸";
+      out.toggleGeneral = () => this.setState((st) => ({ mdOpen: Object.assign({}, st.mdOpen, { general: !st.mdOpen.general }) }));
+      const mdMuni = this.findMuni(s.mdMuni);
+      if (mdMuni) {
+        const fb = this.financialBreakdown(mdMuni);
+        out.md = {
+          name: mdMuni.name, deptName: mdMuni.deptName, isCapital: mdMuni.isCapital,
+          budgetFmt: this.fmtL(mdMuni.budget), popFmt: this.fmtInt(mdMuni.population)
+        };
+        out.mdGeneral = fb.general;
+        out.mdSections = fb.sections.map((sec) => ({
+          key: sec.key, title: sec.title, accent: sec.accent, headerBg: sec.headerBg,
+          totalFmt: this.fmtL(sec.total),
+          open: !!s.mdOpen[sec.key],
+          caret: s.mdOpen[sec.key] ? "▾" : "▸",
+          onToggle: () => this.setState((st) => ({ mdOpen: Object.assign({}, st.mdOpen, { [sec.key]: !st.mdOpen[sec.key] }) })),
+          items: sec.items.map((it) => ({ label: it.label, amountFmt: this.fmtL(it.amount) }))
+        }));
+        const dt = fb.donut.reduce((a, b) => a + b.v, 0) || 1;
+        out.mdDonutLegend = fb.donut.map((d) => ({ k: d.k, c: d.c, pct: Math.round(d.v / dt * 100) }));
+      }
+    }
+
+    if (this.HN) {
+      const nat = this.HN.national;
+      out.nat = {
+        muniFmt: this.fmtInt(nat.municipalities),
+        deptFmt: this.fmtInt(nat.departments),
+        popFmt: this.fmtInt(nat.population),
+        budgetFmt: this.fmtL(nat.budget)
+      };
+      const vals = this.HN.departments.map((d) => (s.indicator === "budget" ? d.budget : d.population));
+      const mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+      out.legMin = s.indicator === "budget" ? this.fmtL(mn) : this.fmtInt(mn);
+      out.legMax = s.indicator === "budget" ? this.fmtL(mx) : this.fmtInt(mx);
+    }
+
+    const dept = s.deptCode && this.HN ? this.HN.byCode[s.deptCode] : null;
+    if (dept) {
+      out.dept = {
+        name: dept.name, region: dept.region, capital: dept.capital,
+        muniCount: dept.muniCount, shownCount: dept.shownCount,
+        popFmt: this.fmtInt(dept.population), transferFmt: this.fmtL(dept.transfer),
+        budgetFmt: this.fmtL(dept.budget), hdi: dept.hdi.toFixed(3), density: dept.density.toFixed(1)
+      };
+      const q = this.norm(s.deptSearch);
+      out.filteredMunis = dept.municipalities.filter((m) => this.norm(m.name).includes(q)).map((m) => ({
+        id: m.id, name: m.name, isCapital: m.isCapital,
+        popFmt: this.fmtInt(m.population), budgetFmt: this.fmtL(m.budget),
+        onSelect: () => this.setState({ view: "muni", munId: m.id })
+      }));
+    }
+
+    const muni = this.findMuni(s.munId);
+    if (muni) {
+      const tp = Math.round(muni.transfer / muni.budget * 100);
+      const op = Math.round(muni.ownRevenue / muni.budget * 100);
+      const g = (muni.history[muni.history.length - 1].value - muni.history[0].value) / muni.history[0].value * 100;
+      out.muni = {
+        name: muni.name, deptName: muni.deptName, isCapital: muni.isCapital,
+        popFmt: this.fmtInt(muni.population), areaFmt: this.fmtInt(muni.area),
+        budgetFmt: this.fmtL(muni.budget), ownFmt: this.fmtL(muni.ownRevenue),
+        transferFmt: this.fmtL(muni.transfer), hdi: muni.hdi.toFixed(3),
+        transferPct: tp, ownPct: op, otherPct: Math.max(0, 100 - tp - op),
+        growthFmt: (g >= 0 ? "+" : "") + g.toFixed(0) + "% acum."
+      };
+      if (!out.dept) out.dept = { name: muni.deptName };
+    }
+
+    /* =====================================================================
+       ANÁLISIS · COMPARATIVOS · RANKINGS · DATOS FINANCIEROS
+       ================================================================= */
+    if (this.HN) {
+      const toggleIn = (arr, val, max) => {
+        const i = arr.indexOf(val);
+        if (i >= 0) return arr.filter((x) => x !== val);
+        if (max && arr.length >= max) return arr;
+        return arr.concat([val]);
+      };
+      const deptOptsAll = [{ code: "all", name: "Todos los Departamentos" }]
+        .concat(this.HN.departments.map((d) => ({ code: d.code, name: d.name })));
+      const yearPalette = { 2021: "#5d7fb0", 2022: "#3a9bd6", 2023: "#00d4b8", 2024: "#f59e0b", 2025: "#d6409f" };
+      const catColor = { A: "#00d4b8", B: "#3a9bd6", C: "#f59e0b", D: "#7c8aa3" };
+
+      /* ---------- ANÁLISIS ---------- */
+      out.anYearPills = this.yearPills(s.anYear, (y) => this.setState({ anYear: y }));
+      out.anDept = s.anDept;
+      out.anDeptOptions = deptOptsAll;
+      out.onAnDept = (e) => this.setState({ anDept: e.target.value });
+      let anMunis = this.allMunis();
+      if (s.anDept !== "all") anMunis = anMunis.filter((m) => m.deptCode === s.anDept);
+      const anMetr = anMunis.map((m) => this.muniMetrics(m, s.anYear));
+      const anAuton = anMetr.map((m) => m.autonomy);
+      const anAvg = anAuton.reduce((a, b) => a + b, 0) / (anAuton.length || 1);
+      out.an = {
+        total: anMetr.length,
+        avgFmt: anAvg.toFixed(2) + "%",
+        critical: anAuton.filter((v) => v < 10).length,
+        warning: anAuton.filter((v) => v >= 10 && v <= 25).length,
+        healthy: anAuton.filter((v) => v > 25).length
+      };
+
+      /* ---------- COMPARATIVOS ---------- */
+      out.cmpModeMunis = s.cmpMode === "munis";
+      out.cmpModeDepts = s.cmpMode === "depts";
+      const tabStyle = (on) => "flex:1;text-align:center;padding:11px 16px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;letter-spacing:.02em;cursor:pointer;transition:all .18s;border-radius:9px;" +
+        (on ? "background:rgba(0,212,184,.14);color:#5eead4;border:1px solid rgba(0,212,184,.4);" : "background:transparent;color:#7c8aa3;border:1px solid transparent;");
+      out.cmpTabMunisStyle = tabStyle(s.cmpMode === "munis");
+      out.cmpTabDeptsStyle = tabStyle(s.cmpMode === "depts");
+      out.setCmpModeMunis = () => this.setState({ cmpMode: "munis" });
+      out.setCmpModeDepts = () => this.setState({ cmpMode: "depts" });
+      // Mode A
+      out.cmpDeptPills = this.HN.departments.map((d) => ({
+        label: d.name, style: this.pillStyle(s.cmpDepts.indexOf(d.code) !== -1),
+        onClick: () => {
+          const next = toggleIn(s.cmpDepts, d.code, 3);
+          const munis = s.cmpMunis.filter((id) => next.indexOf(id.split("-")[0]) !== -1);
+          this.setState({ cmpDepts: next, cmpMunis: munis });
+        }
+      }));
+      const cmpAvail = [];
+      s.cmpDepts.forEach((c) => { const d = this.HN.byCode[c]; if (d) d.municipalities.forEach((m) => cmpAvail.push(m)); });
+      out.cmpMuniPills = cmpAvail.map((m) => ({
+        label: m.name, style: this.pillStyle(s.cmpMunis.indexOf(m.id) !== -1),
+        onClick: () => this.setState({ cmpMunis: toggleIn(s.cmpMunis, m.id, 6) })
+      }));
+      out.cmpMuniCount = s.cmpMunis.length;
+      out.cmpYearPills = [2021, 2022, 2023, 2024, 2025].map((y) => ({
+        label: String(y), style: this.pillStyle(s.cmpYears.indexOf(y) !== -1, yearPalette[y]),
+        onClick: () => { let next = toggleIn(s.cmpYears, y, 5); if (next.length === 0) next = [y]; this.setState({ cmpYears: next }); }
+      }));
+      out.cmpIndicator = s.cmpIndicator;
+      out.onCmpIndicator = (e) => this.setState({ cmpIndicator: e.target.value });
+      out.cmpIndicatorOptions = [
+        { v: "budget", n: "Presupuesto" }, { v: "own", n: "Ingresos Propios" },
+        { v: "autonomy", n: "Autonomía" }, { v: "func", n: "Gastos Funcionamiento" }, { v: "capital", n: "Gastos Capital" }
+      ];
+      out.cmpYearLegend = s.cmpYears.slice().sort().map((y) => ({ year: String(y), c: yearPalette[y] }));
+      out.cmpHasMunis = s.cmpMunis.length > 0;
+      // Mode B
+      out.cmpRadarDeptPills = this.HN.departments.map((d) => ({
+        label: d.name, style: this.pillStyle(s.cmpRadarDepts.indexOf(d.code) !== -1),
+        onClick: () => { let next = toggleIn(s.cmpRadarDepts, d.code, 4); if (next.length < 2) next = s.cmpRadarDepts; this.setState({ cmpRadarDepts: next }); }
+      }));
+      out.cmpRadarYearPills = this.yearPills(s.cmpRadarYear, (y) => this.setState({ cmpRadarYear: y }));
+      const radarPalette = ["#00d4b8", "#f59e0b", "#d6409f", "#8b5cf6"];
+      out.cmpRadarTable = s.cmpRadarDepts.map((c) => this.HN.byCode[c]).filter(Boolean).slice(0, 4).map((d, i) => {
+        const dm = this.deptMetrics(d, s.cmpRadarYear);
+        return {
+          name: d.name, color: radarPalette[i % 4], autonomyFmt: dm.autonomy.toFixed(1) + "%",
+          perCapitaFmt: this.fmtL(dm.perCapita), tributarioFmt: this.fmtL(dm.tributario),
+          funcFmt: dm.funcPct.toFixed(0) + "%", capitalFmt: this.fmtL(dm.capital)
+        };
+      });
+
+      /* ---------- RANKINGS ---------- */
+      out.rkYearPills = this.yearPills(s.rkYear, (y) => this.setState({ rkYear: y, rkPage: 0 }));
+      out.rkDept = s.rkDept;
+      out.rkDeptOptions = deptOptsAll;
+      out.onRkDept = (e) => this.setState({ rkDept: e.target.value, rkPage: 0 });
+      const rkTypes = [
+        { v: "poblacion", n: "Población" }, { v: "presupuesto", n: "Presupuesto Total" },
+        { v: "propios", n: "Ingresos Propios" }, { v: "autonomia", n: "Autonomía Financiera" },
+        { v: "capital", n: "Gastos de Capital" }, { v: "superavit", n: "Superávit/Déficit" }
+      ];
+      out.rkTypePills = rkTypes.map((t) => ({
+        label: t.n,
+        style: "padding:9px 15px;font-family:'Barlow Condensed',sans-serif;font-size:14.5px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .16s;white-space:nowrap;" +
+          (s.rkType === t.v ? "background:rgba(0,212,184,.14);color:#5eead4;border:1px solid rgba(0,212,184,.4);" : "background:rgba(255,255,255,.02);color:#8493ab;border:1px solid rgba(255,255,255,.07);"),
+        onClick: () => this.setState({ rkType: t.v, rkPage: 0 })
+      }));
+      const rkValOf = (mm) => s.rkType === "poblacion" ? mm.population : s.rkType === "presupuesto" ? mm.budget
+        : s.rkType === "propios" ? mm.own : s.rkType === "autonomia" ? mm.autonomy
+        : s.rkType === "capital" ? mm.gastoCapital : mm.superavit;
+      const rkFmt = (v) => s.rkType === "autonomia" ? v.toFixed(1) + "%"
+        : s.rkType === "poblacion" ? this.fmtInt(v)
+        : s.rkType === "superavit" ? (v >= 0 ? "+" : "−") + this.fmtL(Math.abs(v)) : this.fmtL(v);
+      let rkMunis = this.allMunis();
+      if (s.rkDept !== "all") rkMunis = rkMunis.filter((m) => m.deptCode === s.rkDept);
+      const prevYear = s.rkYear > 2021 ? s.rkYear - 1 : 2021;
+      const rkEntries = rkMunis.map((m) => ({ m: m, cur: this.muniMetrics(m, s.rkYear), prev: this.muniMetrics(m, prevYear) }));
+      // dept averages for "% vs dept promedio"
+      const deptAvgCache = {};
+      this.HN.departments.forEach((d) => {
+        const vs = d.municipalities.map((mm) => rkValOf(this.muniMetrics(mm, s.rkYear)));
+        deptAvgCache[d.code] = vs.reduce((a, b) => a + b, 0) / vs.length;
+      });
+      const prevSorted = rkEntries.slice().sort((a, b) => rkValOf(b.prev) - rkValOf(a.prev));
+      const prevRank = {}; prevSorted.forEach((x, i) => { prevRank[x.m.id] = i; });
+      const curSorted = rkEntries.slice().sort((a, b) => rkValOf(b.cur) - rkValOf(a.cur));
+      const rkMax = Math.max.apply(null, curSorted.map((x) => rkValOf(x.cur)));
+      out.rkTotal = curSorted.length;
+      const perPage = 25, rkPages = Math.max(1, Math.ceil(curSorted.length / perPage));
+      const rkPage = Math.min(s.rkPage, rkPages - 1);
+      out.rkPageLabel = "Página " + (rkPage + 1) + " de " + rkPages;
+      out.rkPrevDisabled = rkPage <= 0;
+      out.rkNextDisabled = rkPage >= rkPages - 1;
+      out.rkPrev = () => this.setState((st) => ({ rkPage: Math.max(0, st.rkPage - 1) }));
+      out.rkNext = () => this.setState((st) => ({ rkPage: Math.min(rkPages - 1, st.rkPage + 1) }));
+      const medals = { 0: "#f5c451", 1: "#c4ccd6", 2: "#cd8a4b" };
+      out.rkRows = curSorted.slice(rkPage * perPage, rkPage * perPage + perPage).map((x, j) => {
+        const globalRank = rkPage * perPage + j;
+        const val = rkValOf(x.cur);
+        const move = (prevRank[x.m.id] != null ? prevRank[x.m.id] : globalRank) - globalRank;
+        const dAvg = deptAvgCache[x.m.deptCode] || 1;
+        const pctVs = dAvg !== 0 ? (val - dAvg) / Math.abs(dAvg) * 100 : 0;
+        const barPct = rkMax > 0 ? Math.max(0, Math.min(100, val / rkMax * 100)) : 0;
+        return {
+          rank: globalRank + 1,
+          name: x.m.name, dept: x.m.deptName,
+          cat: x.cur.category, catColor: catColor[x.cur.category],
+          valueFmt: rkFmt(val),
+          pctFmt: (pctVs >= 0 ? "+" : "") + pctVs.toFixed(0) + "%",
+          pctColor: pctVs >= 0 ? "#1f9d57" : "#ef5a5a",
+          barPct: barPct,
+          medal: medals[globalRank] || null,
+          isMedal: globalRank < 3,
+          isTop10: globalRank >= 3 && globalRank < 10,
+          rowBg: globalRank < 3 ? "rgba(245,196,81,.06)" : globalRank < 10 ? "rgba(245,158,11,.05)" : "transparent",
+          moveDir: move > 0 ? "up" : move < 0 ? "down" : "flat",
+          moveAbs: Math.abs(move),
+          moveColor: move > 0 ? "#1f9d57" : move < 0 ? "#ef5a5a" : "#5d6e89",
+          moveArrow: move > 0 ? "▲" : move < 0 ? "▼" : "—"
+        };
+      });
+
+      /* ---------- DATOS FINANCIEROS ---------- */
+      out.dfYearPills = this.yearPills(s.dfYear, (y) => this.setState({ dfYear: y, dfPage: 0 }));
+      out.dfDept = s.dfDept;
+      out.dfDeptOptions = deptOptsAll;
+      out.onDfDept = (e) => this.setState({ dfDept: e.target.value, dfPage: 0 });
+      out.dfSearch = s.dfSearch;
+      out.onDfSearch = (e) => this.setState({ dfSearch: e.target.value, dfPage: 0 });
+      out.dfCatPills = ["all", "A", "B", "C", "D"].map((c) => ({
+        label: c === "all" ? "Todas" : c,
+        style: this.pillStyle(s.dfCat === c, c === "all" ? "#00d4b8" : catColor[c]),
+        onClick: () => this.setState({ dfCat: c, dfPage: 0 })
+      }));
+      out.dfBudgetMin = s.dfBudgetMin;
+      out.dfBudgetMinLabel = s.dfBudgetMin > 0 ? "L " + s.dfBudgetMin + "M+" : "Sin mínimo";
+      out.onDfBudgetMin = (e) => this.setState({ dfBudgetMin: +e.target.value, dfPage: 0 });
+      let dfMunis = this.allMunis();
+      if (s.dfDept !== "all") dfMunis = dfMunis.filter((m) => m.deptCode === s.dfDept);
+      let dfMetr = dfMunis.map((m) => this.muniMetrics(m, s.dfYear));
+      if (s.dfCat !== "all") dfMetr = dfMetr.filter((m) => m.category === s.dfCat);
+      if (s.dfBudgetMin > 0) dfMetr = dfMetr.filter((m) => m.budget >= s.dfBudgetMin * 1e6);
+      if (s.dfSearch) { const q = this.norm(s.dfSearch); dfMetr = dfMetr.filter((m) => this.norm(m.name).indexOf(q) !== -1 || this.norm(m.deptName).indexOf(q) !== -1); }
+      dfMetr = dfMetr.sort((a, b) => b.budget - a.budget);
+      this._dfCurrent = dfMetr;
+      out.dfTotal = dfMetr.length;
+      const dfPages = Math.max(1, Math.ceil(dfMetr.length / 25));
+      const dfPage = Math.min(s.dfPage, dfPages - 1);
+      out.dfPageLabel = "Página " + (dfPage + 1) + " de " + dfPages;
+      out.dfPrevDisabled = dfPage <= 0;
+      out.dfNextDisabled = dfPage >= dfPages - 1;
+      out.dfPrev = () => this.setState((st) => ({ dfPage: Math.max(0, st.dfPage - 1) }));
+      out.dfNext = () => this.setState((st) => ({ dfPage: Math.min(dfPages - 1, st.dfPage + 1) }));
+      out.dfExport = () => this.exportCsv();
+      const autColor = (a) => a < 10 ? "#ef5a5a" : a <= 25 ? "#f59e0b" : "#1f9d57";
+      out.dfRows = dfMetr.slice(dfPage * 25, dfPage * 25 + 25).map((m) => ({
+        name: m.name, dept: m.deptName, cat: m.category, catColor: catColor[m.category], year: String(s.dfYear),
+        budgetFmt: this.fmtL(m.budget), ownFmt: this.fmtL(m.own),
+        autonomyFmt: m.autonomy.toFixed(1) + "%", autColor: autColor(m.autonomy),
+        recaudadoFmt: this.fmtL(m.recaudado),
+        superavitFmt: (m.superavit >= 0 ? "+" : "−") + this.fmtL(Math.abs(m.superavit)),
+        superavitColor: m.superavit >= 0 ? "#1f9d57" : "#ef5a5a"
+      }));
+      const dfSum = dfMetr.reduce((a, m) => ({
+        budget: a.budget + m.budget, own: a.own + m.own, auton: a.auton + m.autonomy,
+        recaudado: a.recaudado + m.recaudado, superavit: a.superavit + m.superavit
+      }), { budget: 0, own: 0, auton: 0, recaudado: 0, superavit: 0 });
+      out.dfSummary = {
+        budgetFmt: this.fmtL(dfSum.budget), ownFmt: this.fmtL(dfSum.own),
+        autonFmt: (dfMetr.length ? dfSum.auton / dfMetr.length : 0).toFixed(1) + "%",
+        recaudadoFmt: this.fmtL(dfSum.recaudado),
+        superavitFmt: (dfSum.superavit >= 0 ? "+" : "−") + this.fmtL(Math.abs(dfSum.superavit)),
+        superavitColor: dfSum.superavit >= 0 ? "#1f9d57" : "#ef5a5a"
+      };
+    }
+
+    return out;
+  }
+  exportCsv() {
+    const rows = this._dfCurrent || [];
+    const esc = (v) => { const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const header = ["Municipio", "Departamento", "Categoria", "Anio", "Presupuesto", "IngresosPropios", "Autonomia_%", "IngresosRecaudados", "Superavit_Deficit"];
+    const lines = [header.join(",")];
+    rows.forEach((r) => {
+      lines.push([esc(r.name), esc(r.deptName), r.category, this.state.dfYear, r.budget, r.own, r.autonomy.toFixed(1), r.recaudado, r.superavit].join(","));
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "simho_datos_financieros_" + this.state.dfYear + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  }
+}
+</script>
+
+
+</body></html>

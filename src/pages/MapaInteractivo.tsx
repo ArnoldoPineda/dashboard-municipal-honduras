@@ -426,10 +426,14 @@ function MuniDetailView({
     const mL = 82, mR = 36, mT = 34, mB = 28;
     const iW = W - mL - mR;
     const iH = H - mT - mB;
-    const rowH = iH / metrics.length;
-    const barH = Math.max(4, Math.min(10, rowH * 0.28));
+    // Cap row height so groups stay compact even on large screens
+    const rowH = Math.min(iH / metrics.length, 46);
+    const barH = Math.max(5, Math.min(9, rowH * 0.26));
+    // Center the groups vertically within the inner area
+    const groupsH = rowH * metrics.length;
+    const groupOffsetY = Math.max(0, (iH - groupsH) / 2);
 
-    const g = svg.append('g').attr('transform', `translate(${mL},${mT})`);
+    const g = svg.append('g').attr('transform', `translate(${mL},${mT + groupOffsetY})`);
 
     // Title
     svg.append('text')
@@ -482,8 +486,8 @@ function MuniDetailView({
       }
     });
 
-    // Legend
-    const legY = iH + mB - 12;
+    // Legend — anchored below the group block
+    const legY = groupsH + 16;
     [['#00d4b8', 'Municipio'], ['#f59e0b', 'Prom. departamental']].forEach(([color, label], li) => {
       const lx = li * 110;
       g.append('rect').attr('x', lx).attr('y', legY - 5).attr('width', 8).attr('height', 5).attr('rx', 1).attr('fill', color);
@@ -504,8 +508,10 @@ function MuniDetailView({
 
     const transferencias = rawData.transferencias_art91 || 0;
     const propios        = rawData.ingresos_propios     || 0;
-    const total          = rawData.presupuesto_municipal || 0;
-    const otros          = Math.max(0, total - transferencias - propios);
+    const presupuesto    = rawData.presupuesto_municipal || 0;
+    const otros          = Math.max(0, presupuesto - transferencias - propios);
+    // Use the actual sum of displayed segments as denominator so % always sums to 100
+    const segTotal       = transferencias + propios + otros;
 
     const segments = [
       { label: 'Transferencias', value: transferencias, color: '#f59e0b' },
@@ -545,9 +551,9 @@ function MuniDetailView({
         .on('mouseleave', function() { d3.select(this).attr('d', arc(d3.select(this).datum() as any)); });
     });
 
-    // Center: largest segment %
+    // Center: largest segment % — divide by segTotal so it never exceeds 100
     const largest = segments.reduce((a, b) => a.value > b.value ? a : b, segments[0] ?? { value: 0, label: '', color: '' });
-    const pct = total > 0 ? (largest.value / total * 100) : 0;
+    const pct = segTotal > 0 ? Math.min(100, largest.value / segTotal * 100) : 0;
 
     g.append('text').attr('text-anchor', 'middle').attr('dy', '-0.15em')
       .attr('fill', '#e8eef6').attr('font-size', Math.min(22, R * 0.42)).attr('font-weight', 700)
@@ -568,7 +574,7 @@ function MuniDetailView({
       svg.append('text').attr('x', lx + 11).attr('y', legY0 + 5)
         .attr('fill', '#5a6880').attr('font-size', 6.5)
         .attr('font-family', "'IBM Plex Mono', monospace")
-        .text(`${s.label} ${total > 0 ? (s.value / total * 100).toFixed(0) : 0}%`);
+        .text(`${s.label} ${segTotal > 0 ? Math.min(100, (s.value / segTotal * 100)).toFixed(0) : 0}%`);
       svg.append('text').attr('x', lx + 11).attr('y', legY0 + legH - 1)
         .attr('fill', '#7c8aa3').attr('font-size', 6.5)
         .attr('font-family', "'IBM Plex Mono', monospace")
@@ -776,8 +782,9 @@ function MuniDetailView({
       {/* ── ROW 1: 6 KPI cards ─────────────────────────────────────────── */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6,
-        padding: '10px 22px', flexShrink: 0,
-        borderBottom: '1px solid rgba(0,212,184,0.08)',
+        padding: '10px 22px 18px 22px', flexShrink: 0,
+        borderBottom: '1px solid rgba(0,212,184,0.12)',
+        marginBottom: 2,
       }}>
         {kpis.map(k => (
           <div key={k.label} style={{

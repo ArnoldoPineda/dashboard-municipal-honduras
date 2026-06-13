@@ -57,9 +57,9 @@ const selectStyle: React.CSSProperties = {
 
 export default function MunicipioDETALLE() {
   const { isMobile } = useMediaQuery();
-  const { municipalities } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
+  const { municipalities, loading: muniLoading } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
 
-  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedYear, setSelectedYear] = useState(2024);
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedMunicipio, setSelectedMunicipio] = useState('');
   const [expandedSections, setExpandedSections] = useState<ExpandedSection>({
@@ -72,7 +72,7 @@ export default function MunicipioDETALLE() {
     total_egresos: false,
   });
 
-  const { data: fiscalData, loading, error } = useMunicipalityDetails(
+  const { data: fiscalData, loading: detailLoading, error } = useMunicipalityDetails(
     selectedMunicipio,
     selectedYear,
     selectedDepartment
@@ -84,9 +84,13 @@ export default function MunicipioDETALLE() {
 
   const municipiosByDept = useMemo(() => {
     return selectedDepartment
-      ? [...new Set(municipalities.filter((m) => m.department === selectedDepartment).map((m) => m.name))].sort()
+      ? [...new Set(
+          municipalities
+            .filter((m) => m.department === selectedDepartment && m.year === selectedYear)
+            .map((m) => m.name)
+        )].sort()
       : [];
-  }, [municipalities, selectedDepartment]);
+  }, [municipalities, selectedDepartment, selectedYear]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -182,7 +186,7 @@ export default function MunicipioDETALLE() {
   };
 
   // ── Loading ─────────────────────────────────────────────────
-  if (loading) {
+  if (detailLoading) {
     return (
       <DashboardLayout title="Detalle por Municipio">
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 240 }}>
@@ -214,7 +218,7 @@ export default function MunicipioDETALLE() {
             <label style={labelStyle}>Año</label>
             <select
               value={selectedYear}
-              onChange={e => { setSelectedYear(parseInt(e.target.value)); setSelectedDepartment(''); setSelectedMunicipio(''); }}
+              onChange={e => { setSelectedYear(parseInt(e.target.value)); setSelectedMunicipio(''); }}
               style={selectStyle}
             >
               {[2025, 2024, 2023, 2022, 2021].map(y => (
@@ -230,7 +234,10 @@ export default function MunicipioDETALLE() {
               onChange={e => { setSelectedDepartment(e.target.value); setSelectedMunicipio(''); }}
               style={selectStyle}
             >
-              <option value="">— Selecciona Departamento —</option>
+              {muniLoading
+                ? <option value="">Cargando departamentos…</option>
+                : <option value="">— Selecciona Departamento —</option>
+              }
               {departments.map(dept => (
                 <option key={dept} value={dept}>{dept}</option>
               ))}
@@ -285,7 +292,7 @@ export default function MunicipioDETALLE() {
         )}
 
         {/* ── Fiscal detail ── */}
-        {selectedMunicipio && fiscalData && (
+        {selectedMunicipio && fiscalData && !detailLoading && (
           <>
             {/* Header */}
             <div style={{ ...cardStyle, padding: isMobile ? '14px 16px' : '16px 20px' }}>

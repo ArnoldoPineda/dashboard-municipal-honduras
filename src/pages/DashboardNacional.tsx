@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Area, AreaChart,
 } from 'recharts';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { useNavbar } from '../context/NavbarContext';
 
-const YEARS = [2021, 2022, 2023, 2024];
+const YEARS = [2021, 2022, 2023, 2024, 2025];
 
 const fmtB = (v: number) => `L ${(v / 1e9).toFixed(2)}B`;
 const fmtM = (v: number) => `L ${(v / 1e6).toFixed(0)}M`;
@@ -86,8 +87,11 @@ function KpiCard({ label, value, sub, trend, trendUp, sparkData }: KpiProps) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 export default function DashboardNacional() {
-  const [selectedYear, setSelectedYear] = useState(2024);
+  const { fiscalYear, setFiscalYear } = useNavbar();
   const { municipalities, loading } = useMunicipalitiesMultiYear(YEARS);
+
+  // Clamp fiscalYear to valid YEARS range (no data for 2019/2020)
+  const selectedYear = YEARS.includes(fiscalYear) ? fiscalYear : 2024;
 
   const byYear = useMemo(
     () => municipalities.filter(m => m.year === selectedYear),
@@ -180,7 +184,7 @@ export default function DashboardNacional() {
           {YEARS.map(y => (
             <button
               key={y}
-              onClick={() => setSelectedYear(y)}
+              onClick={() => setFiscalYear(y)}
               style={{
                 background: selectedYear === y ? 'rgba(0,212,184,0.18)' : 'rgba(13,21,38,0.7)',
                 border: `1px solid ${selectedYear === y ? 'rgba(0,212,184,0.6)' : 'rgba(0,212,184,0.18)'}`,
@@ -250,7 +254,7 @@ export default function DashboardNacional() {
         {/* Area chart — year-over-year trend */}
         <div className="simho-card" style={{ padding: '16px 12px 12px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em', marginBottom: 12 }}>
-            TENDENCIA NACIONAL 2021–2024 · (B HNL)
+            {`TENDENCIA NACIONAL 2021–${YEARS[YEARS.length - 1]} · (B HNL)`}
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={trendData} margin={{ top: 0, right: 4, left: -10, bottom: 0 }}>

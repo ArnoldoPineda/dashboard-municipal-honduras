@@ -83,6 +83,8 @@ export const useMunicipalitiesMultiYear = (
       setLoading(true);
       setError(null);
 
+      console.log('[useMunicipalities] Querying years:', selectedYears);
+
       try {
         let query = supabase.from('municipalities').select('*');
 
@@ -91,6 +93,10 @@ export const useMunicipalitiesMultiYear = (
         }
 
         const { data, error } = await query.limit(5000);
+
+        console.log('[useMunicipalities] rows returned:', data?.length ?? 0,
+          '| by year:', selectedYears.map(y => `${y}:${data?.filter((r: any) => r.year === y).length ?? 0}`).join(' '),
+          '| error:', error?.message ?? 'none');
 
         if (error) {
           throw error;

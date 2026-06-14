@@ -5,8 +5,29 @@ import {
 } from 'recharts';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
+import { MUNICIPIOS } from '../data/municipios';
 
 const YEARS = [2021, 2022, 2023, 2024, 2025];
+
+// ── Mock fallback: builds Municipality-shaped rows from local evolucion data ──
+function getMockForYear(year: number): any[] {
+  return (MUNICIPIOS as any[]).map((m: any) => {
+    const evo   = (m.evolucion || []).find((e: any) => e.year === year);
+    const pres  = evo?.presupuesto ?? m.presupuesto;
+    const ratio = m.presupuesto > 0 ? pres / m.presupuesto : 1;
+    const ing   = Math.round(m.ingresosPropios * ratio);
+    return {
+      id: m.id,
+      name: m.nombre,
+      department: m.departamento,
+      year,
+      population: m.poblacion,
+      presupuesto_municipal: pres,
+      ingresos_propios: ing,
+      autonomia_financiera: pres > 0 ? (ing / pres * 100) : 0,
+    };
+  });
+}
 
 const fmtB = (v: number) => `L ${(v / 1e9).toFixed(2)}B`;
 const fmtM = (v: number) => `L ${(v / 1e6).toFixed(0)}M`;
@@ -93,10 +114,13 @@ export default function DashboardNacional() {
   // Clamp fiscalYear to valid YEARS range (no data for 2019/2020)
   const selectedYear = YEARS.includes(fiscalYear) ? fiscalYear : 2024;
 
-  const byYear = useMemo(
-    () => municipalities.filter(m => m.year === selectedYear),
-    [municipalities, selectedYear]
-  );
+  const byYear = useMemo(() => {
+    const live = municipalities.filter(m => m.year === selectedYear);
+    if (live.length > 0) return live;
+    // Supabase returned 0 rows for this year — use mock evolucion data
+    console.log(`[DashboardNacional] No Supabase data for ${selectedYear}, falling back to mock`);
+    return getMockForYear(selectedYear);
+  }, [municipalities, selectedYear]);
 
   // Aggregate KPIs for selected year
   const kpis = useMemo(() => {
@@ -133,14 +157,15 @@ export default function DashboardNacional() {
       .slice(0, 12);
   }, [byYear]);
 
-  // Year-over-year trend (national totals)
+  // Year-over-year trend (national totals, with mock fallback per year)
   const trendData = useMemo(() => {
     return YEARS.map(y => {
-      const ym = municipalities.filter(m => m.year === y);
+      const live = municipalities.filter(m => m.year === y);
+      const ym   = live.length > 0 ? live : getMockForYear(y);
       return {
         year: y,
-        Presupuesto: Math.round(ym.reduce((s, m) => s + (m.presupuesto_municipal || 0), 0) / 1e9 * 100) / 100,
-        'Ing. Propios': Math.round(ym.reduce((s, m) => s + (m.ingresos_propios || 0), 0) / 1e9 * 100) / 100,
+        Presupuesto: Math.round(ym.reduce((s: number, m: any) => s + (m.presupuesto_municipal || 0), 0) / 1e9 * 100) / 100,
+        'Ing. Propios': Math.round(ym.reduce((s: number, m: any) => s + (m.ingresos_propios || 0), 0) / 1e9 * 100) / 100,
         Municipios: ym.length,
       };
     });

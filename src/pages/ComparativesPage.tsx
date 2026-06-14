@@ -1,9 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { getMunicipio } from '../data/municipios';
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -20,15 +28,28 @@ const MAX_MUNIS = 3;
 const MAX_DEPTS = 4;
 
 type CompMode = 'municipios' | 'departamentos' | 'historica';
-type MetricKey = 'presupuesto' | 'ingresos' | 'autonomia' | 'poblacion' | 'transferencias';
+type MetricKey =
+  | 'presupuesto' | 'ingresos' | 'autonomia' | 'poblacion' | 'transferencias'
+  | 'ing_tributarios' | 'ing_no_tributarios' | 'ing_capital'
+  | 'gasto_funcionamiento' | 'gasto_capital';
 
-const METRICS: { key: MetricKey; label: string }[] = [
+const BASE_METRICS: { key: MetricKey; label: string }[] = [
   { key: 'presupuesto',    label: 'Presupuesto' },
   { key: 'ingresos',      label: 'Ingresos Propios' },
   { key: 'autonomia',     label: 'Autonomía' },
   { key: 'poblacion',     label: 'Población' },
   { key: 'transferencias',label: 'Transferencias' },
 ];
+
+const FIN_METRICS: { key: MetricKey; label: string }[] = [
+  { key: 'ing_tributarios',     label: 'Ing. Tributarios' },
+  { key: 'ing_no_tributarios',  label: 'Ing. No Tributarios' },
+  { key: 'ing_capital',         label: 'Ing. Capital' },
+  { key: 'gasto_funcionamiento',label: 'G. Funcionamiento' },
+  { key: 'gasto_capital',       label: 'G. Capital y Deuda' },
+];
+
+const METRICS = [...BASE_METRICS, ...FIN_METRICS];
 
 // ── Style tokens ──────────────────────────────────────────────────────────────
 
@@ -64,17 +85,61 @@ const TH: React.CSSProperties = {
   textAlign: 'left',
 };
 
+const CHART_TITLE: React.CSSProperties = {
+  fontSize: 10,
+  fontFamily: "'IBM Plex Mono', monospace",
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  color: '#2dd4bf',
+  marginBottom: 16,
+};
+
+const AXIS_TICK = {
+  fill: '#9ca3af',
+  fontSize: 11,
+  fontFamily: "'IBM Plex Mono', monospace",
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getMetricValue(m: any, metric: MetricKey): number {
   switch (metric) {
-    case 'presupuesto':     return m.presupuesto_municipal ? Math.round(m.presupuesto_municipal / 1_000_000) : 0;
-    case 'ingresos':        return m.ingresos_propios ? Math.round(m.ingresos_propios / 1_000_000) : 0;
-    case 'autonomia':       return m.presupuesto_municipal
-      ? Math.round((m.ingresos_propios / m.presupuesto_municipal) * 1000) / 10 : 0;
-    case 'poblacion':       return m.population || 0;
-    case 'transferencias':  return m.otras_transferencias ? Math.round(m.otras_transferencias / 1_000_000) : 0;
-    default:                return 0;
+    case 'presupuesto':
+      return m.presupuesto_municipal ? Math.round(m.presupuesto_municipal / 1_000_000) : 0;
+    case 'ingresos':
+      return m.ingresos_propios ? Math.round(m.ingresos_propios / 1_000_000) : 0;
+    case 'autonomia':
+      return m.presupuesto_municipal
+        ? Math.round((m.ingresos_propios / m.presupuesto_municipal) * 1000) / 10 : 0;
+    case 'poblacion':
+      return m.population || 0;
+    case 'transferencias':
+      return m.otras_transferencias ? Math.round(m.otras_transferencias / 1_000_000) : 0;
+    case 'ing_tributarios': {
+      const v = m.ingresos_tributarios || Math.round((m.ingresos_propios || 0) * 0.58);
+      return Math.round(v / 1_000_000);
+    }
+    case 'ing_no_tributarios': {
+      const t = m.ingresos_tributarios || Math.round((m.ingresos_propios || 0) * 0.58);
+      const v = m.ingresos_no_tributarios || Math.max(0, (m.ingresos_propios || 0) - t);
+      return Math.round(v / 1_000_000);
+    }
+    case 'ing_capital': {
+      const v = m.ingresos_capital || Math.max(0,
+        (m.presupuesto_municipal || 0) - (m.ingresos_propios || 0) - (m.otras_transferencias || 0));
+      return Math.round(v / 1_000_000);
+    }
+    case 'gasto_funcionamiento': {
+      const v = m.gastos_funcionamiento || Math.round((m.presupuesto_municipal || 0) * 0.63);
+      return Math.round(v / 1_000_000);
+    }
+    case 'gasto_capital': {
+      const gastF = m.gastos_funcionamiento || Math.round((m.presupuesto_municipal || 0) * 0.63);
+      const v = m.gastos_capital_deuda || Math.max(0, (m.presupuesto_municipal || 0) - gastF);
+      return Math.round(v / 1_000_000);
+    }
+    default:
+      return 0;
   }
 }
 
@@ -86,6 +151,59 @@ function formatValue(metric: MetricKey, value: number): string {
 
 function getMetricLabel(metric: MetricKey): string {
   return METRICS.find(m => m.key === metric)?.label ?? metric;
+}
+
+// ── Financial category helpers ────────────────────────────────────────────────
+
+function getRawFinCats(m: any) {
+  const pres     = m.presupuesto_municipal || 0;
+  const ingProp  = m.ingresos_propios || 0;
+  const ingTrans = m.otras_transferencias || 0;
+  const tribut   = m.ingresos_tributarios || Math.round(ingProp * 0.58);
+  const noTrib   = m.ingresos_no_tributarios || Math.max(0, ingProp - tribut);
+  const capital  = m.ingresos_capital || Math.max(0, pres - ingProp - ingTrans);
+  const gastF    = m.gastos_funcionamiento || Math.round(pres * 0.63);
+  const gastC    = m.gastos_capital_deuda  || Math.max(0, pres - gastF);
+  return { pres, ingProp, tribut, noTrib, capital, gastF, gastC };
+}
+
+function getFinCats(m: any) {
+  const r = getRawFinCats(m);
+  const M = 1_000_000;
+  return {
+    ingTributarios:       Math.round(r.tribut / M),
+    ingNoTributarios:     Math.round(r.noTrib / M),
+    ingCapital:           Math.round(r.capital / M),
+    gastosFuncionamiento: Math.round(r.gastF / M),
+    gastosCapital:        Math.round(r.gastC / M),
+    autonomiaPct:         r.pres > 0 ? Math.round(r.ingProp / r.pres * 1000) / 10 : 0,
+    ingTributarioPct:     r.pres > 0 ? Math.round(r.tribut / r.pres * 1000) / 10 : 0,
+    ingCapitalPct:        r.pres > 0 ? Math.round(r.capital / r.pres * 1000) / 10 : 0,
+    gastCapitalPct:       r.pres > 0 ? Math.round(r.gastC / r.pres * 1000) / 10 : 0,
+  };
+}
+
+function getAggFinCats(recs: any[]) {
+  const raw      = recs.map(getRawFinCats);
+  const totPres  = raw.reduce((s, r) => s + r.pres, 0);
+  const totIngP  = raw.reduce((s, r) => s + r.ingProp, 0);
+  const totTrib  = raw.reduce((s, r) => s + r.tribut, 0);
+  const totNoTr  = raw.reduce((s, r) => s + r.noTrib, 0);
+  const totCap   = raw.reduce((s, r) => s + r.capital, 0);
+  const totGastF = raw.reduce((s, r) => s + r.gastF, 0);
+  const totGastC = raw.reduce((s, r) => s + r.gastC, 0);
+  const M = 1_000_000;
+  return {
+    ingTributarios:       Math.round(totTrib / M),
+    ingNoTributarios:     Math.round(totNoTr / M),
+    ingCapital:           Math.round(totCap / M),
+    gastosFuncionamiento: Math.round(totGastF / M),
+    gastosCapital:        Math.round(totGastC / M),
+    autonomiaPct:         totPres > 0 ? Math.round(totIngP / totPres * 1000) / 10 : 0,
+    ingTributarioPct:     totPres > 0 ? Math.round(totTrib / totPres * 1000) / 10 : 0,
+    ingCapitalPct:        totPres > 0 ? Math.round(totCap / totPres * 1000) / 10 : 0,
+    gastCapitalPct:       totPres > 0 ? Math.round(totGastC / totPres * 1000) / 10 : 0,
+  };
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -111,16 +229,33 @@ function SelectedPill({ label, onRemove }: { label: string; onRemove: () => void
 
 function MetricTabs({ value, onChange }: { value: MetricKey; onChange: (m: MetricKey) => void }) {
   return (
-    <div className="rk-tabbar" style={{ marginTop: 0 }}>
-      {METRICS.map(m => (
-        <button
-          key={m.key}
-          className={value === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
-          onClick={() => onChange(m.key)}
-        >
-          {m.label}
-        </button>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="rk-tabbar" style={{ marginTop: 0 }}>
+        {BASE_METRICS.map(m => (
+          <button
+            key={m.key}
+            className={value === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
+            onClick={() => onChange(m.key)}
+          >{m.label}</button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{
+          fontSize: 8, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+          letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+        }}>
+          Cat. Fin. →
+        </span>
+        <div className="rk-tabbar" style={{ marginTop: 0 }}>
+          {FIN_METRICS.map(m => (
+            <button
+              key={m.key}
+              className={value === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
+              onClick={() => onChange(m.key)}
+            >{m.label}</button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -135,9 +270,7 @@ function YearPills({ selected, onChange }: { selected: number[]; onChange: (y: n
           key={y}
           className={selected.includes(y) ? 'rk-pill rk-pill--active' : 'rk-pill'}
           onClick={() => toggle(y)}
-        >
-          {y}
-        </button>
+        >{y}</button>
       ))}
     </div>
   );
@@ -147,28 +280,17 @@ function ChartCard({ title, data, keys }: { title: string; data: any[]; keys: st
   if (data.length === 0) return null;
   return (
     <div style={{ ...CARD, marginTop: 20 }}>
-      <div style={{
-        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
-        letterSpacing: '0.16em', textTransform: 'uppercase',
-        color: '#2dd4bf', marginBottom: 16,
-      }}>
-        {title}
-      </div>
+      <div style={CHART_TITLE}>{title}</div>
       <ResponsiveContainer width="100%" height={340}>
         <LineChart data={data} margin={{ top: 10, right: 24, left: 0, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
           <XAxis
             dataKey="year"
-            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
+            tick={AXIS_TICK}
             axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
             tickLine={false}
           />
-          <YAxis
-            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
-            axisLine={false}
-            tickLine={false}
-            width={54}
-          />
+          <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={54} />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
             labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
@@ -241,10 +363,213 @@ function ComparisonTable({ rows, years, metric }: { rows: any[]; years: number[]
   );
 }
 
+// ── Financial chart panels ────────────────────────────────────────────────────
+
+function IncomeBarCard({ title, data }: { title: string; data: any[] }) {
+  if (!data.length) return null;
+  return (
+    <div style={{ ...CARD, marginTop: 20 }}>
+      <div style={CHART_TITLE}>{title}</div>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} margin={{ top: 10, right: 24, left: 0, bottom: 10 }} barCategoryGap="30%">
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
+          <YAxis
+            tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
+            tickFormatter={(v: number) => `L${v}M`}
+          />
+          <Tooltip
+            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
+            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
+            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
+            verticalAlign="bottom"
+            align="center"
+          />
+          <Bar dataKey="ingTributarios"   name="Ing. Tributarios"    fill="#2dd4bf" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="ingNoTributarios" name="Ing. No Tributarios" fill="#f59e0b" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="ingCapital"       name="Ing. Capital"        fill="#ec4899" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function GastosBarCard({ title, data }: { title: string; data: any[] }) {
+  if (!data.length) return null;
+  return (
+    <div style={{ ...CARD, marginTop: 20 }}>
+      <div style={CHART_TITLE}>{title}</div>
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={data} margin={{ top: 10, right: 24, left: 0, bottom: 10 }} barCategoryGap="30%">
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
+          <YAxis
+            tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
+            tickFormatter={(v: number) => `L${v}M`}
+          />
+          <Tooltip
+            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
+            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
+            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
+            verticalAlign="bottom"
+            align="center"
+          />
+          <Bar dataKey="gastosFuncionamiento" name="Gastos Funcionamiento"  fill="#f97316" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="gastosCapital"        name="Gastos Capital y Deuda" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+const RADAR_AXES = ['Autonomía', 'Ing. Tributarios %', 'Ing. Capital %', 'Gasto Capital %', 'IDH'];
+
+function RadarCard({
+  title, radarData, names,
+}: {
+  title: string;
+  radarData: any[];
+  names: string[];
+}) {
+  if (names.length < 2 || !radarData.length) return null;
+  return (
+    <div style={{ ...CARD, marginTop: 20 }}>
+      <div style={CHART_TITLE}>{title}</div>
+      <ResponsiveContainer width="100%" height={360}>
+        <RadarChart data={radarData} margin={{ top: 10, right: 50, left: 50, bottom: 10 }}>
+          <PolarGrid stroke="rgba(255,255,255,0.08)" />
+          <PolarAngleAxis
+            dataKey="subject"
+            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
+          />
+          <PolarRadiusAxis
+            angle={90}
+            domain={[0, 100]}
+            tick={{ fill: '#4a5a73', fontSize: 9, fontFamily: "'IBM Plex Mono', monospace" }}
+            tickCount={4}
+          />
+          {names.map((name, i) => (
+            <Radar
+              key={name}
+              name={name}
+              dataKey={name}
+              stroke={PALETTE[i % PALETTE.length]}
+              fill={PALETTE[i % PALETTE.length]}
+              fillOpacity={0.12}
+              strokeWidth={2}
+            />
+          ))}
+          <Legend
+            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
+            verticalAlign="bottom"
+            align="center"
+          />
+          <Tooltip
+            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
+            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
+            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            formatter={(v: number) => [`${Number(v).toFixed(1)}`, '']}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── Financial charts section ──────────────────────────────────────────────────
+
+function FinancialChartsSection({
+  selected,
+  municipalities,
+  mode,
+}: {
+  selected: string[];
+  municipalities: any[];
+  mode: 'muni' | 'dept';
+}) {
+  const [finYear, setFinYear] = useState<number>(2024);
+
+  const barData = useMemo(() => {
+    if (!selected.length) return [];
+    return selected.map(entity => {
+      const recs = mode === 'muni'
+        ? municipalities.filter(m => m.name === entity && m.year === finYear)
+        : municipalities.filter(m => m.department === entity && m.year === finYear);
+      if (!recs.length) return null;
+      const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
+      return { name: entity, ...fc };
+    }).filter(Boolean) as any[];
+  }, [selected, municipalities, finYear, mode]);
+
+  const radarData = useMemo(() => {
+    if (selected.length < 2 || !barData.length) return [];
+    return RADAR_AXES.map(subject => {
+      const row: any = { subject };
+      barData.forEach((d: any) => {
+        if (subject === 'Autonomía')           row[d.name] = d.autonomiaPct    || 0;
+        if (subject === 'Ing. Tributarios %')  row[d.name] = d.ingTributarioPct || 0;
+        if (subject === 'Ing. Capital %')      row[d.name] = d.ingCapitalPct   || 0;
+        if (subject === 'Gasto Capital %')     row[d.name] = d.gastCapitalPct  || 0;
+        if (subject === 'IDH') {
+          if (mode === 'muni') {
+            const rec = municipalities.find(m => m.name === d.name && m.year === finYear);
+            const staticMuni = rec ? getMunicipio(rec.id) as any : null;
+            row[d.name] = staticMuni?.idh ? Math.round(staticMuni.idh * 100) : 0;
+          } else {
+            row[d.name] = 0;
+          }
+        }
+      });
+      return row;
+    });
+  }, [selected, barData, municipalities, finYear, mode]);
+
+  if (!selected.length) return null;
+
+  return (
+    <>
+      <div style={{ ...CARD, marginTop: 20 }}>
+        <span style={FLABEL}>AÑO PARA ANÁLISIS FINANCIERO</span>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {YEARS.map(y => (
+            <button
+              key={y}
+              className={finYear === y ? 'rk-pill rk-pill--active' : 'rk-pill'}
+              onClick={() => setFinYear(y)}
+            >{y}</button>
+          ))}
+        </div>
+      </div>
+
+      <IncomeBarCard
+        title={`COMPOSICIÓN DE INGRESOS · ${finYear}`}
+        data={barData}
+      />
+      <GastosBarCard
+        title={`ESTRUCTURA DE GASTOS · ${finYear}`}
+        data={barData}
+      />
+      <RadarCard
+        title="PERFIL FINANCIERO COMPARATIVO"
+        radarData={radarData}
+        names={selected}
+      />
+    </>
+  );
+}
+
 // ── Mode 1: Municipios vs Municipios ──────────────────────────────────────────
 
 function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
-  const [dept, setDept]        = useState('');
+  const [dept, setDept]         = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [years, setYears]       = useState<number[]>([2021, 2022, 2023, 2024]);
   const [metric, setMetric]     = useState<MetricKey>('presupuesto');
@@ -385,6 +710,8 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
         keys={selected}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
+
+      <FinancialChartsSection selected={selected} municipalities={municipalities} mode="muni" />
     </>
   );
 }
@@ -446,7 +773,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
           </span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {departments.map(d => {
-              const active = selectedDepts.includes(d);
+              const active   = selectedDepts.includes(d);
               const disabled = !active && selectedDepts.length >= MAX_DEPTS;
               return (
                 <button
@@ -455,9 +782,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
                   disabled={disabled}
                   onClick={() => toggleDept(d)}
                   style={{ opacity: disabled ? 0.4 : 1 }}
-                >
-                  {d}
-                </button>
+                >{d}</button>
               );
             })}
           </div>
@@ -499,6 +824,8 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
         keys={selectedDepts}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
+
+      <FinancialChartsSection selected={selectedDepts} municipalities={municipalities} mode="dept" />
     </>
   );
 }
@@ -506,9 +833,9 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
 // ── Mode 3: Evolución Histórica ───────────────────────────────────────────────
 
 function ModeHistorica({ municipalities }: { municipalities: any[] }) {
-  const [dept, setDept]             = useState('');
-  const [muniName, setMuniName]     = useState('');
-  const [metrics, setMetrics]       = useState<MetricKey[]>(['presupuesto']);
+  const [dept, setDept]       = useState('');
+  const [muniName, setMuniName] = useState('');
+  const [metrics, setMetrics] = useState<MetricKey[]>(['presupuesto']);
 
   const departments = useMemo(() =>
     [...new Set(municipalities.map(m => m.department).filter(Boolean))].sort(),
@@ -568,16 +895,31 @@ function ModeHistorica({ municipalities }: { municipalities: any[] }) {
         {/* Row 2 */}
         <div>
           <span style={FLABEL}>MÉTRICAS (superponer en el mismo gráfico)</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {METRICS.map(m => (
-              <button
-                key={m.key}
-                className={metrics.includes(m.key) ? 'rk-pill rk-pill--active' : 'rk-pill'}
-                onClick={() => toggleMetric(m.key)}
-              >
-                {m.label}
-              </button>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {BASE_METRICS.map(m => (
+                <button
+                  key={m.key}
+                  className={metrics.includes(m.key) ? 'rk-pill rk-pill--active' : 'rk-pill'}
+                  onClick={() => toggleMetric(m.key)}
+                >{m.label}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                fontSize: 8, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+                letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+              }}>Cat. Fin. →</span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {FIN_METRICS.map(m => (
+                  <button
+                    key={m.key}
+                    className={metrics.includes(m.key) ? 'rk-pill rk-pill--active' : 'rk-pill'}
+                    onClick={() => toggleMetric(m.key)}
+                  >{m.label}</button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -602,7 +944,7 @@ function ModeHistorica({ municipalities }: { municipalities: any[] }) {
 
       {muniName && metrics.length > 0 && (
         <ChartCard
-          title={`${muniName.toUpperCase()} — EVOLUCIÓN 2021–2024`}
+          title={`${muniName.toUpperCase()} — EVOLUCIÓN 2019–2025`}
           data={chartData}
           keys={metrics}
         />
@@ -678,9 +1020,7 @@ export default function ComparativosPage() {
               key={m.key}
               className={mode === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
               onClick={() => setMode(m.key)}
-            >
-              {m.label}
-            </button>
+            >{m.label}</button>
           ))}
         </div>
 

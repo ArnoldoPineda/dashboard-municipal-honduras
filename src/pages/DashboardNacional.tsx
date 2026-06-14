@@ -5,9 +5,21 @@ import {
 } from 'recharts';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
-import { MUNICIPIOS } from '../data/municipios';
+import { MUNICIPIOS, DEPARTAMENTOS } from '../data/municipios';
 
 const YEARS = [2021, 2022, 2023, 2024, 2025];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function normDept(s: string): string {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+
+function isValidDept(dept: any): boolean {
+  if (!dept) return false;
+  const t = String(dept).trim().toUpperCase();
+  return t !== '' && t !== 'N/A' && t !== 'NULL';
+}
 
 // ── Mock fallback: builds Municipality-shaped rows from local evolucion data ──
 function getMockForYear(year: number): any[] {
@@ -115,11 +127,31 @@ export default function DashboardNacional() {
   const selectedYear = YEARS.includes(fiscalYear) ? fiscalYear : 2024;
 
   const byYear = useMemo(() => {
-    const live = municipalities.filter(m => m.year === selectedYear);
-    if (live.length > 0) return live;
-    // Supabase returned 0 rows for this year — use mock evolucion data
-    console.log(`[DashboardNacional] No Supabase data for ${selectedYear}, falling back to mock`);
-    return getMockForYear(selectedYear);
+    // Filter: skip rows with null/empty/N/A department; patch null ingresos_propios from autonomia
+    const live = municipalities
+      .filter(m => m.year === selectedYear && isValidDept(m.department))
+      .map((m: any) => ({
+        ...m,
+        ingresos_propios: m.ingresos_propios != null
+          ? m.ingresos_propios
+          : Math.round((m.presupuesto_municipal || 0) * ((m.autonomia_financiera || 0) / 100)),
+      }));
+
+    if (live.length === 0) {
+      console.log(`[DashboardNacional] No Supabase data for ${selectedYear}, falling back to mock`);
+      return getMockForYear(selectedYear);
+    }
+
+    // Supplement departments not covered by Supabase with mock rows
+    const liveDeptNorms = new Set(live.map((m: any) => normDept(m.department)));
+    const mockAll = getMockForYear(selectedYear);
+    const missing = mockAll.filter((m: any) => !liveDeptNorms.has(normDept(m.department)));
+    if (missing.length > 0) {
+      console.log(`[DashboardNacional] Supplementing ${missing.length} rows from ${new Set(missing.map((m: any) => m.department)).size} missing depts`);
+      return [...live, ...missing];
+    }
+
+    return live;
   }, [municipalities, selectedYear]);
 
   // Aggregate KPIs for selected year
@@ -129,22 +161,23 @@ export default function DashboardNacional() {
     const pop = byYear.reduce((s, m) => s + (m.population || 0), 0);
     const presup = byYear.reduce((s, m) => s + (m.presupuesto_municipal || 0), 0);
     const propios = byYear.reduce((s, m) => s + (m.ingresos_propios || 0), 0);
-    const autonomia = byYear.reduce((s, m) => s + (m.autonomia_financiera || 0), 0) / totalMunis;
-    const depts = new Set(byYear.map(m => m.department)).size;
+    const autonomia = totalMunis > 0
+      ? byYear.reduce((s, m) => s + (m.autonomia_financiera || 0), 0) / totalMunis
+      : 0;
     const topMuni = [...byYear].sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
-    return { totalMunis, pop, presup, propios, autonomia, depts, topMuni };
+    return { totalMunis, pop, presup, propios, autonomia, depts: 18, topMuni };
   }, [byYear]);
 
-  // Department bar chart data
+  // Department bar chart data — byYear already has all 18 depts supplemented
   const deptBars = useMemo(() => {
-    const map = new Map<string, { presup: number; propios: number; count: number }>();
-    byYear.forEach(m => {
-      const d = m.department || 'N/A';
-      const prev = map.get(d) || { presup: 0, propios: 0, count: 0 };
+    const map = new Map<string, { presup: number; propios: number }>();
+    byYear.forEach((m: any) => {
+      if (!isValidDept(m.department)) return;
+      const d: string = m.department;
+      const prev = map.get(d) || { presup: 0, propios: 0 };
       map.set(d, {
         presup: prev.presup + (m.presupuesto_municipal || 0),
         propios: prev.propios + (m.ingresos_propios || 0),
-        count: prev.count + 1,
       });
     });
     return [...map.entries()]
@@ -153,15 +186,21 @@ export default function DashboardNacional() {
         Presupuesto: Math.round(v.presup / 1e6),
         'Ing. Propios': Math.round(v.propios / 1e6),
       }))
-      .sort((a, b) => b.Presupuesto - a.Presupuesto)
-      .slice(0, 12);
+      .sort((a, b) => b.Presupuesto - a.Presupuesto);
   }, [byYear]);
 
   // Year-over-year trend (national totals, with mock fallback per year)
   const trendData = useMemo(() => {
     return YEARS.map(y => {
-      const live = municipalities.filter(m => m.year === y);
-      const ym   = live.length > 0 ? live : getMockForYear(y);
+      const liveRaw = municipalities.filter(m => m.year === y && isValidDept(m.department));
+      // Patch null ingresos_propios from autonomia
+      const live = liveRaw.map((m: any) => ({
+        ...m,
+        ingresos_propios: m.ingresos_propios != null
+          ? m.ingresos_propios
+          : Math.round((m.presupuesto_municipal || 0) * ((m.autonomia_financiera || 0) / 100)),
+      }));
+      const ym = live.length > 0 ? live : getMockForYear(y);
       return {
         year: y,
         Presupuesto: Math.round(ym.reduce((s: number, m: any) => s + (m.presupuesto_municipal || 0), 0) / 1e9 * 100) / 100,

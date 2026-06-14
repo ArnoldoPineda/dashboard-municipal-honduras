@@ -16,6 +16,22 @@ function normalizeName(name: string): string {
   return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 }
 
+// ── Category helpers ─────────────────────────────────────────────────────────
+
+const CAT_COLORS: Record<string, string> = {
+  A: '#2dd4bf',
+  B: '#3a9bd6',
+  C: '#f59e0b',
+  D: '#64748b',
+};
+
+function categoryOf(budget: number): string {
+  if (budget > 3_000_000_000) return 'A';
+  if (budget > 1_200_000_000) return 'B';
+  if (budget >   400_000_000) return 'C';
+  return 'D';
+}
+
 // ── Voronoi choropleth map ────────────────────────────────────────────────────
 
 interface MuniStat {
@@ -27,12 +43,13 @@ interface MuniStat {
 interface TooltipState { x: number; y: number; name: string; budget: number }
 
 function DeptMuniMap({
-  topoData, deptName, municipalities, onSelectMuni,
+  topoData, deptName, municipalities, onSelectMuni, indicator,
 }: {
   topoData: any;
   deptName: string;
   municipalities: MuniStat[];
   onSelectMuni: (id: string) => void;
+  indicator: string;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef  = useRef<SVGSVGElement>(null);
@@ -121,10 +138,19 @@ function DeptMuniMap({
     const cellsG = svg.append('g').attr('clip-path', `url(#${clipId})`);
 
     seeds.forEach((muni, i) => {
-      const cell     = voronoi.renderCell(i);
+      const cell = voronoi.renderCell(i);
       if (!cell) return;
-      const baseFill  = colorScale(muni.budget);
-      const hoverFill = d3.color(baseFill)?.brighter(0.55)?.formatHex() ?? '#00d4b8';
+
+      let baseFill: string;
+      let hoverFill: string;
+      if (indicator === 'categorias') {
+        const cat  = categoryOf(muni.budget);
+        baseFill   = d3.color(CAT_COLORS[cat])!.darker(0.35).formatHex();
+        hoverFill  = CAT_COLORS[cat];
+      } else {
+        baseFill   = colorScale(muni.budget);
+        hoverFill  = d3.color(baseFill)?.brighter(0.55)?.formatHex() ?? '#00d4b8';
+      }
 
       cellsG.append('path')
         .attr('d', cell)
@@ -155,15 +181,17 @@ function DeptMuniMap({
       .attr('d', geoPath as any).attr('fill', 'none')
       .attr('stroke', 'rgba(0,212,184,0.75)').attr('stroke-width', 1.6);
 
-    // Gradient legend
-    const lgW = 90, lgH = 8, lgX = W - lgW - 10, lgY = H - 22;
-    const lgDef = defs.append('linearGradient').attr('id', `${clipId}-lg`);
-    lgDef.append('stop').attr('offset', '0%').attr('stop-color', '#0c1830');
-    lgDef.append('stop').attr('offset', '100%').attr('stop-color', '#00b89e');
-    svg.append('rect').attr('x', lgX).attr('y', lgY).attr('width', lgW).attr('height', lgH).attr('rx', 3).attr('fill', `url(#${clipId}-lg)`);
-    svg.append('text').attr('x', lgX).attr('y', lgY - 4).attr('fill', '#4a5a73').attr('font-size', 8).attr('font-family', "'IBM Plex Mono', monospace").text('PRESUPUESTO');
+    if (indicator !== 'categorias') {
+      // Gradient legend
+      const lgW = 90, lgH = 8, lgX = W - lgW - 10, lgY = H - 22;
+      const lgDef = defs.append('linearGradient').attr('id', `${clipId}-lg`);
+      lgDef.append('stop').attr('offset', '0%').attr('stop-color', '#0c1830');
+      lgDef.append('stop').attr('offset', '100%').attr('stop-color', '#00b89e');
+      svg.append('rect').attr('x', lgX).attr('y', lgY).attr('width', lgW).attr('height', lgH).attr('rx', 3).attr('fill', `url(#${clipId}-lg)`);
+      svg.append('text').attr('x', lgX).attr('y', lgY - 4).attr('fill', '#4a5a73').attr('font-size', 8).attr('font-family', "'IBM Plex Mono', monospace").text('PRESUPUESTO');
+    }
 
-  }, [topoData, deptName, municipalities, onSelectMuni, size]);
+  }, [topoData, deptName, municipalities, onSelectMuni, indicator, size]);
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -205,7 +233,7 @@ function muniYearBudget(m: any, year: number): number {
 export default function VistaDepartamental() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fiscalYear } = useNavbar();
+  const { fiscalYear, indicator } = useNavbar();
   const [topoData, setTopoData] = useState<any>(null);
   const [search,   setSearch]   = useState('');
 
@@ -314,6 +342,7 @@ export default function VistaDepartamental() {
               deptName={dept.topoNombre}
               municipalities={mapMunis}
               onSelectMuni={(muniId) => navigate(`/municipio/${muniId}`)}
+              indicator={indicator}
             />
           </div>
         </div>
@@ -358,41 +387,53 @@ export default function VistaDepartamental() {
           />
 
           <div className="simho-scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {filtered.map((m) => (
-              <div
-                key={m.id}
-                onClick={() => navigate(`/municipio/${m.id}`)}
-                style={{
-                  padding: '10px 10px', borderRadius: 7, cursor: 'pointer',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  border: '1px solid transparent', transition: 'background 0.12s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(0,212,184,0.07)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,212,184,0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'transparent';
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 15, color: '#e8eef6', fontWeight: 500 }}>{m.nombre}</span>
-                  {m.isCapital && (
-                    <span style={{
-                      fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
-                      color: '#f59e0b', background: 'rgba(245,158,11,0.12)',
-                      border: '1px solid rgba(245,158,11,0.3)', borderRadius: 3, padding: '1px 5px',
-                    }}>
-                      CAPITAL
-                    </span>
-                  )}
+            {filtered.map((m) => {
+              const cat = categoryOf(m.yearPresupuesto ?? m.presupuesto ?? 0);
+              return (
+                <div
+                  key={m.id}
+                  onClick={() => navigate(`/municipio/${m.id}`)}
+                  style={{
+                    padding: '10px 10px', borderRadius: 7, cursor: 'pointer',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    border: '1px solid transparent', transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(0,212,184,0.07)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,212,184,0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'transparent';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15, color: '#e8eef6', fontWeight: 500 }}>{m.nombre}</span>
+                    {m.isCapital && (
+                      <span style={{
+                        fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
+                        color: '#f59e0b', background: 'rgba(245,158,11,0.12)',
+                        border: '1px solid rgba(245,158,11,0.3)', borderRadius: 3, padding: '1px 5px',
+                      }}>
+                        CAPITAL
+                      </span>
+                    )}
+                    {indicator === 'categorias' && (
+                      <span style={{
+                        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
+                        color: CAT_COLORS[cat], background: CAT_COLORS[cat] + '18',
+                        border: `1px solid ${CAT_COLORS[cat]}30`, borderRadius: 3, padding: '1px 5px',
+                      }}>
+                        CAT {cat}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 15, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
+                    L {fmt.format(m.yearPresupuesto ?? m.presupuesto)}
+                  </span>
                 </div>
-                <span style={{ fontSize: 15, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
-                  L {fmt.format(m.yearPresupuesto ?? m.presupuesto)}
-                </span>
-              </div>
-            ))}
+              );
+            })}
             {filtered.length === 0 && search && (
               <div style={{ fontSize: 12, color: '#4a5a73', padding: '12px 6px' }}>
                 Sin resultados para "{search}"

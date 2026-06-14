@@ -80,6 +80,7 @@ const INDICATORS: { key: IndicatorKey; label: string }[] = [
   { key: 'presupuesto', label: 'PRESUPUESTO' },
   { key: 'poblacion',   label: 'POBLACIÓN'   },
   { key: 'autonomia',   label: 'AUTONOMÍA'   },
+  { key: 'categorias',  label: 'CATEGORÍAS'  },
 ];
 
 const FISCAL_YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];

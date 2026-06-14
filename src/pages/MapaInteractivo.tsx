@@ -13,6 +13,31 @@ function normalizeName(name: string): string {
   return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 }
 
+// ── Category helpers ─────────────────────────────────────────────────────────
+
+const CAT_COLORS: Record<string, string> = {
+  A: '#2dd4bf',
+  B: '#3a9bd6',
+  C: '#f59e0b',
+  D: '#64748b',
+};
+
+function categoryOf(budget: number): string {
+  if (budget > 3_000_000_000) return 'A';
+  if (budget > 1_200_000_000) return 'B';
+  if (budget >   400_000_000) return 'C';
+  return 'D';
+}
+
+function deptCatData(topoName: string): { dominant: string; counts: Record<string, number> } {
+  const id   = deptNameToId(topoName);
+  const dept = id ? getDepartamento(id) : null;
+  const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+  (dept?.municipios || []).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
+  const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'D';
+  return { dominant, counts };
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function MapaInteractivo() {
@@ -29,6 +54,16 @@ export default function MapaInteractivo() {
   const deptStats = useMemo(() => getDeptStatsMap(), []);
 
   const totals = { munis: 298, pop: 9145000, budget: 65600000000 };
+
+  const catTotals = useMemo(() => {
+    const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+    deptStats.forEach((_: any, deptName: string) => {
+      const id   = deptNameToId(deptName);
+      const dept = id ? getDepartamento(id) : null;
+      (dept?.municipios || []).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
+    });
+    return counts;
+  }, [deptStats]);
 
   useEffect(() => {
     fetch('/data/honduras-topo.json')
@@ -103,6 +138,10 @@ export default function MapaInteractivo() {
       .attr('d', path as any)
       .attr('fill', (f: any) => {
         const topoName = f.properties?.name || '';
+        if (indicator === 'categorias') {
+          const { dominant } = deptCatData(topoName);
+          return d3.color(CAT_COLORS[dominant])!.darker(0.4).formatHex();
+        }
         let val = 0;
         deptStats.forEach((v: any, k: string) => {
           if (normalizeName(k) === normalizeName(topoName)) val = getValue(k);
@@ -129,11 +168,26 @@ export default function MapaInteractivo() {
         const capital  = deptData?.capital || '';
         const budget   = stats?.budget || 0;
 
-        tooltip
-          .style('display', 'block')
-          .style('left', `${event.offsetX + 14}px`)
-          .style('top',  `${event.offsetY - 10}px`)
-          .html(`
+        let html = '';
+        if (indicator === 'categorias') {
+          const { dominant, counts } = deptCatData(topoName);
+          html = `
+            <div style="font-weight:700;font-size:16px;color:#e8eef6;margin-bottom:6px;
+                        font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em">
+              ${topoName}
+            </div>
+            <div style="font-size:12px;color:#9ca3af;font-family:'IBM Plex Mono',monospace;margin-bottom:6px">
+              Categoría predominante: <span style="color:${CAT_COLORS[dominant]};font-weight:700">${dominant}</span>
+            </div>
+            <div style="font-size:11px;color:#9ca3af;font-family:'IBM Plex Mono',monospace">
+              <span style="color:${CAT_COLORS.A}">A:${counts.A}</span> ·
+              <span style="color:${CAT_COLORS.B}">B:${counts.B}</span> ·
+              <span style="color:${CAT_COLORS.C}">C:${counts.C}</span> ·
+              <span style="color:${CAT_COLORS.D}">D:${counts.D}</span>
+            </div>
+          `;
+        } else {
+          html = `
             <div style="font-weight:700;font-size:16px;color:#e8eef6;margin-bottom:6px;
                         font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em">
               ${topoName}
@@ -144,7 +198,13 @@ export default function MapaInteractivo() {
             <div style="font-size:12px;color:#7c8aa3;font-family:'IBM Plex Mono',monospace">
               ${stats?.muniCount ?? 0} municipios${capital ? ` · cap. ${capital}` : ''}
             </div>
-          `);
+          `;
+        }
+        tooltip
+          .style('display', 'block')
+          .style('left', `${event.offsetX + 14}px`)
+          .style('top',  `${event.offsetY - 10}px`)
+          .html(html);
       })
       .on('mousemove', function (event) {
         tooltip
@@ -211,37 +271,74 @@ export default function MapaInteractivo() {
           <div style={{
             fontSize: 14, color: '#7c8aa3', maxWidth: 460, lineHeight: 1.5,
           }}>
-            {`Coropleta por presupuesto ${fiscalYear}. Seleccione un departamento para explorar sus municipios.`}
+            {indicator === 'categorias'
+              ? 'Categorías municipales por presupuesto. Seleccione un departamento para ver el detalle.'
+              : `Coropleta por presupuesto ${fiscalYear}. Seleccione un departamento para explorar sus municipios.`}
           </div>
         </div>
 
-        {/* Legend — top-right */}
-        <div style={{
-          position: 'absolute', top: 20, right: 24, zIndex: 10,
-          background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(0,212,184,0.18)',
-          borderRadius: 8, padding: '12px 16px', minWidth: 190,
-        }}>
+        {/* Legend — top-right (presupuesto / poblacion / autonomia) */}
+        {indicator !== 'categorias' && (
           <div style={{
-            fontSize: 10, color: '#7c8aa3',
-            fontFamily: "'IBM Plex Mono', monospace",
-            letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
+            position: 'absolute', top: 20, right: 24, zIndex: 10,
+            background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(0,212,184,0.18)',
+            borderRadius: 8, padding: '12px 16px', minWidth: 190,
           }}>
-            presupuesto {fiscalYear}
+            <div style={{
+              fontSize: 10, color: '#7c8aa3',
+              fontFamily: "'IBM Plex Mono', monospace",
+              letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
+            }}>
+              presupuesto {fiscalYear}
+            </div>
+            <div style={{
+              height: 8, borderRadius: 4,
+              background: 'linear-gradient(to right, #5eead4, #134e4a)',
+              marginBottom: 6,
+            }} />
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              fontSize: 10, color: '#9ca3af',
+              fontFamily: "'IBM Plex Mono', monospace",
+            }}>
+              <span>L 575 M</span>
+              <span>L 12.7 mil M</span>
+            </div>
           </div>
+        )}
+
+        {/* Category legend — bottom-right (categorias) */}
+        {indicator === 'categorias' && (
           <div style={{
-            height: 8, borderRadius: 4,
-            background: 'linear-gradient(to right, #5eead4, #134e4a)',
-            marginBottom: 6,
-          }} />
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            fontSize: 10, color: '#9ca3af',
-            fontFamily: "'IBM Plex Mono', monospace",
+            position: 'absolute', bottom: 20, right: 24, zIndex: 10,
+            background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(0,212,184,0.18)',
+            borderRadius: 8, padding: '12px 16px', minWidth: 200,
           }}>
-            <span>L 575 M</span>
-            <span>L 12.7 mil M</span>
+            <div style={{
+              fontSize: 10, color: '#7c8aa3',
+              fontFamily: "'IBM Plex Mono', monospace",
+              letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10,
+            }}>
+              Categoría Municipal
+            </div>
+            {([
+              { cat: 'A', label: 'Cat. A — Grandes',      color: CAT_COLORS.A },
+              { cat: 'B', label: 'Cat. B — Medianos',     color: CAT_COLORS.B },
+              { cat: 'C', label: 'Cat. C — Pequeños',     color: CAT_COLORS.C },
+              { cat: 'D', label: 'Cat. D — Muy pequeños', color: CAT_COLORS.D },
+            ] as const).map(({ cat, label, color }) => (
+              <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{
+                  width: 12, height: 12, borderRadius: 2,
+                  background: color, flexShrink: 0, display: 'inline-block',
+                }} />
+                <span style={{ fontSize: 11, color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
         <svg ref={svgRef} style={{ width: '100%', height: '100%', display: 'block' }} />
 
@@ -268,64 +365,93 @@ export default function MapaInteractivo() {
       </div>
 
       {/* ── Bottom KPI strip ── */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8,
-        padding: '10px 16px',
-        borderTop: '1px solid rgba(0,212,184,0.12)',
-        background: 'rgba(8,12,24,0.4)',
-        flexShrink: 0,
-      }}>
+      {indicator === 'categorias' ? (
         <div style={{
-          background: 'rgba(13,21,38,0.7)', borderRadius: 8,
-          borderLeft: '3px solid #2dd4bf', padding: '10px 14px',
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8,
+          padding: '10px 16px',
+          borderTop: '1px solid rgba(0,212,184,0.12)',
+          background: 'rgba(8,12,24,0.4)',
+          flexShrink: 0,
+        }}>
+          {(['A', 'B', 'C', 'D'] as const).map((cat) => (
+            <div key={cat} style={{
+              background: 'rgba(13,21,38,0.7)', borderRadius: 8,
+              borderLeft: `3px solid ${CAT_COLORS[cat]}`, padding: '10px 14px',
+            }}>
+              <div style={{
+                fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+                letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
+              }}>Cat {cat}</div>
+              <div style={{
+                fontSize: 22, fontWeight: 700, color: CAT_COLORS[cat],
+                fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
+              }}>{catTotals[cat]}</div>
+              <div style={{
+                fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
+              }}>municipios</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8,
+          padding: '10px 16px',
+          borderTop: '1px solid rgba(0,212,184,0.12)',
+          background: 'rgba(8,12,24,0.4)',
+          flexShrink: 0,
         }}>
           <div style={{
-            fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
-            letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
-          }}>Municipios</div>
-          <div style={{
-            fontSize: 22, fontWeight: 700, color: '#e8eef6',
-            fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-          }}>{totals.munis}</div>
-          <div style={{
-            fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
-          }}>en 18 departamentos</div>
-        </div>
+            background: 'rgba(13,21,38,0.7)', borderRadius: 8,
+            borderLeft: '3px solid #2dd4bf', padding: '10px 14px',
+          }}>
+            <div style={{
+              fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+              letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
+            }}>Municipios</div>
+            <div style={{
+              fontSize: 22, fontWeight: 700, color: '#e8eef6',
+              fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
+            }}>{totals.munis}</div>
+            <div style={{
+              fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
+            }}>en 18 departamentos</div>
+          </div>
 
-        <div style={{
-          background: 'rgba(13,21,38,0.7)', borderRadius: 8,
-          borderLeft: '3px solid #2dd4bf', padding: '10px 14px',
-        }}>
           <div style={{
-            fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
-            letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
-          }}>Población Nacional</div>
-          <div style={{
-            fontSize: 22, fontWeight: 700, color: '#e8eef6',
-            fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-          }}>9,145,000</div>
-          <div style={{
-            fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
-          }}>{`habitantes · proyección ${fiscalYear}`}</div>
-        </div>
+            background: 'rgba(13,21,38,0.7)', borderRadius: 8,
+            borderLeft: '3px solid #2dd4bf', padding: '10px 14px',
+          }}>
+            <div style={{
+              fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+              letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
+            }}>Población Nacional</div>
+            <div style={{
+              fontSize: 22, fontWeight: 700, color: '#e8eef6',
+              fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
+            }}>9,145,000</div>
+            <div style={{
+              fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
+            }}>{`habitantes · proyección ${fiscalYear}`}</div>
+          </div>
 
-        <div style={{
-          background: 'rgba(13,21,38,0.7)', borderRadius: 8,
-          borderLeft: '3px solid #f59e0b', padding: '10px 14px',
-        }}>
           <div style={{
-            fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
-            letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
-          }}>Presupuesto Agregado</div>
-          <div style={{
-            fontSize: 22, fontWeight: 700, color: '#f59e0b',
-            fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-          }}>L 65.6 mil M</div>
-          <div style={{
-            fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
-          }}>transferencias + ingresos propios</div>
+            background: 'rgba(13,21,38,0.7)', borderRadius: 8,
+            borderLeft: '3px solid #f59e0b', padding: '10px 14px',
+          }}>
+            <div style={{
+              fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+              letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
+            }}>Presupuesto Agregado</div>
+            <div style={{
+              fontSize: 22, fontWeight: 700, color: '#f59e0b',
+              fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
+            }}>L 65.6 mil M</div>
+            <div style={{
+              fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
+            }}>transferencias + ingresos propios</div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 
-export type IndicatorKey = 'presupuesto' | 'poblacion' | 'autonomia';
+export type IndicatorKey = 'presupuesto' | 'poblacion' | 'autonomia' | 'categorias';
 
 interface NavbarContextValue {
   indicator:    IndicatorKey;

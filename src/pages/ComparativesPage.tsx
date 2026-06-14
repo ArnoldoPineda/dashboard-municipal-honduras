@@ -7,6 +7,7 @@ import {
   Line,
   BarChart,
   Bar,
+  LabelList,
   RadarChart,
   Radar,
   PolarGrid,
@@ -431,6 +432,65 @@ function GastosBarCard({ title, data }: { title: string; data: any[] }) {
   );
 }
 
+// ── Combined financial composition chart (all 5 categories per municipality) ──
+
+const FIN_BARS = [
+  { key: 'ingTributarios',       name: 'Ing. Tributarios',    fill: '#2dd4bf' },
+  { key: 'ingNoTributarios',     name: 'Ing. No Tributarios', fill: '#f59e0b' },
+  { key: 'ingCapital',           name: 'Ing. Capital',        fill: '#ec4899' },
+  { key: 'gastosFuncionamiento', name: 'G. Funcionamiento',   fill: '#f97316' },
+  { key: 'gastosCapital',        name: 'G. Capital y Deuda',  fill: '#8b5cf6' },
+];
+
+function ComposicionFinancieraCard({ title, data }: { title: string; data: any[] }) {
+  if (!data.length) return null;
+  return (
+    <div style={{ ...CARD, marginTop: 20 }}>
+      <div style={CHART_TITLE}>{title}</div>
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={data} margin={{ top: 28, right: 24, left: 0, bottom: 10 }} barCategoryGap="28%">
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <XAxis
+            dataKey="name"
+            tick={AXIS_TICK}
+            axisLine={false}
+            tickLine={false}
+            interval={0}
+          />
+          <YAxis
+            tick={AXIS_TICK}
+            axisLine={false}
+            tickLine={false}
+            width={52}
+            tickFormatter={(v: number) => `L${v}M`}
+          />
+          <Tooltip
+            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
+            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
+            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
+            verticalAlign="bottom"
+            align="center"
+          />
+          {FIN_BARS.map(b => (
+            <Bar key={b.key} dataKey={b.key} name={b.name} fill={b.fill} radius={[2, 2, 0, 0]}>
+              <LabelList
+                dataKey={b.key}
+                position="top"
+                style={{ fontSize: 7.5, fill: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
+                formatter={(v: any) => v > 0 ? `L${Number(v).toFixed(0)}M` : ''}
+              />
+            </Bar>
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 const RADAR_AXES = ['Autonomía', 'Ing. Tributarios %', 'Ing. Capital %', 'Gasto Capital %', 'IDH'];
 
 function RadarCard({
@@ -550,6 +610,10 @@ function FinancialChartsSection({
         </div>
       </div>
 
+      <ComposicionFinancieraCard
+        title={`COMPOSICIÓN FINANCIERA · ${finYear}`}
+        data={barData}
+      />
       <IncomeBarCard
         title={`COMPOSICIÓN DE INGRESOS · ${finYear}`}
         data={barData}
@@ -735,7 +799,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
                     </div>
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
                       gap: 5,
                     }}>
                       {muniList.map(name => {

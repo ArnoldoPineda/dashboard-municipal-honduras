@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/municipios';
+import { useNavbar } from '../context/NavbarContext';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -196,25 +197,49 @@ function DeptMuniMap({
 
 // ── VistaDepartamental ────────────────────────────────────────────────────────
 
+function muniYearBudget(m: any, year: number): number {
+  const evo = (m.evolucion || []).find((e: any) => e.year === year);
+  return evo?.presupuesto ?? m.presupuesto;
+}
+
 export default function VistaDepartamental() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { fiscalYear } = useNavbar();
   const [topoData, setTopoData] = useState<any>(null);
   const [search,   setSearch]   = useState('');
 
   const dept  = useMemo(() => getDepartamento(id || ''), [id]);
   const munis = useMemo(() => dept?.municipios || [], [dept]);
 
+  // Year-specific budget per municipality
+  const munisWithYearBudget = useMemo(() =>
+    munis.map((m: any) => {
+      const yp    = muniYearBudget(m, fiscalYear);
+      const ratio = m.presupuesto > 0 ? yp / m.presupuesto : 1;
+      return { ...m, yearPresupuesto: yp, yearIngresosPropios: Math.round(m.ingresosPropios * ratio), yearTransferencia: Math.round(m.transferencia * ratio) };
+    }),
+    [munis, fiscalYear]
+  );
+
+  // Department aggregates for selected year
+  const deptYear = useMemo(() => {
+    const pres  = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearPresupuesto, 0);
+    const ing   = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearIngresosPropios, 0);
+    const trans = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearTransferencia, 0);
+    return { presupuesto: pres, ingresosPropios: ing, transferencia: trans, autonomia: pres > 0 ? (ing / pres * 100) : 0 };
+  }, [munisWithYearBudget]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return [...munis]
-      .sort((a: any, b: any) => b.presupuesto - a.presupuesto)
+    return [...munisWithYearBudget]
+      .sort((a: any, b: any) => b.yearPresupuesto - a.yearPresupuesto)
       .filter((m: any) => !q || m.nombre.toLowerCase().includes(q));
-  }, [munis, search]);
+  }, [munisWithYearBudget, search]);
 
   const mapMunis: MuniStat[] = useMemo(() =>
-    munis.map((m: any) => ({ id: m.id, name: m.nombre, budget: m.presupuesto })),
-    [munis]
+    munisWithYearBudget.map((m: any) => ({ id: m.id, name: m.nombre, budget: m.yearPresupuesto })),
+    [munisWithYearBudget]
   );
 
   useEffect(() => {
@@ -231,12 +256,12 @@ export default function VistaDepartamental() {
   }
 
   const kpis = [
-    { label: 'MUNICIPIOS',     value: String(dept.muniCount),                    color: '#00d4b8' },
-    { label: 'POBLACIÓN',      value: fmt.format(dept.poblacion) + ' hab.',      color: '#5eead4' },
-    { label: 'PRESUPUESTO',    value: `L ${fmt.format(dept.presupuesto)}`,       color: '#f59e0b' },
-    { label: 'ING. PROPIOS',   value: `L ${fmt.format(dept.ingresosPropios)}`,   color: '#f59e0b' },
-    { label: 'AUTONOMÍA PROM.', value: `${dept.autonomia.toFixed(1)}%`,          color: '#5eead4' },
-    { label: 'TRANSFERENCIAS', value: `L ${fmt.format(dept.transferencia)}`,     color: '#f59e0b' },
+    { label: 'MUNICIPIOS',     value: String(dept.muniCount),                         color: '#00d4b8' },
+    { label: 'POBLACIÓN',      value: fmt.format(dept.poblacion) + ' hab.',           color: '#5eead4' },
+    { label: 'PRESUPUESTO',    value: `L ${fmt.format(deptYear.presupuesto)}`,        color: '#f59e0b' },
+    { label: 'ING. PROPIOS',   value: `L ${fmt.format(deptYear.ingresosPropios)}`,    color: '#f59e0b' },
+    { label: 'AUTONOMÍA PROM.', value: `${deptYear.autonomia.toFixed(1)}%`,           color: '#5eead4' },
+    { label: 'TRANSFERENCIAS', value: `L ${fmt.format(deptYear.transferencia)}`,      color: '#f59e0b' },
   ];
 
   return (
@@ -364,7 +389,7 @@ export default function VistaDepartamental() {
                   )}
                 </div>
                 <span style={{ fontSize: 15, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
-                  L {fmt.format(m.presupuesto)}
+                  L {fmt.format(m.yearPresupuesto ?? m.presupuesto)}
                 </span>
               </div>
             ))}

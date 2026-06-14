@@ -278,16 +278,45 @@ function CompBarChart({ muni, deptAvg }: { muni: any; deptAvg: any }) {
   );
 }
 
+// ── Year-specific data helper ─────────────────────────────────────────────────
+
+function getYearSnapshot(muni: any, year: number) {
+  const evo  = (muni.evolucion || []).find((e: any) => e.year === year);
+  const pres = evo?.presupuesto ?? muni.presupuesto;
+  const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
+  return {
+    presupuesto:     pres,
+    ingresosPropios: Math.round(muni.ingresosPropios * ratio),
+    transferencia:   Math.round(muni.transferencia   * ratio),
+    otros:           Math.max(0, pres - Math.round(muni.ingresosPropios * ratio) - Math.round(muni.transferencia * ratio)),
+    ratio,
+  };
+}
+
 // ── Exported shared content component ────────────────────────────────────────
 
-export function MuniDetailContent({ muni, deptAvg }: { muni: any; deptAvg: any | null }) {
+export function MuniDetailContent({ muni, deptAvg, year = 2024 }: { muni: any; deptAvg: any | null; year?: number }) {
+  // Year-specific snapshot
+  const snap  = getYearSnapshot(muni, year);
+  const muniY = { ...muni, presupuesto: snap.presupuesto, ingresosPropios: snap.ingresosPropios, transferencia: snap.transferencia, otros: snap.otros };
+
+  // Scale dept avg by same ratio (approximation for mock data)
+  const deptAvgY = deptAvg ? {
+    presupuesto:     Math.round(deptAvg.presupuesto     * snap.ratio),
+    ingresosPropios: Math.round(deptAvg.ingresosPropios * snap.ratio),
+    transferencia:   Math.round(deptAvg.transferencia   * snap.ratio),
+  } : null;
+
+  // Evolution filtered up to selected year
+  const evoFiltered = (muni.evolucion || []).filter((e: any) => e.year <= year);
+
   const kpis = [
-    { label: 'POBLACIÓN',        value: fmtPop.format(muni.poblacion) + ' hab.',                color: '#e8eef6' },
-    { label: 'ÁREA',             value: muni.area > 0 ? `${muni.area.toFixed(1)} km²` : '—',   color: '#e8eef6' },
-    { label: 'PRESUPUESTO',      value: L(muni.presupuesto),                                    color: '#2dd4bf' },
-    { label: 'INGRESOS PROPIOS', value: L(muni.ingresosPropios),                                color: '#2dd4bf' },
-    { label: 'TRANSFERENCIA',    value: L(muni.transferencia),                                  color: '#2dd4bf' },
-    { label: 'IDH',              value: muni.idh > 0 ? muni.idh.toFixed(3) : '—',              color: '#f59e0b' },
+    { label: 'POBLACIÓN',        value: fmtPop.format(muni.poblacion) + ' hab.',             color: '#e8eef6' },
+    { label: 'ÁREA',             value: muni.area > 0 ? `${muni.area.toFixed(1)} km²` : '—', color: '#e8eef6' },
+    { label: 'PRESUPUESTO',      value: L(snap.presupuesto),                                  color: '#2dd4bf' },
+    { label: 'INGRESOS PROPIOS', value: L(snap.ingresosPropios),                              color: '#2dd4bf' },
+    { label: 'TRANSFERENCIA',    value: L(snap.transferencia),                                color: '#2dd4bf' },
+    { label: 'IDH',              value: muni.idh > 0 ? muni.idh.toFixed(3) : '—',            color: '#f59e0b' },
   ];
 
   return (
@@ -309,15 +338,15 @@ export function MuniDetailContent({ muni, deptAvg }: { muni: any; deptAvg: any |
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10,
         padding: '10px 22px 12px',
       }}>
-        {deptAvg
-          ? <CompBarChart muni={muni} deptAvg={deptAvg} />
+        {deptAvgY
+          ? <CompBarChart muni={muniY} deptAvg={deptAvgY} />
           : <div style={CHART_STYLE}><div style={TITLE_STYLE}>Sin datos departamentales</div></div>
         }
 
-        <DonutChart muni={muni} />
+        <DonutChart muni={muniY} />
 
-        {muni.evolucion?.length >= 2
-          ? <EvoLineChart evolucion={muni.evolucion} />
+        {evoFiltered.length >= 2
+          ? <EvoLineChart evolucion={evoFiltered} />
           : <div style={CHART_STYLE}><div style={TITLE_STYLE}>Sin datos de evolución</div></div>
         }
       </div>

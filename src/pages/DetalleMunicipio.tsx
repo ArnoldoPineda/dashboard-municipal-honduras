@@ -2,10 +2,12 @@ import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMunicipio, getDeptAvg } from '../data/municipios';
 import { MuniDetailContent } from '../components/MuniDetailContent';
+import { useNavbar } from '../context/NavbarContext';
 
 export default function DetalleMunicipio() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { fiscalYear } = useNavbar();
 
   const muni    = useMemo(() => getMunicipio(id || ''), [id]);
   const deptAvg = useMemo(() => muni ? getDeptAvg(muni.departamentoId) : null, [muni]);
@@ -29,7 +31,11 @@ export default function DetalleMunicipio() {
     );
   }
 
-  const autonomia = muni.presupuesto > 0 ? (muni.ingresosPropios / muni.presupuesto * 100) : 0;
+  const evoEntry  = muni.evolucion?.find((e: any) => e.year === fiscalYear);
+  const yearPres  = evoEntry?.presupuesto ?? muni.presupuesto;
+  const yearRatio = muni.presupuesto > 0 ? yearPres / muni.presupuesto : 1;
+  const yearIng   = Math.round(muni.ingresosPropios * yearRatio);
+  const autonomia = yearPres > 0 ? (yearIng / yearPres * 100) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -87,7 +93,7 @@ export default function DetalleMunicipio() {
       </div>
 
       {/* ── KPI + CHARTS (shared) ── */}
-      <MuniDetailContent muni={muni} deptAvg={deptAvg} />
+      <MuniDetailContent muni={muni} deptAvg={deptAvg} year={fiscalYear} />
 
       {/* ── FOOTER ── */}
       <div style={{

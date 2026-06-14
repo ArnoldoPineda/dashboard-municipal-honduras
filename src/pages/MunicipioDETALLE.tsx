@@ -219,7 +219,13 @@ export default function MunicipioDETALLE() {
 
   const sections: AccordionSection[] = useMemo(() => {
     if (!muni) return [];
-    const { presupuesto, ingresosPropios, transferencia, otros, poblacion, area, idh, departamento } = muni;
+    const evo       = muni.evolucion?.find((e: any) => e.year === year);
+    const presupuesto = evo?.presupuesto ?? muni.presupuesto;
+    const ratio       = muni.presupuesto > 0 ? presupuesto / muni.presupuesto : 1;
+    const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
+    const transferencia   = Math.round(muni.transferencia   * ratio);
+    const otros           = Math.max(0, presupuesto - ingresosPropios - transferencia);
+    const { poblacion, area, idh, departamento } = muni;
     const tribut   = Math.round(ingresosPropios * 0.58);
     const noTribut = ingresosPropios - tribut;
     const capital  = otros;
@@ -292,7 +298,12 @@ export default function MunicipioDETALLE() {
 
   const donutData = useMemo(() => {
     if (!muni) return [];
-    const { ingresosPropios, transferencia, otros } = muni;
+    const evo   = muni.evolucion?.find((e: any) => e.year === year);
+    const pres  = evo?.presupuesto ?? muni.presupuesto;
+    const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
+    const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
+    const transferencia   = Math.round(muni.transferencia   * ratio);
+    const otros           = Math.max(0, pres - ingresosPropios - transferencia);
     const total = ingresosPropios + transferencia + otros;
     const pct = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
     return [
@@ -306,7 +317,12 @@ export default function MunicipioDETALLE() {
 
   const top5 = useMemo(() => {
     if (!muni) return [];
-    const { ingresosPropios, transferencia, otros } = muni;
+    const evo   = muni.evolucion?.find((e: any) => e.year === year);
+    const pres  = evo?.presupuesto ?? muni.presupuesto;
+    const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
+    const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
+    const transferencia   = Math.round(muni.transferencia   * ratio);
+    const otros           = Math.max(0, pres - ingresosPropios - transferencia);
     const tribut   = Math.round(ingresosPropios * 0.58);
     const noTribut = ingresosPropios - tribut;
     const items = [
@@ -512,7 +528,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 32, fontWeight: 700, color: '#2dd4bf',
                     fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
                   }}>
-                    {L(muni.presupuesto)}
+                    {L((muni.evolucion?.find((e: any) => e.year === year)?.presupuesto) ?? muni.presupuesto)}
                   </div>
                 </div>
                 <div>
@@ -585,7 +601,12 @@ export default function MunicipioDETALLE() {
                     fontSize: 18, fontWeight: 700, color: '#ffffff',
                     fontFamily: "'IBM Plex Mono', monospace",
                   }}>
-                    {L(muni.ingresosPropios + muni.transferencia + muni.otros)}
+                    {(() => {
+                      const evo = muni.evolucion?.find((e: any) => e.year === year);
+                      const p   = evo?.presupuesto ?? muni.presupuesto;
+                      const r   = muni.presupuesto > 0 ? p / muni.presupuesto : 1;
+                      return L(Math.round((muni.ingresosPropios + muni.transferencia + muni.otros) * r));
+                    })()}
                   </div>
                   <div style={{
                     fontSize: 9, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace",

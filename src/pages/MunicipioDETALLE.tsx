@@ -366,7 +366,7 @@ export default function MunicipioDETALLE() {
               <span style={LABEL}>AÑO</span>
               <select className="simho-select" value={year}
                 onChange={e => setYear(Number(e.target.value))}>
-                {[2019, 2020, 2021, 2022, 2023, 2024].map(y => (
+                {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>

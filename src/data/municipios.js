@@ -16,9 +16,12 @@ function makeEvo(budget2024, rates = [3.8, 4.2, 5.1, 5.4, 6.3, null]) {
   for (let i = rates.length - 2; i >= 0; i--) {
     base = base / (1 + (rates[i] || 6) / 100);
   }
-  const years = [2019, 2020, 2021, 2022, 2023, 2024];
+  const years = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
   const vals = evo(base, rates.slice(0, 5));
   vals.push(budget2024);
+  // 2025: deterministic growth 3–8% per municipality based on budget magnitude
+  const rate2025 = 0.03 + ((budget2024 % 50000000) / 50000000) * 0.05;
+  vals.push(Math.round(budget2024 * (1 + rate2025)));
   return years.map((y, i) => ({ year: y, presupuesto: vals[i] }));
 }
 
@@ -45,6 +48,7 @@ const COMAYAGUA_MUNIS = [
       { year: 2022, presupuesto: 163400000 },
       { year: 2023, presupuesto: 174800000 },
       { year: 2024, presupuesto: 185000000 },
+      { year: 2025, presupuesto: 197450000 },
     ],
   },
   { id:'comayagua-siguatepeque',       nombre:'Siguatepeque',         departamento:'Comayagua', departamentoId:'comayagua', poblacion:80245,  presupuesto:132000000, ingresosPropios:58000000, transferencia:42000000, otros:32000000, idh:0.641, area:657.2,  isCapital:false, evolucion:makeEvo(132000000,[3.5,4.0,5.2,5.8,6.5,null]) },

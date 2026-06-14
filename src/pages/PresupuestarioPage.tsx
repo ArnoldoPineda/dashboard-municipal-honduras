@@ -60,7 +60,7 @@ const PresupuestarioPage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);
+  const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
 
   const selectedMunicipalityData = useMemo(() => {
     if (!selectedMunicipality) return [];
@@ -694,7 +694,7 @@ const PresupuestarioPage = () => {
             <div>
               <span style={FLABEL}>AÑO</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[2021, 2022, 2023, 2024].map(y => (
+                {[2021, 2022, 2023, 2024, 2025].map(y => (
                   <button key={y}
                     onClick={() => setSelectedYears([y])}
                     style={selectedYears.includes(y) ? PILL_ON : PILL}>

@@ -199,7 +199,7 @@ export default function RankingsPage() {
                 letterSpacing: '0.12em', textTransform: 'uppercase',
               }}>AÑO</span>
               <div style={{ display: 'flex', gap: 5 }}>
-                {[2021, 2022, 2023, 2024].map(y => (
+                {[2021, 2022, 2023, 2024, 2025].map(y => (
                   <button
                     key={y}
                     className={y === year ? 'rk-pill rk-pill--active' : 'rk-pill'}

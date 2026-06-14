@@ -14,7 +14,7 @@ import {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const YEARS = [2019, 2020, 2021, 2022, 2023, 2024];
+const YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
 const PALETTE = ['#2dd4bf', '#f59e0b', '#3a9bd6', '#ec4899'];
 const MAX_MUNIS = 3;
 const MAX_DEPTS = 4;

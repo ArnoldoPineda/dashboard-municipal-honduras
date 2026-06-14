@@ -21,7 +21,7 @@ export default function MapaInteractivo() {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate     = useNavigate();
 
-  const { indicator } = useNavbar();
+  const { indicator, fiscalYear } = useNavbar();
 
   const [topoData,      setTopoData]      = useState<any>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
@@ -226,7 +226,7 @@ export default function MapaInteractivo() {
             fontFamily: "'IBM Plex Mono', monospace",
             letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
           }}>
-            presupuesto 2024
+            presupuesto {fiscalYear}
           </div>
           <div style={{
             height: 8, borderRadius: 4,
@@ -262,7 +262,7 @@ export default function MapaInteractivo() {
             FUENTE: AMHON / SEFIN / INE
           </div>
           <div style={{ fontSize: 10, color: '#4a5a73', letterSpacing: '0.06em', marginTop: 2 }}>
-            EJERCICIO FISCAL 2024
+            EJERCICIO FISCAL {fiscalYear}
           </div>
         </div>
       </div>

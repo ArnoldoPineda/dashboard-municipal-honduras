@@ -82,7 +82,7 @@ const INDICATORS: { key: IndicatorKey; label: string }[] = [
   { key: 'autonomia',   label: 'AUTONOMÍA'   },
 ];
 
-const FISCAL_YEARS = [2019, 2020, 2021, 2022, 2023, 2024];
+const FISCAL_YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -169,7 +169,7 @@ function Sidebar() {
         marginTop: 8,
       }}>
         <div style={{ fontSize: 9.5, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-          v2.1 · Honduras 2019–2024
+          v2.1 · Honduras 2019–2025
         </div>
       </div>
     </aside>

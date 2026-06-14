@@ -24,6 +24,7 @@ import {
 
 const YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
 const PALETTE = ['#2dd4bf', '#f59e0b', '#3a9bd6', '#ec4899'];
+const SECTION_COLORS = ['#2dd4bf', '#f59e0b'];
 const MAX_MUNIS = 3;
 const MAX_DEPTS = 4;
 
@@ -208,19 +209,19 @@ function getAggFinCats(recs: any[]) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function SelectedPill({ label, onRemove }: { label: string; onRemove: () => void }) {
+function SelectedPill({ label, onRemove, color = '#2dd4bf' }: { label: string; onRemove: () => void; color?: string }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      background: 'rgba(0,212,184,0.14)', color: '#5eead4',
-      border: '1px solid rgba(0,212,184,0.4)', borderRadius: 20,
+      background: color + '22', color,
+      border: `1px solid ${color}60`, borderRadius: 20,
       padding: '4px 10px', fontSize: 11,
       fontFamily: "'IBM Plex Mono', monospace",
     }}>
       {label}
       <button
         onClick={onRemove}
-        style={{ background: 'none', border: 'none', color: '#5eead4', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 13 }}
+        style={{ background: 'none', border: 'none', color, cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 13 }}
         aria-label={`Quitar ${label}`}
       >×</button>
     </span>
@@ -569,23 +570,52 @@ function FinancialChartsSection({
 // ── Mode 1: Municipios vs Municipios ──────────────────────────────────────────
 
 function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
-  const [dept, setDept]         = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
-  const [years, setYears]       = useState<number[]>([2021, 2022, 2023, 2024]);
-  const [metric, setMetric]     = useState<MetricKey>('presupuesto');
+  // deptSections: one entry per group (up to 2), value is the dept name or '' if unselected
+  const [deptSections, setDeptSections] = useState<string[]>(['']);
+  const [selected, setSelected]         = useState<string[]>([]);
+  const [years, setYears]               = useState<number[]>([2021, 2022, 2023, 2024]);
+  const [metric, setMetric]             = useState<MetricKey>('presupuesto');
 
   const departments = useMemo(() =>
     [...new Set(municipalities.map(m => m.department).filter(Boolean))].sort(),
     [municipalities]
   );
 
-  const muniList = useMemo(() =>
-    [...new Map(municipalities
-      .filter(m => !dept || m.department === dept)
-      .map(m => [m.name, m.name])
-    ).values()].sort(),
-    [municipalities, dept]
+  // Per-section muni lists, derived from deptSections
+  const muniListsPerSection = useMemo(() =>
+    deptSections.map(dept =>
+      dept
+        ? [...new Set(
+            municipalities.filter(m => m.department === dept).map(m => m.name).filter(Boolean)
+          )].sort()
+        : []
+    ),
+    [deptSections, municipalities]
   );
+
+  // Helper used in event handlers (no hook)
+  const muniListForDept = (dept: string): string[] =>
+    dept
+      ? [...new Set(municipalities.filter(m => m.department === dept).map(m => m.name).filter(Boolean))]
+      : [];
+
+  const handleDeptChange = (sectionIdx: number, newDept: string) => {
+    const oldDept = deptSections[sectionIdx];
+    if (oldDept) {
+      const oldMunis = muniListForDept(oldDept);
+      setSelected(prev => prev.filter(n => !oldMunis.includes(n)));
+    }
+    setDeptSections(prev => prev.map((d, i) => i === sectionIdx ? newDept : d));
+  };
+
+  const removeSection = (sectionIdx: number) => {
+    const deptToRemove = deptSections[sectionIdx];
+    if (deptToRemove) {
+      const munis = muniListForDept(deptToRemove);
+      setSelected(prev => prev.filter(n => !munis.includes(n)));
+    }
+    setDeptSections(prev => prev.filter((_, i) => i !== sectionIdx));
+  };
 
   const toggleMuni = (name: string) => {
     setSelected(prev =>
@@ -593,6 +623,9 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
         : prev.length < MAX_MUNIS ? [...prev, name] : prev
     );
   };
+
+  const getMuniDept = (name: string): string =>
+    municipalities.find(m => m.name === name)?.department || '';
 
   const chartData = useMemo(() => {
     if (!selected.length || !years.length) return [];
@@ -616,87 +649,204 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
     });
   }, [municipalities, selected, years, metric]);
 
+  const hasDeptSelected = deptSections.some(d => d !== '');
+
   return (
     <>
       <div style={CARD}>
-        {/* Row 1 */}
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
-          <div style={{ flex: '0 0 220px' }}>
-            <span style={FLABEL}>DEPARTAMENTO</span>
-            <select
-              className="simho-select"
-              value={dept}
-              onChange={e => { setDept(e.target.value); setSelected([]); }}
-            >
-              <option value="">Todos los departamentos</option>
-              {departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
 
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <span style={FLABEL}>
-              MUNICIPIOS
-              <span style={{ color: '#2dd4bf', marginLeft: 6 }}>
-                {selected.length > 0 && `${selected.length}/${MAX_MUNIS}`}
-              </span>
-            </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
-              {muniList.map(name => {
-                const isSelected = selected.includes(name);
-                const isDisabled = !isSelected && selected.length >= MAX_MUNIS;
-                return (
-                  <label
-                    key={name}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '5px 10px', borderRadius: 6,
-                      border: `1px solid ${isSelected ? 'rgba(0,212,184,0.5)' : 'rgba(255,255,255,0.07)'}`,
-                      background: isSelected ? 'rgba(0,212,184,0.12)' : 'rgba(255,255,255,0.02)',
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                      opacity: isDisabled ? 0.4 : 1,
-                      fontSize: 11, color: isSelected ? '#5eead4' : '#8493ab',
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      userSelect: 'none',
-                    }}
+        {/* ── Dept section groups ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
+          {deptSections.map((dept, sectionIdx) => {
+            const color      = SECTION_COLORS[sectionIdx];
+            const rgbColor   = sectionIdx === 0 ? '45,212,191' : '245,158,11';
+            const usedDepts  = deptSections.filter((_, i) => i !== sectionIdx).filter(Boolean);
+            const muniList   = muniListsPerSection[sectionIdx];
+            const sectionSel = selected.filter(n => muniList.includes(n));
+
+            return (
+              <div
+                key={sectionIdx}
+                style={{
+                  border: `1px solid ${color}30`,
+                  borderLeft: `3px solid ${color}`,
+                  borderRadius: 8,
+                  padding: '14px 16px',
+                  background: `rgba(${rgbColor},0.04)`,
+                }}
+              >
+                {/* Section header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{
+                    fontSize: 9, fontFamily: "'IBM Plex Mono', monospace",
+                    letterSpacing: '0.14em', textTransform: 'uppercase',
+                    color, fontWeight: 600,
+                  }}>
+                    ● Grupo {sectionIdx + 1}
+                  </span>
+                  {sectionIdx > 0 && (
+                    <button
+                      onClick={() => removeSection(sectionIdx)}
+                      style={{
+                        background: 'none', border: 'none', color: '#4a5a73',
+                        cursor: 'pointer', fontSize: 10,
+                        fontFamily: "'IBM Plex Mono', monospace", padding: '2px 6px',
+                      }}
+                    >
+                      ✕ Remover
+                    </button>
+                  )}
+                </div>
+
+                {/* Dept dropdown */}
+                <div style={{ marginBottom: dept ? 14 : 0 }}>
+                  <span style={FLABEL}>DEPARTAMENTO</span>
+                  <select
+                    className="simho-select"
+                    value={dept}
+                    onChange={e => handleDeptChange(sectionIdx, e.target.value)}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      disabled={isDisabled}
-                      onChange={() => toggleMuni(name)}
-                      style={{ accentColor: '#2dd4bf', width: 12, height: 12, cursor: isDisabled ? 'not-allowed' : 'pointer' }}
-                    />
-                    {name}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+                    <option value="">— Selecciona Departamento —</option>
+                    {departments
+                      .filter(d => !usedDepts.includes(d))
+                      .map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+
+                {/* Empty state hint */}
+                {!dept && (
+                  <div style={{ marginTop: 10, color: '#4a5a73', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}>
+                    Selecciona un departamento para ver sus municipios
+                  </div>
+                )}
+
+                {/* Muni grid */}
+                {dept && muniList.length > 0 && (
+                  <>
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ ...FLABEL, marginBottom: 0 }}>
+                        MUNICIPIOS ({sectionSel.length}/{MAX_MUNIS})
+                        {selected.length >= MAX_MUNIS && sectionSel.length === 0 && (
+                          <span style={{ color: '#f87171', marginLeft: 8, fontSize: 8, fontWeight: 400 }}>
+                            máx. {MAX_MUNIS} total
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                      gap: 5,
+                    }}>
+                      {muniList.map(name => {
+                        const isSelected = selected.includes(name);
+                        const isDisabled = !isSelected && selected.length >= MAX_MUNIS;
+                        return (
+                          <label
+                            key={name}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              padding: '8px 10px', borderRadius: 6,
+                              border: `1px solid ${isSelected ? color + 'a0' : 'rgba(255,255,255,0.07)'}`,
+                              background: isSelected ? color + '18' : 'rgba(255,255,255,0.02)',
+                              cursor: isDisabled ? 'not-allowed' : 'pointer',
+                              opacity: isDisabled ? 0.35 : 1,
+                              fontSize: 11,
+                              color: isSelected ? color : '#8493ab',
+                              fontFamily: "'IBM Plex Mono', monospace",
+                              userSelect: 'none',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isDisabled}
+                              onChange={() => toggleMuni(name)}
+                              style={{
+                                accentColor: color,
+                                width: 12, height: 12,
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                flexShrink: 0,
+                              }}
+                            />
+                            {name}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add second department */}
+          {deptSections.length < 2 && (
+            <button
+              onClick={() => setDeptSections(prev => [...prev, ''])}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'none',
+                border: '1px dashed rgba(255,255,255,0.12)',
+                borderRadius: 8, padding: '10px 16px',
+                color: '#4a5a73', cursor: 'pointer',
+                fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
+                letterSpacing: '0.06em',
+              }}
+            >
+              <span style={{ fontSize: 15, lineHeight: 1, color: '#f59e0b' }}>+</span>
+              Agregar departamento
+            </button>
+          )}
         </div>
 
-        {/* Row 2 */}
+        {/* Divider */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: 18 }} />
+
+        {/* Years */}
         <div style={{ marginBottom: 18 }}>
           <span style={FLABEL}>AÑOS</span>
           <YearPills selected={years} onChange={setYears} />
         </div>
 
-        {/* Row 3 */}
+        {/* Metric */}
         <div>
           <span style={FLABEL}>MÉTRICA</span>
           <MetricTabs value={metric} onChange={setMetric} />
         </div>
-
-        {/* Selected pills */}
-        {selected.length > 0 && (
-          <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {selected.map(name => (
-              <SelectedPill key={name} label={name} onRemove={() => setSelected(p => p.filter(x => x !== name))} />
-            ))}
-          </div>
-        )}
       </div>
 
-      {selected.length === 0 && (
+      {/* ── Selected pills below card ── */}
+      {selected.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ ...FLABEL, marginBottom: 0 }}>
+            MUNICIPIOS {selected.length}/{MAX_MUNIS}
+          </span>
+          {selected.map((name, i) => {
+            const deptName = getMuniDept(name);
+            const sIdx     = deptSections.indexOf(deptName);
+            const color    = sIdx >= 0 ? SECTION_COLORS[sIdx] : PALETTE[i % PALETTE.length];
+            return (
+              <SelectedPill
+                key={name}
+                label={deptName ? `${name} · ${deptName}` : name}
+                color={color}
+                onRemove={() => setSelected(p => p.filter(x => x !== name))}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Hint messages */}
+      {!hasDeptSelected && (
+        <div style={{ marginTop: 16, padding: '14px 18px', background: 'rgba(0,212,184,0.05)', borderLeft: '3px solid rgba(0,212,184,0.3)', borderRadius: 4 }}>
+          <span style={{ color: '#5eead4', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
+            Selecciona un departamento para ver sus municipios y comparar hasta {MAX_MUNIS}
+          </span>
+        </div>
+      )}
+      {hasDeptSelected && selected.length === 0 && (
         <div style={{ marginTop: 16, padding: '14px 18px', background: 'rgba(0,212,184,0.05)', borderLeft: '3px solid rgba(0,212,184,0.3)', borderRadius: 4 }}>
           <span style={{ color: '#5eead4', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
             Selecciona hasta {MAX_MUNIS} municipios para ver la comparativa
@@ -710,7 +860,6 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
         keys={selected}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
-
       <FinancialChartsSection selected={selected} municipalities={municipalities} mode="muni" />
     </>
   );

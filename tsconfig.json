@@ -12,6 +12,7 @@
     "strictNullChecks": false,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "allowJs": true,
     "moduleResolution": "node",
     "allowImportingTsExtensions": true,
     "noEmit": true,

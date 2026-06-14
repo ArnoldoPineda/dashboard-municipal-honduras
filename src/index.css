@@ -76,23 +76,71 @@ input.simho-search:focus {
   box-shadow: 0 0 0 3px rgba(0, 212, 184, 0.1);
 }
 
-select.simho-select {
-  background: rgba(13, 21, 38, 0.8);
-  border: 1px solid rgba(0, 212, 184, 0.22);
+.simho-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  color-scheme: dark;
+  background-color: #0d1628;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMiIgaGVpZ2h0PSI4IiB2aWV3Qm94PSIwIDAgMTIgOCI+PHBhdGggZD0iTTEgMWw1IDUgNS01IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMGQ0YjgiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  border: 1px solid rgba(0, 212, 184, 0.25);
   border-radius: 8px;
-  color: var(--text);
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
-  padding: 7px 12px;
+  color: #e8eef6;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 9px 34px 9px 12px;
   cursor: pointer;
-  transition: border-color var(--transition);
+  transition: border-color 0.18s, box-shadow 0.18s;
+  width: 100%;
 }
-select.simho-select:focus {
+.simho-select:focus {
   outline: none;
-  border-color: rgba(0, 212, 184, 0.65) !important;
+  border-color: rgba(0, 212, 184, 0.65);
   box-shadow: 0 0 0 3px rgba(0, 212, 184, 0.12);
 }
-select.simho-select option { background: #0d1628; color: var(--text); }
+.simho-select option {
+  background: #0d1628;
+  color: #e8eef6;
+}
+
+/* ── Rankings page ── */
+.rk-tabbar { display:flex; gap:8px; margin-top:18px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; }
+.rk-tab { flex:0 0 auto; padding:9px 15px; font-family:"Barlow Condensed",sans-serif; font-size:14.5px; font-weight:600; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all 0.16s; background:rgba(255,255,255,0.02); color:#8493ab; border:1px solid rgba(255,255,255,0.07); }
+.rk-tab--active { background:rgba(0,212,184,0.14); color:#5eead4; border-color:rgba(0,212,184,0.4); }
+.rk-pill { padding:6px 13px; font-family:"IBM Plex Mono",monospace; font-size:11px; border-radius:7px; cursor:pointer; white-space:nowrap; transition:all 0.16s; background:transparent; color:#8493ab; border:1px solid rgba(0,212,184,0.25); }
+.rk-pill--active { background:#00d4b8; color:#04231f; border-color:#00d4b8; font-weight:600; }
+
+/* ── Range slider (teal thumb) ── */
+input[type="range"].simho-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: rgba(0, 212, 184, 0.18);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+input[type="range"].simho-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2dd4bf;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(45, 212, 191, 0.5);
+}
+input[type="range"].simho-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2dd4bf;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 6px rgba(45, 212, 191, 0.5);
+}
 
 /* ============================================================
    SIMHO Card

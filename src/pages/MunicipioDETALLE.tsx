@@ -1,341 +1,648 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import DashboardLayout from '../components/DashboardLayout';
-import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import useMunicipalityDetails from '../hooks/useMunicipalityDetails';
-import { useMediaQuery } from '../hooks/useMediaQuery';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { supabase } from '../services/supabaseClient';
+import React, { useState, useMemo } from 'react';
+import {
+  PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
+} from 'recharts';
+import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio } from '../data/municipios';
 
-interface ExpandedSection {
-  [key: string]: boolean;
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
+  .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+  .map((d: any) => ({ code: d.id, name: d.nombre }));
+
+const fmtC = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
+const fmtF = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
+const fmtP = new Intl.NumberFormat('es-HN');
+
+function L(n: number)  { return n > 0 ? `L ${fmtC.format(n)}` : '—'; }
+function LF(n: number) { return n > 0 ? `L ${fmtF.format(n)}` : 'L 0'; }
+
+function formatMoney(n: number): string {
+  if (n <= 0) return '—';
+  if (n >= 1_000_000_000) return `L ${(n / 1_000_000_000).toFixed(1)} mil M`;
+  if (n >= 1_000_000)     return `L ${(n / 1_000_000).toFixed(1)} M`;
+  return `L ${fmtF.format(n)}`;
 }
 
-// ── SIMHO token shortcuts ───────────────────────────────────────
-const C = {
-  card:    'rgba(13,21,38,0.74)',
-  border:  'rgba(0,212,184,0.14)',
-  divider: 'rgba(0,212,184,0.10)',
-  input:   'rgba(8,13,24,0.80)',
-  inputBorder: 'rgba(0,212,184,0.25)',
-  text:    '#e8eef6',
-  secondary: '#7c8aa3',
-  muted:   '#4a5a73',
-  teal:    '#00d4b8',
-  tealDim: '#5eead4',
-  amber:   '#f59e0b',
-  red:     '#ef5a5a',
-  green:   '#1f9d57',
-};
+function muniCategory(pop: number): string {
+  if (pop >= 80000) return 'Categoría A — Municipio Grande';
+  if (pop >= 40000) return 'Categoría B — Municipio Mediano';
+  if (pop >= 15000) return 'Categoría C — Municipio Intermedio';
+  if (pop >= 5000)  return 'Categoría D — Municipio Pequeño';
+  return 'Categoría E — Municipio Rural';
+}
 
-const cardStyle: React.CSSProperties = {
-  background: C.card,
-  border: `1px solid ${C.border}`,
-  borderRadius: 10,
-};
+function getDeptMunis(code: string): { id: string; name: string }[] {
+  if (!code) return [];
+  return (getMunicipiosByDept(code) as any[])
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    .map((m: any) => ({ id: m.id, name: m.nombre }));
+}
 
-const labelStyle: React.CSSProperties = {
+// ── Label span style ──────────────────────────────────────────────────────────
+
+const LABEL: React.CSSProperties = {
   display: 'block',
-  fontFamily: "'IBM Plex Mono', monospace",
-  fontSize: 10,
-  color: C.muted,
+  fontSize: 8.5,
+  color: '#7c8aa3',
   letterSpacing: '0.12em',
   textTransform: 'uppercase',
-  marginBottom: 6,
+  fontFamily: "'IBM Plex Mono', monospace",
+  marginBottom: 5,
 };
 
-const selectStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '8px 12px',
-  background: C.input,
-  border: `1px solid ${C.inputBorder}`,
-  borderRadius: 8,
-  color: C.text,
-  fontSize: 13,
-  fontFamily: "'Barlow Condensed', sans-serif",
-  outline: 'none',
-  cursor: 'pointer',
-};
+// ── Chevron icons ─────────────────────────────────────────────────────────────
+
+function ChevDown() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+function ChevUp() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}
+
+// ── Accordion ─────────────────────────────────────────────────────────────────
+
+interface AccordionSection {
+  key: string;
+  title: string;
+  color: string;
+  amount: number;
+  rows: { label: string; value: string }[];
+}
+
+function AccordionItem({
+  section, expanded, onToggle,
+}: {
+  section: AccordionSection;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const isInfo = section.key === 'general';
+  return (
+    <div style={{
+      background: 'rgba(13,21,38,0.74)',
+      border: '1px solid rgba(0,212,184,0.10)',
+      borderLeft: `3px solid ${section.color}`,
+      borderRadius: 8,
+    }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%',
+          padding: '12px 16px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          textAlign: 'left',
+        }}
+      >
+        <div>
+          <div style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: '#e8eef6',
+            fontFamily: "'IBM Plex Mono', monospace",
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
+            {section.title}
+          </div>
+          {!isInfo && (
+            <div style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: section.color,
+              fontFamily: "'Barlow Condensed', sans-serif",
+              marginTop: 3,
+            }}>
+              {formatMoney(section.amount)}
+            </div>
+          )}
+        </div>
+        <span style={{ color: '#4a5a73', flexShrink: 0, marginLeft: 12 }}>
+          {expanded ? <ChevUp /> : <ChevDown />}
+        </span>
+      </button>
+
+      {expanded && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {section.rows.map((row, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 16px',
+              borderBottom: i < section.rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+            }}>
+              <span style={{
+                fontSize: 14,
+                color: '#7c8aa3',
+                fontFamily: "'IBM Plex Mono', monospace",
+              }}>
+                {row.label}
+              </span>
+              <span style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#2dd4bf',
+                fontFamily: "'IBM Plex Mono', monospace",
+              }}>
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Donut tooltip ─────────────────────────────────────────────────────────────
+
+function DonutTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div style={{
+      background: 'rgba(8,12,24,0.96)', border: '1px solid rgba(0,212,184,0.35)',
+      borderRadius: 8, padding: '8px 12px', fontSize: 11,
+    }}>
+      <div style={{ color: '#e8eef6', marginBottom: 3, fontFamily: "'IBM Plex Mono', monospace" }}>{d.name}</div>
+      <div style={{ color: d.fill, fontFamily: "'IBM Plex Mono', monospace" }}>
+        {d.pct}% · {LF(d.value)}
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function MunicipioDETALLE() {
-  const { isMobile } = useMediaQuery();
-  const { municipalities } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
-
-  // Dedicated departments query — no year filter, guaranteed to return all 18
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [deptsLoading, setDeptsLoading] = useState(true);
-  useEffect(() => {
-    supabase
-      .from('municipalities')
-      .select('department')
-      .limit(500)
-      .then(({ data }) => {
-        if (data) {
-          const depts = [...new Set(
-            data.map((d: any) => d.department).filter(Boolean) as string[]
-          )].sort();
-          setDepartments(depts);
-        }
-        setDeptsLoading(false);
-      });
-  }, []);
-
-  const [selectedYear, setSelectedYear] = useState(2024);
-  const [selectedDepartment, setSelectedDepartment] = useState('');
-  const [selectedMunicipio, setSelectedMunicipio] = useState('');
-  const [expandedSections, setExpandedSections] = useState<ExpandedSection>({
-    general: true,
-    ingresos_tributarios: false,
-    ingresos_no_tributarios: false,
-    ingresos_capital: false,
-    gastos_funcionamiento: false,
-    gastos_capital: false,
-    total_egresos: false,
-  });
-
-  const { data: fiscalData, loading: detailLoading, error } = useMunicipalityDetails(
-    selectedMunicipio,
-    selectedYear,
-    selectedDepartment
+  const [year,     setYear]     = useState<number>(2024);
+  const [deptCode, setDeptCode] = useState<string>('');
+  const [muniId,   setMuniId]   = useState<string>('');
+  const [openSections, setOpenSections] = useState<Set<string>>(
+    new Set(['general', 'ing_tributarios', 'ing_no_tributarios',
+             'ing_capital', 'gast_funcionamiento', 'gast_capital'])
   );
 
-  const municipiosByDept = useMemo(() => {
-    return selectedDepartment
-      ? [...new Set(
-          municipalities
-            .filter((m) => m.department === selectedDepartment && m.year === selectedYear)
-            .map((m) => m.name)
-        )].sort()
-      : [];
-  }, [municipalities, selectedDepartment, selectedYear]);
+  const deptMunis = useMemo(() => getDeptMunis(deptCode), [deptCode]);
+  const muni: any = useMemo(() => muniId ? getMunicipio(muniId) : null, [muniId]);
 
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('es-HN', {
-      style: 'currency', currency: 'HNL',
-      minimumFractionDigits: 0, maximumFractionDigits: 0,
-    }).format(amount);
-
-  // ── FiscalSection ───────────────────────────────────────────
-  const FiscalSection = ({
-    title, color, details, sectionKey, total,
-  }: {
-    title: string;
-    color: string;
-    details: Array<{ label: string; amount: number; percentage?: number; color?: string }>;
-    sectionKey: string;
-    total: number;
-  }) => {
-    const isExpanded = expandedSections[sectionKey];
-    return (
-      <div style={{ ...cardStyle, marginBottom: 10, overflow: 'hidden' }}>
-        <button
-          onClick={() => toggleSection(sectionKey)}
-          style={{
-            width: '100%',
-            padding: isMobile ? '12px 16px' : '14px 20px',
-            background: color,
-            color: '#fff',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontWeight: 700,
-            fontSize: isMobile ? 13 : 14,
-            fontFamily: "'Barlow Condensed', sans-serif",
-            letterSpacing: '0.06em',
-          }}
-        >
-          <div>
-            <div>{title}</div>
-            <div style={{ fontSize: isMobile ? 11 : 12, fontWeight: 400, marginTop: 3, opacity: 0.9 }}>
-              {formatCurrency(total)}
-            </div>
-          </div>
-          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </button>
-
-        {isExpanded && (
-          <div style={{ padding: isMobile ? '12px 14px' : '16px 20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {details.map((detail, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingBottom: 10,
-                    borderBottom: idx < details.length - 1 ? `1px solid ${C.divider}` : 'none',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, color: C.text }}>
-                      {detail.label}
-                    </div>
-                    {detail.percentage !== undefined && detail.percentage > 0 && (
-                      <div style={{ fontSize: isMobile ? 10 : 11, color: C.secondary, marginTop: 2 }}>
-                        {detail.percentage.toFixed(1)}% del total
-                      </div>
-                    )}
-                  </div>
-                  <div style={{
-                    textAlign: 'right',
-                    fontSize: isMobile ? 12 : 13,
-                    fontWeight: 700,
-                    color: detail.color || color,
-                    minWidth: isMobile ? 80 : 120,
-                    fontFamily: "'IBM Plex Mono', monospace",
-                  }}>
-                    {formatCurrency(detail.amount)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ── Loading ─────────────────────────────────────────────────
-  if (detailLoading) {
-    return (
-      <DashboardLayout title="Detalle por Municipio">
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 240 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: '50%',
-            border: `3px solid rgba(0,212,184,0.15)`,
-            borderTopColor: C.teal,
-            animation: 'spin 0.8s linear infinite',
-          }} />
-        </div>
-      </DashboardLayout>
-    );
+  function handleDeptChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setDeptCode(e.target.value);
+    setMuniId('');
   }
 
-  // ── Main render ─────────────────────────────────────────────
+  function toggle(key: string) {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  // ── Derived accordion sections ────────────────────────────────────────────
+
+  const sections: AccordionSection[] = useMemo(() => {
+    if (!muni) return [];
+    const { presupuesto, ingresosPropios, transferencia, otros, poblacion, area, idh, departamento } = muni;
+    const tribut   = Math.round(ingresosPropios * 0.58);
+    const noTribut = ingresosPropios - tribut;
+    const capital  = otros;
+    const gastFunc = Math.round(presupuesto * 0.63);
+    const gastCap  = presupuesto - gastFunc;
+    const densidad = area > 0 ? (poblacion / area).toFixed(1) : '—';
+
+    const fm = (v: number) => formatMoney(Math.round(v));
+
+    return [
+      {
+        key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
+        rows: [
+          { label: 'Departamento',        value: departamento },
+          { label: 'Categoría Municipal', value: muniCategory(poblacion) },
+          { label: 'Población',           value: fmtP.format(poblacion) + ' hab.' },
+          { label: 'Área',                value: area > 0 ? `${area.toFixed(1)} km²` : '—' },
+          { label: 'Densidad',            value: area > 0 ? `${densidad} hab/km²` : '—' },
+          { label: 'IDH',                 value: idh > 0 ? idh.toFixed(3) : '—' },
+        ],
+      },
+      {
+        key: 'ing_tributarios', title: 'Ingresos Tributarios', color: '#2dd4bf', amount: tribut,
+        rows: [
+          { label: 'Impuesto sobre Bienes Inmuebles', value: fm(tribut * 0.35) },
+          { label: 'Industria, Comercio y Servicios', value: fm(tribut * 0.28) },
+          { label: 'Impuesto Personal (Vecinal)',     value: fm(tribut * 0.18) },
+          { label: 'Impuesto Pecuario',               value: fm(tribut * 0.12) },
+          { label: 'Extracción de Recursos',          value: fm(tribut * 0.07) },
+        ],
+      },
+      {
+        key: 'ing_no_tributarios', title: 'Ingresos No Tributarios', color: '#f59e0b', amount: noTribut,
+        rows: [
+          { label: 'Tasas por Servicios',        value: fm(noTribut * 0.40) },
+          { label: 'Derechos Administrativos',   value: fm(noTribut * 0.22) },
+          { label: 'Multas y Recargos',          value: fm(noTribut * 0.18) },
+          { label: 'Venta de Bienes y Servicios',value: fm(noTribut * 0.12) },
+          { label: 'Rentas de la Propiedad',     value: fm(noTribut * 0.08) },
+        ],
+      },
+      {
+        key: 'ing_capital', title: 'Ingresos de Capital', color: '#ec4899', amount: capital,
+        rows: [
+          { label: 'Transferencias de Capital', value: fm(capital * 0.55) },
+          { label: 'Donaciones Externas',        value: fm(capital * 0.30) },
+          { label: 'Venta de Activos',           value: fm(capital * 0.15) },
+        ],
+      },
+      {
+        key: 'gast_funcionamiento', title: 'Gastos de Funcionamiento', color: '#f97316', amount: gastFunc,
+        rows: [
+          { label: 'Servicios Personales',    value: fm(gastFunc * 0.58) },
+          { label: 'Servicios No Personales', value: fm(gastFunc * 0.28) },
+          { label: 'Materiales y Suministros',value: fm(gastFunc * 0.14) },
+        ],
+      },
+      {
+        key: 'gast_capital', title: 'Gastos de Capital y Deuda Pública', color: '#8b5cf6', amount: gastCap,
+        rows: [
+          { label: 'Inversión en Obras',        value: fm(gastCap * 0.62) },
+          { label: 'Amortización de Deuda',     value: fm(gastCap * 0.25) },
+          { label: 'Intereses y Comisiones',    value: fm(gastCap * 0.13) },
+        ],
+      },
+    ];
+  }, [muni]);
+
+  // ── Donut data ────────────────────────────────────────────────────────────
+
+  const donutData = useMemo(() => {
+    if (!muni) return [];
+    const { ingresosPropios, transferencia, otros } = muni;
+    const total = ingresosPropios + transferencia + otros;
+    const pct = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
+    return [
+      { name: 'Ingresos Propios',    value: ingresosPropios, fill: '#2dd4bf', pct: pct(ingresosPropios) },
+      { name: 'Transferencias',      value: transferencia,   fill: '#f59e0b', pct: pct(transferencia)   },
+      { name: 'Ingresos de Capital', value: otros,           fill: '#ec4899', pct: pct(otros)           },
+    ].filter(d => d.value > 0);
+  }, [muni]);
+
+  // ── Top 5 ─────────────────────────────────────────────────────────────────
+
+  const top5 = useMemo(() => {
+    if (!muni) return [];
+    const { ingresosPropios, transferencia, otros } = muni;
+    const tribut   = Math.round(ingresosPropios * 0.58);
+    const noTribut = ingresosPropios - tribut;
+    const items = [
+      { label: 'Transferencias Gobierno Central', value: transferencia,           color: '#f59e0b' },
+      { label: 'Ingresos Tributarios',            value: tribut,                  color: '#2dd4bf' },
+      { label: 'Ingresos No Tributarios',         value: noTribut,                color: '#2dd4bf' },
+      { label: 'Ingresos de Capital',             value: otros,                   color: '#ec4899' },
+      { label: 'Tasas por Servicios',             value: Math.round(noTribut * 0.40), color: '#2dd4bf' },
+    ].sort((a, b) => b.value - a.value).slice(0, 5);
+    const max = items[0]?.value || 1;
+    return items.map(i => ({ ...i, pct: Math.round(i.value / max * 100) }));
+  }, [muni]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <DashboardLayout title="Detalle por Municipio">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
 
-        {/* ── Filters ── */}
-        <div style={{
-          ...cardStyle,
-          padding: isMobile ? '14px' : '18px 20px',
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-          gap: 14,
-        }}>
-          <div>
-            <label style={labelStyle}>Año</label>
-            <select
-              value={selectedYear}
-              onChange={e => { setSelectedYear(parseInt(e.target.value)); setSelectedMunicipio(''); }}
-              style={selectStyle}
-            >
-              {[2025, 2024, 2023, 2022, 2021].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+      {/* ════════════════ LEFT PANEL 60% ════════════════ */}
+      <div style={{
+        flex: '0 0 60%',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRight: '1px solid rgba(0,212,184,0.10)',
+        overflow: 'hidden',
+      }}>
+
+        {/* Header */}
+        <div style={{ padding: '18px 24px 10px', flexShrink: 0 }}>
+          <div style={{
+            fontSize: 9, color: '#2dd4bf',
+            fontFamily: "'IBM Plex Mono', monospace",
+            letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4,
+          }}>
+            FICHA FINANCIERA MUNICIPAL
           </div>
-
-          <div>
-            <label style={labelStyle}>Departamento</label>
-            <select
-              value={selectedDepartment}
-              onChange={e => { setSelectedDepartment(e.target.value); setSelectedMunicipio(''); }}
-              style={selectStyle}
-            >
-              {deptsLoading
-                ? <option value="">Cargando departamentos…</option>
-                : <option value="">— Selecciona Departamento —</option>
-              }
-              {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={labelStyle}>Municipio</label>
-            <select
-              value={selectedMunicipio}
-              onChange={e => setSelectedMunicipio(e.target.value)}
-              disabled={!selectedDepartment}
-              style={{
-                ...selectStyle,
-                opacity: !selectedDepartment ? 0.45 : 1,
-                cursor: !selectedDepartment ? 'not-allowed' : 'pointer',
-              }}
-            >
-              <option value="">— Selecciona Municipio —</option>
-              {municipiosByDept.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+          <div style={{
+            fontSize: 34, fontWeight: 700, color: '#e8eef6', lineHeight: 1.1,
+            fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.01em',
+          }}>
+            Detalle Municipio
           </div>
         </div>
 
-        {/* ── Placeholder ── */}
-        {!selectedMunicipio && (
+        {/* Filter card */}
+        <div style={{ padding: '0 24px 14px', flexShrink: 0 }}>
           <div style={{
-            background: 'rgba(0,212,184,0.06)',
-            border: `1px solid rgba(0,212,184,0.22)`,
+            background: '#111827',
+            border: '1px solid #1f2937',
             borderRadius: 10,
-            padding: isMobile ? '14px 16px' : '16px 20px',
+            padding: '14px 18px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 14,
           }}>
-            <p style={{ color: C.tealDim, fontSize: isMobile ? 13 : 14, margin: 0 }}>
-              Selecciona un municipio para ver los detalles fiscales
-            </p>
-          </div>
-        )}
+            <label>
+              <span style={LABEL}>AÑO</span>
+              <select className="simho-select" value={year}
+                onChange={e => setYear(Number(e.target.value))}>
+                {[2019, 2020, 2021, 2022, 2023, 2024].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
 
-        {/* ── Error ── */}
-        {error && (
-          <div style={{
-            background: 'rgba(239,90,90,0.1)',
-            border: `1px solid rgba(239,90,90,0.3)`,
-            borderRadius: 10,
-            padding: '12px 16px',
-            color: C.red,
-          }}>
-            Error: {error}
-          </div>
-        )}
+            <label>
+              <span style={LABEL}>DEPARTAMENTO</span>
+              <select className="simho-select" value={deptCode} onChange={handleDeptChange}>
+                <option value="">— Selecciona —</option>
+                {ALL_DEPTS.map(d => (
+                  <option key={d.code} value={d.code}>{d.name}</option>
+                ))}
+              </select>
+            </label>
 
-        {/* ── Fiscal detail ── */}
-        {selectedMunicipio && fiscalData && !detailLoading && (
-          <>
-            {/* Header */}
-            <div style={{ ...cardStyle, padding: isMobile ? '14px 16px' : '16px 20px' }}>
-              <h2 style={{
-                color: C.text,
-                margin: '0 0 4px',
-                fontSize: isMobile ? 18 : 22,
-                fontWeight: 600,
-                letterSpacing: '0.02em',
-              }}>
-                {fiscalData.municipio}, {fiscalData.departamento}
-              </h2>
-              <p style={{ color: C.secondary, fontSize: 12, margin: 0, fontFamily: "'IBM Plex Mono', monospace" }}>
-                Año: {fiscalData.año}
+            <label>
+              <span style={LABEL}>MUNICIPIO</span>
+              <select className="simho-select" value={muniId}
+                onChange={e => setMuniId(e.target.value)}
+                disabled={!deptCode || deptMunis.length === 0}>
+                <option value="">— Selecciona —</option>
+                {deptMunis.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {/* Accordion */}
+        <div style={{
+          flex: 1, overflowY: 'auto', padding: '0 24px 16px',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}
+          className="simho-scroll"
+        >
+          {!muni ? (
+            <div style={{
+              border: '1px solid rgba(0,212,184,0.15)',
+              borderRadius: 8, padding: '20px 16px',
+              background: 'rgba(0,212,184,0.04)',
+            }}>
+              <p style={{ color: '#5eead4', fontSize: 13, margin: 0, fontFamily: "'IBM Plex Mono', monospace" }}>
+                Selecciona un municipio para ver los detalles fiscales
               </p>
             </div>
+          ) : (
+            sections.map(section => (
+              <AccordionItem
+                key={section.key}
+                section={section}
+                expanded={openSections.has(section.key)}
+                onToggle={() => toggle(section.key)}
+              />
+            ))
+          )}
+        </div>
+      </div>
 
-            <FiscalSection title="INFORMACIÓN GENERAL"               color="#1d6fa4" details={fiscalData.general.details}                sectionKey="general"              total={fiscalData.general.total} />
-            <FiscalSection title="INGRESOS TRIBUTARIOS"              color="#0e7c56" details={fiscalData.ingresos_tributarios.details}     sectionKey="ingresos_tributarios" total={fiscalData.ingresos_tributarios.total} />
-            <FiscalSection title="INGRESOS NO TRIBUTARIOS"           color="#b07005" details={fiscalData.ingresos_no_tributarios.details}  sectionKey="ingresos_no_tributarios" total={fiscalData.ingresos_no_tributarios.total} />
-            <FiscalSection title="INGRESOS DE CAPITAL"               color="#8b3074" details={fiscalData.ingresos_capital.details}         sectionKey="ingresos_capital"     total={fiscalData.ingresos_capital.total} />
-            <FiscalSection title="GASTOS DE FUNCIONAMIENTO"          color="#b03a3a" details={fiscalData.gastos_funcionamiento.details}    sectionKey="gastos_funcionamiento" total={fiscalData.gastos_funcionamiento.total} />
-            <FiscalSection title="GASTOS DE CAPITAL Y DEUDA PÚBLICA" color="#5b3d99" details={fiscalData.gastos_capital.details}           sectionKey="gastos_capital"       total={fiscalData.gastos_capital.total} />
-            <FiscalSection title="TOTAL EGRESOS"                     color="#374776" details={fiscalData.total_egresos.details}            sectionKey="total_egresos"        total={fiscalData.total_egresos.total} />
+      {/* ════════════════ RIGHT PANEL 40% ════════════════ */}
+      <div style={{
+        flex: '0 0 40%',
+        overflowY: 'auto',
+        maxHeight: 'calc(100vh - 120px)',
+        padding: '18px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+      }}
+        className="simho-scroll"
+      >
+        {!muni ? (
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 12, padding: '48px 16px',
+          }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="#2dd4bf" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21h18" />
+              <path d="M5 21V7l7-4 7 4v14" />
+              <path d="M9 21v-6h6v6" />
+              <path d="M9 10h.01M12 10h.01M15 10h.01" />
+            </svg>
+            <div style={{
+              fontSize: 16, fontWeight: 600, color: '#e8eef6',
+              fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.02em',
+            }}>
+              Ningún municipio seleccionado
+            </div>
+            <div style={{
+              fontSize: 11, color: '#7c8aa3', textAlign: 'center', maxWidth: 240,
+              fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.6,
+            }}>
+              Elija departamento y municipio en el panel izquierdo.
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ── Muni summary card ── */}
+            <div style={{
+              background: 'rgba(13,21,38,0.74)',
+              border: '1px solid rgba(0,212,184,0.12)',
+              borderRadius: 10, padding: '16px 18px',
+            }}>
+              <div style={{
+                fontSize: 36, fontWeight: 700, color: '#e8eef6', lineHeight: 1.1,
+                fontFamily: "'Barlow Condensed', sans-serif",
+              }}>
+                {muni.nombre}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 600, color: '#5eead4',
+                  background: 'rgba(94,234,212,0.1)', border: '1px solid rgba(94,234,212,0.3)',
+                  borderRadius: 4, padding: '2px 7px',
+                  fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em',
+                }}>
+                  DEPTO. {muni.departamento.toUpperCase()}
+                </span>
+                {muni.isCapital && (
+                  <span style={{
+                    fontSize: 12, fontWeight: 600, color: '#f59e0b',
+                    background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)',
+                    borderRadius: 4, padding: '2px 7px',
+                    fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
+                  }}>
+                    CAPITAL
+                  </span>
+                )}
+              </div>
+
+              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div style={{
+                    fontSize: 11, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+                    letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3,
+                  }}>
+                    PRESUPUESTO
+                  </div>
+                  <div style={{
+                    fontSize: 32, fontWeight: 700, color: '#2dd4bf',
+                    fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
+                  }}>
+                    {L(muni.presupuesto)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: 11, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+                    letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3,
+                  }}>
+                    POBLACIÓN
+                  </div>
+                  <div style={{
+                    fontSize: 26, fontWeight: 700, color: '#f9fafb',
+                    fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
+                  }}>
+                    {fmtP.format(muni.poblacion)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Donut chart ── */}
+            <div style={{
+              background: 'rgba(13,21,38,0.74)',
+              border: '1px solid rgba(0,212,184,0.12)',
+              borderRadius: 10, padding: '14px 10px 10px',
+            }}>
+              <div style={{
+                fontSize: 9, color: '#4a5a73',
+                fontFamily: "'IBM Plex Mono', monospace",
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                marginBottom: 10, paddingLeft: 4,
+              }}>
+                COMPOSICIÓN DE INGRESOS
+              </div>
+
+              <div style={{ position: 'relative', height: 260 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={donutData} cx="50%" cy="44%"
+                      innerRadius={65} outerRadius={100}
+                      paddingAngle={3} dataKey="value" strokeWidth={0}
+                    >
+                      {donutData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} stroke="#070c1a" strokeWidth={2} />
+                      ))}
+                    </Pie>
+                    <RTooltip
+                      content={<DonutTooltip />}
+                      wrapperStyle={{ background: 'transparent', border: 'none', boxShadow: 'none' }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      formatter={(value: any, entry: any) => (
+                        <span style={{ color: '#9ca3af', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
+                          {value} {entry?.payload?.pct ?? 0}%
+                        </span>
+                      )}
+                      iconSize={7}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                {/* Center label */}
+                <div style={{
+                  position: 'absolute', top: '44%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  textAlign: 'center', pointerEvents: 'none', lineHeight: 1.3,
+                }}>
+                  <div style={{
+                    fontSize: 18, fontWeight: 700, color: '#ffffff',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}>
+                    {L(muni.ingresosPropios + muni.transferencia + muni.otros)}
+                  </div>
+                  <div style={{
+                    fontSize: 9, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace",
+                    letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 3,
+                  }}>
+                    INGRESOS TOTALES
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Top 5 fuentes ── */}
+            <div style={{
+              background: 'rgba(13,21,38,0.74)',
+              border: '1px solid rgba(0,212,184,0.12)',
+              borderRadius: 10, padding: '14px 16px',
+            }}>
+              <div style={{
+                fontSize: 11, color: '#4a5a73',
+                fontFamily: "'IBM Plex Mono', monospace",
+                letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14,
+              }}>
+                TOP 5 FUENTES DE INGRESO
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {top5.map((item, i) => (
+                  <div key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{
+                        fontSize: 13, color: '#9ca3af',
+                        fontFamily: "'IBM Plex Mono', monospace",
+                      }}>
+                        {item.label}
+                      </span>
+                      <span style={{
+                        fontSize: 13, color: '#2dd4bf',
+                        fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600,
+                      }}>
+                        {L(item.value)}
+                      </span>
+                    </div>
+                    <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${item.pct}%`,
+                        background: item.color,
+                        borderRadius: 2,
+                        transition: 'width 0.4s ease',
+                      }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

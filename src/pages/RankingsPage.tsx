@@ -1,245 +1,468 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import { MUNICIPIOS, DEPARTAMENTOS, deptNameToId } from '../data/municipios';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 
-type RankingType = 'population' | 'budget' | 'income' | 'financial_autonomy';
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'gastosCapital' | 'superavit';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getCategory(budget: number): string {
+  if (budget > 3_000_000_000) return 'A';
+  if (budget > 1_200_000_000) return 'B';
+  if (budget > 400_000_000)   return 'C';
+  return 'D';
+}
+
+const CAT_COLORS: Record<string, string> = {
+  A: '#00d4b8', B: '#3a9bd6', C: '#f59e0b', D: '#7c8aa3',
+};
+
+const fmt = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
+const fmtInt = new Intl.NumberFormat('es-HN');
+
+function formatValue(metric: Metric, value: number): string {
+  if (metric === 'autonomia')  return `${value.toFixed(1)}%`;
+  if (metric === 'poblacion')  return fmtInt.format(Math.round(value));
+  if (metric === 'superavit') {
+    const abs = Math.abs(value);
+    return (value >= 0 ? '+' : '−') + `L ${fmt.format(abs)}`;
+  }
+  return `L ${fmt.format(value)}`;
+}
+
+function getMetricValue(m: any, metric: Metric): number {
+  switch (metric) {
+    case 'poblacion':      return m.poblacion || 0;
+    case 'presupuesto':    return m.presupuesto || 0;
+    case 'ingresosPropios':return m.ingresosPropios || 0;
+    case 'autonomia':      return m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto) * 100 : 0;
+    case 'gastosCapital':  return m.otros || 0;
+    case 'superavit':      return (m.ingresosPropios + m.transferencia + m.otros) - m.presupuesto;
+    default:               return 0;
+  }
+}
+
+// ── Sorted departments list ───────────────────────────────────────────────────
+
+const SORTED_DEPTS = [...(DEPARTAMENTOS as any[])]
+  .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+const METRICS: { key: Metric; label: string }[] = [
+  { key: 'poblacion',       label: 'Población' },
+  { key: 'presupuesto',     label: 'Presupuesto Total' },
+  { key: 'ingresosPropios', label: 'Ingresos Propios' },
+  { key: 'autonomia',       label: 'Autonomía Financiera' },
+  { key: 'gastosCapital',   label: 'Gastos de Capital' },
+  { key: 'superavit',       label: 'Superávit/Déficit' },
+];
+
+const PAGE_SIZE = 25;
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function RankingsPage() {
-  const { isMobile, isTablet } = useMediaQuery();
-  const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024]);
-  const [rankingType, setRankingType] = useState<RankingType>('population');
-  const [selectedYear, setSelectedYear] = useState<number>(2024);
+  const [year,       setYear]       = useState<number>(2024);
+  const [deptFilter, setDeptFilter] = useState<string>('all');
+  const [metric,     setMetric]     = useState<Metric>('presupuesto');
+  const [page,       setPage]       = useState<number>(0);
 
-  const filteredMunicipalities = useMemo(() => {
-    return municipalities.filter(m => m.year === selectedYear);
-  }, [municipalities, selectedYear]);
+  // Fetch real data from Supabase for the selected year; fall back to mock if empty
+  const { municipalities: supabaseMunis } = useMunicipalitiesMultiYear([year]);
 
-  const rankedData = useMemo(() => {
-    let sorted = [...filteredMunicipalities];
+  const allMusArr = useMemo(() => {
+    const yearRows = supabaseMunis.filter(m => m.year === year);
+    if (!yearRows.length) return MUNICIPIOS as any[];
+    return yearRows.map(m => {
+      const deptId  = (deptNameToId as any)(m.department ?? '') ?? (m.department ?? '').toLowerCase().replace(/\s+/g, '-');
+      const dept    = (DEPARTAMENTOS as any[]).find((d: any) => d.id === deptId);
+      return {
+        id:            m.id,
+        nombre:        m.name ?? '',
+        departamento:  dept ? dept.nombre : (m.department ?? ''),
+        departamentoId: deptId,
+        poblacion:     m.population ?? 0,
+        presupuesto:   m.presupuesto_municipal ?? 0,
+        ingresosPropios: m.ingresos_propios ?? 0,
+        transferencia: m.otras_transferencias ?? 0,
+        otros:         m.gastos_capital_deuda ?? 0,
+        isCapital:     false,
+        evolucion:     [],
+      };
+    });
+  }, [supabaseMunis, year]);
 
-    switch (rankingType) {
-      case 'population':
-        return sorted.sort((a, b) => (b.population || 0) - (a.population || 0));
-      case 'budget':
-        return sorted.sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0));
-      case 'income':
-        return sorted.sort((a, b) => (b.ingresos_propios || 0) - (a.ingresos_propios || 0));
-      case 'financial_autonomy':
-        return sorted.sort((a, b) => (b.autonomia_financiera || 0) - (a.autonomia_financiera || 0));
-      default:
-        return sorted;
-    }
-  }, [filteredMunicipalities, rankingType]);
+  // Dept average per departamentoId for the active metric
+  const deptAvgMap = useMemo<Record<string, number>>(() => {
+    const map: Record<string, { sum: number; count: number }> = {};
+    allMusArr.forEach(m => {
+      const v = getMetricValue(m, metric);
+      if (!map[m.departamentoId]) map[m.departamentoId] = { sum: 0, count: 0 };
+      map[m.departamentoId].sum   += v;
+      map[m.departamentoId].count += 1;
+    });
+    const result: Record<string, number> = {};
+    Object.entries(map).forEach(([k, { sum, count }]) => { result[k] = count ? sum / count : 0; });
+    return result;
+  }, [metric, allMusArr]);
 
-  if (loading) {
-    return (
-      <DashboardLayout title="Rankings">
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Full ranked list (all munis, active metric)
+  const rankedAll = useMemo(() => {
+    return [...allMusArr]
+      .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
+  }, [metric, allMusArr]);
 
-  if (error) {
-    return (
-      <DashboardLayout title="Rankings">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-          Error: {error}
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Previous-year rank map — uses evolucion from mock data when available; no-op for Supabase rows
+  const prevRankMap = useMemo<Record<string, number>>(() => {
+    const sorted = [...allMusArr].sort((a, b) => {
+      const getEvo = (m: any) => {
+        const evo = m.evolucion?.find((e: any) => e.year === year - 1);
+        return evo?.presupuesto || 0;
+      };
+      if (metric === 'presupuesto') return getEvo(b) - getEvo(a);
+      return getMetricValue(b, metric) - getMetricValue(a, metric);
+    });
+    const map: Record<string, number> = {};
+    sorted.forEach((m, i) => { map[m.id] = i + 1; });
+    return map;
+  }, [metric, year, allMusArr]);
 
-  const getRankingLabel = () => {
-    switch (rankingType) {
-      case 'population':
-        return 'Población';
-      case 'budget':
-        return 'Presupuesto Municipal';
-      case 'income':
-        return 'Ingresos Propios';
-      case 'financial_autonomy':
-        return 'Autonomía Financiera (%)';
-      default:
-        return '';
-    }
+  // Filtered + paginated rows
+  const filtered = useMemo(() => {
+    return deptFilter === 'all'
+      ? rankedAll
+      : rankedAll.filter((m: any) => m.departamentoId === deptFilter);
+  }, [rankedAll, deptFilter]);
+
+  const maxValue = useMemo(() => {
+    const vs = filtered.map((m: any) => Math.abs(getMetricValue(m, metric)));
+    return vs.length ? Math.max(...vs) : 1;
+  }, [filtered, metric]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageRows   = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Reset page when filter/metric changes
+  const handleDept = (v: string) => { setDeptFilter(v); setPage(0); };
+  const handleMetric = (m: Metric) => { setMetric(m); setPage(0); };
+  const handleYear = (y: number) => { setYear(y); setPage(0); };
+
+  // ── Styles ────────────────────────────────────────────────────────────────
+
+  const TH: React.CSSProperties = {
+    padding: '10px 12px',
+    fontSize: 9,
+    fontFamily: "'IBM Plex Mono', monospace",
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: '#4a5a73',
+    fontWeight: 600,
+    borderBottom: '1px solid rgba(0,212,184,0.12)',
+    whiteSpace: 'nowrap',
   };
 
-  const getValueFormatted = (municipality: any) => {
-    switch (rankingType) {
-      case 'population':
-        return (municipality.population || 0).toLocaleString('es-HN');
-      case 'budget':
-        return `L ${(municipality.presupuesto_municipal / 1_000_000).toFixed(1)}M`;
-      case 'income':
-        return `L ${(municipality.ingresos_propios / 1_000_000).toFixed(1)}M`;
-      case 'financial_autonomy':
-        return `${(municipality.autonomia_financiera || 0).toFixed(2)}%`;
-      default:
-        return '';
-    }
-  };
-
-  const renderMobileCards = () => {
-    return (
-      <div className="space-y-3">
-        {rankedData.map((municipality, index) => (
-          <div
-            key={municipality.id}
-            className={`rounded-lg p-4 border-l-4 shadow-sm ${
-              index < 3
-                ? index === 0
-                  ? 'bg-yellow-50 border-yellow-400'
-                  : index === 1
-                  ? 'bg-gray-50 border-gray-400'
-                  : 'bg-orange-50 border-orange-600'
-                : 'bg-white border-blue-200'
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm ${
-                    index === 0
-                      ? 'bg-yellow-400 text-white'
-                      : index === 1
-                      ? 'bg-gray-400 text-white'
-                      : index === 2
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}>
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{municipality.name}</p>
-                    <p className="text-xs text-gray-600">{municipality.department}</p>
-                  </div>
-                </div>
-                <p className={`text-right font-bold text-sm ${
-                  index < 3 ? 'text-blue-700' : 'text-gray-700'
-                }`}>
-                  {getValueFormatted(municipality)}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderDesktopTable = () => {
-    return (
-      <div className="overflow-x-auto">
-        <table className={`w-full ${isMobile ? 'text-xs' : 'text-sm'}`}>
-          <thead className="bg-gray-100 border-b border-gray-200">
-            <tr>
-              <th className={`text-center font-semibold text-gray-900 ${isMobile ? 'px-3 py-2 w-10' : 'px-6 py-3 w-12'}`}>#</th>
-              <th className={`text-left font-semibold text-gray-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>Municipio</th>
-              {!isMobile && <th className="text-left font-semibold text-gray-900 px-6 py-3">Departamento</th>}
-              <th className={`text-right font-semibold text-gray-900 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'}`}>
-                {getRankingLabel()}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rankedData.map((municipality, index) => (
-              <tr key={municipality.id} className={`border-b border-gray-100 hover:bg-gray-50 ${index < 3 ? 'bg-yellow-50' : ''}`}>
-                <td className={`text-center font-bold ${isMobile ? 'px-3 py-2' : 'px-6 py-4'}`}>
-                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm ${
-                    index === 0
-                      ? 'bg-yellow-400 text-white'
-                      : index === 1
-                      ? 'bg-gray-400 text-white'
-                      : index === 2
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}>
-                    {index + 1}
-                  </span>
-                </td>
-                <td className={`text-gray-900 font-medium ${isMobile ? 'px-3 py-2' : 'px-6 py-4'}`}>
-                  {municipality.name}
-                </td>
-                {!isMobile && <td className="text-gray-600 px-6 py-4">{municipality.department}</td>}
-                <td className={`text-gray-600 text-right font-semibold ${isMobile ? 'px-3 py-2' : 'px-6 py-4'}`}>
-                  {getValueFormatted(municipality)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
+  const GRID = '48px 1.5fr 1fr 56px 150px 84px 1.3fr';
 
   return (
     <DashboardLayout title="Rankings">
-      <div className="space-y-6">
-        {/* SELECTOR DE AÑO */}
-        <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-3' : 'p-6'}`}>
-          <h2 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-xl'}`}>
-            Selecciona Año
-          </h2>
-          <div className="flex gap-2 flex-wrap">
-            {[2024, 2023, 2022, 2021].map((year) => (
-              <button
-                key={year}
-                onClick={() => setSelectedYear(year)}
-                className={`rounded-lg font-bold transition ${
-                  selectedYear === year
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                } ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'}`}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+        {/* ── HEADER + FILTERS ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+
+          {/* Left — title */}
+          <div>
+            <div style={{
+              fontSize: 10, color: '#2dd4bf', fontFamily: "'IBM Plex Mono', monospace",
+              letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4,
+            }}>
+              CLASIFICACIÓN MUNICIPAL
+            </div>
+            <div style={{
+              fontSize: 36, fontWeight: 700, color: '#e8eef6', lineHeight: 1.1,
+              fontFamily: "'Barlow Condensed', sans-serif",
+            }}>
+              Rankings
+            </div>
+            <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
+              {filtered.length} municipios ordenados · variación vs. año anterior
+            </div>
+          </div>
+
+          {/* Right — year pills + dept select */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+              }}>AÑO</span>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {[2021, 2022, 2023, 2024].map(y => (
+                  <button
+                    key={y}
+                    className={y === year ? 'rk-pill rk-pill--active' : 'rk-pill'}
+                    onClick={() => handleYear(y)}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ width: 220 }}>
+              <select
+                className="simho-select"
+                value={deptFilter}
+                onChange={e => handleDept(e.target.value)}
               >
-                {year}
-              </button>
+                <option value="all">Todos los Departamentos</option>
+                {SORTED_DEPTS.map((d: any) => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* ── METRIC TABS ── */}
+        <div className="rk-tabbar">
+          {METRICS.map(m => (
+            <button
+              key={m.key}
+              className={metric === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
+              onClick={() => handleMetric(m.key)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── TABLE ── */}
+        <div style={{
+          marginTop: 18,
+          background: '#0d1628',
+          border: '1px solid rgba(0,212,184,0.16)',
+          borderRadius: 14,
+          overflow: 'hidden',
+        }}>
+
+          {/* Header row */}
+          <div style={{ display: 'grid', gridTemplateColumns: GRID }}>
+            {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'vs DEPTO', 'RELATIVO'].map(h => (
+              <div key={h} style={{ ...TH, textAlign: h === 'VALOR' || h === 'vs DEPTO' ? 'right' : 'left' }}>
+                {h}
+              </div>
             ))}
           </div>
-        </div>
 
-        {/* SELECTOR DE RANKING */}
-        <div className={`bg-white rounded-lg shadow-md ${isMobile ? 'p-3' : 'p-6'}`}>
-          <h2 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-base' : 'text-xl'}`}>
-            Selecciona un Ranking
-          </h2>
-          <div className={`grid gap-2 ${isMobile ? 'grid-cols-2' : isTablet ? 'grid-cols-2' : 'grid-cols-4'}`}>
-            {(['population', 'budget', 'income', 'financial_autonomy'] as RankingType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => setRankingType(type)}
-                className={`rounded-lg font-medium transition ${
-                  rankingType === type
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                } ${isMobile ? 'px-2 py-2 text-xs' : 'px-4 py-2 text-sm'}`}
+          {/* Data rows */}
+          {pageRows.map((muni: any, i: number) => {
+            const globalRank = filtered.indexOf(muni) + 1;
+            const value      = getMetricValue(muni, metric);
+            const avg        = deptAvgMap[muni.departamentoId] || 0;
+            const vsPct      = avg !== 0 ? ((value - avg) / Math.abs(avg)) * 100 : 0;
+            const barPct     = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
+            const prevRank   = prevRankMap[muni.id] || globalRank;
+            const movement   = prevRank - globalRank;
+            const cat        = getCategory(muni.presupuesto);
+
+            const rowBg = globalRank === 1
+              ? 'rgba(245,196,81,0.06)'
+              : globalRank <= 3
+                ? 'rgba(245,196,81,0.04)'
+                : globalRank <= 10
+                  ? 'rgba(245,158,11,0.03)'
+                  : 'transparent';
+
+            const rankBadge = (() => {
+              if (globalRank === 1) return { bg: '#f5c451', shadow: '0 0 10px rgba(245,196,81,0.55)' };
+              if (globalRank === 2) return { bg: '#c4ccd6', shadow: '0 0 8px rgba(196,204,214,0.4)' };
+              if (globalRank === 3) return { bg: '#cd8a4b', shadow: '0 0 8px rgba(205,138,75,0.4)' };
+              return null;
+            })();
+
+            return (
+              <div
+                key={muni.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: GRID,
+                  alignItems: 'center',
+                  background: rowBg,
+                  borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.03)',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,184,0.04)')}
+                onMouseLeave={e => (e.currentTarget.style.background = rowBg)}
               >
-                {type === 'population' && 'Población'}
-                {type === 'budget' && 'Presupuesto'}
-                {type === 'income' && 'Ingresos'}
-                {type === 'financial_autonomy' && 'Autonomía'}
-              </button>
-            ))}
-          </div>
+
+                {/* Rank */}
+                <div style={{ padding: '9px 0 9px 14px', display: 'flex', alignItems: 'center' }}>
+                  {rankBadge ? (
+                    <div style={{
+                      width: 26, height: 26, borderRadius: '50%',
+                      background: rankBadge.bg, boxShadow: rankBadge.shadow,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11.5, fontWeight: 700, color: '#04231f',
+                      fontFamily: "'IBM Plex Mono', monospace",
+                    }}>
+                      {globalRank}
+                    </div>
+                  ) : (
+                    <span style={{
+                      fontSize: 13,
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      color: globalRank <= 10 ? '#f59e0b' : '#5d6e89',
+                    }}>
+                      {globalRank}
+                    </span>
+                  )}
+                </div>
+
+                {/* Municipio */}
+                <div style={{ padding: '9px 12px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#e8eef6', fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    {muni.nombre}
+                  </div>
+                  {muni.isCapital && (
+                    <div style={{ fontSize: 8.5, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', marginTop: 1 }}>
+                      CAPITAL DEPTO.
+                    </div>
+                  )}
+                </div>
+
+                {/* Departamento */}
+                <div style={{ padding: '9px 12px', fontSize: 12.5, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {muni.departamento}
+                </div>
+
+                {/* Categoría */}
+                <div style={{ padding: '9px 8px' }}>
+                  <span style={{
+                    background: CAT_COLORS[cat] || '#7c8aa3',
+                    color: '#04231f',
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    borderRadius: 5,
+                    padding: '2px 7px',
+                  }}>
+                    {cat}
+                  </span>
+                </div>
+
+                {/* Valor */}
+                <div style={{
+                  padding: '9px 12px',
+                  fontSize: 12.5,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  color: metric === 'superavit' && value < 0 ? '#ef5a5a' : '#2dd4bf',
+                  textAlign: 'right',
+                  fontWeight: 600,
+                }}>
+                  {formatValue(metric, value)}
+                </div>
+
+                {/* vs Depto */}
+                <div style={{
+                  padding: '9px 12px',
+                  fontSize: 11.5,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  color: vsPct >= 0 ? '#1f9d57' : '#ef5a5a',
+                  textAlign: 'right',
+                }}>
+                  {vsPct >= 0 ? '+' : ''}{vsPct.toFixed(1)}%
+                </div>
+
+                {/* Relativo — bar + movement */}
+                <div style={{ padding: '9px 16px 9px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {/* Progress bar */}
+                  <div style={{
+                    flex: 1, height: 7, borderRadius: 4,
+                    background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      height: '100%', borderRadius: 4,
+                      width: `${Math.min(100, Math.max(0, barPct))}%`,
+                      background: metric === 'superavit' && value < 0
+                        ? 'linear-gradient(90deg,#ef5a5a,#f87171)'
+                        : 'linear-gradient(90deg,#00d4b8,#5eead4)',
+                      transition: 'width 0.3s ease',
+                    }} />
+                  </div>
+
+                  {/* Movement */}
+                  <span style={{
+                    fontSize: 10,
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    color: movement > 0 ? '#1f9d57' : movement < 0 ? '#ef5a5a' : '#4a5a73',
+                    whiteSpace: 'nowrap',
+                    minWidth: 36,
+                    textAlign: 'right',
+                  }}>
+                    {movement > 0 ? `▲ ${movement}` : movement < 0 ? `▼ ${Math.abs(movement)}` : '— 0'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {pageRows.length === 0 && (
+            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
+              Sin datos para la selección actual.
+            </div>
+          )}
         </div>
 
-        {/* TABLA O CARDS */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className={`border-b border-gray-200 ${isMobile ? 'p-4' : 'p-6'}`}>
-            <h2 className={`font-bold text-gray-900 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-              Ranking por {getRankingLabel()} - Año {selectedYear}
-            </h2>
-            <p className={`text-gray-600 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              Total de municipios: {rankedData.length}
-            </p>
+        {/* ── PAGINATION ── */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              style={{
+                background: 'rgba(0,212,184,0.08)', border: '1px solid rgba(0,212,184,0.25)',
+                color: page === 0 ? '#2d3d54' : '#2dd4bf',
+                borderRadius: 7, padding: '8px 18px', cursor: page === 0 ? 'default' : 'pointer',
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 11,
+              }}
+            >
+              ← Anterior
+            </button>
+            <span style={{ fontSize: 11, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace" }}>
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page === totalPages - 1}
+              style={{
+                background: 'rgba(0,212,184,0.08)', border: '1px solid rgba(0,212,184,0.25)',
+                color: page === totalPages - 1 ? '#2d3d54' : '#2dd4bf',
+                borderRadius: 7, padding: '8px 18px', cursor: page === totalPages - 1 ? 'default' : 'pointer',
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 11,
+              }}
+            >
+              Siguiente →
+            </button>
           </div>
+        )}
 
-          <div className={isMobile ? 'p-4' : ''}>
-            {isMobile ? renderMobileCards() : renderDesktopTable()}
-          </div>
+        {/* ── FOOTER ── */}
+        <div style={{
+          marginTop: 20,
+          paddingTop: 12,
+          borderTop: '1px solid rgba(0,212,184,0.08)',
+          display: 'flex', justifyContent: 'space-between',
+        }}>
+          <span style={{ fontSize: 9.5, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
+            FUENTE: AMHON / SEFIN / INE HONDURAS
+          </span>
+          <span style={{ fontSize: 9.5, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
+            SIMHO — SISTEMA DE INFORMACIÓN MUNICIPAL DE HONDURAS
+          </span>
         </div>
+
       </div>
     </DashboardLayout>
   );

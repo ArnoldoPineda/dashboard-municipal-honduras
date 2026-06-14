@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
+import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio } from '../data/municipios';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -42,10 +43,14 @@ const formatCurrency = (num: number | string | null | undefined): string => {
 
 const PresupuestarioPage = () => {
   const { isMobile, isTablet } = useMediaQuery();
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>('');
   const [selectedYears, setSelectedYears] = useState<number[]>([2024]);
   const [activeTab, setActiveTab] = useState('general');
+  const [muniSearch, setMuniSearch] = useState<string>('');
+  const [selectedCategoria, setSelectedCategoria] = useState<string>('');
+  const [presupuestoMin, setPresupuestoMin] = useState<number>(0);
+  const [selectedMuniId, setSelectedMuniId] = useState<string>('');
 
   // 👇 Estado para evitar parpadeo de Recharts
   const [chartsReady, setChartsReady] = useState(false);
@@ -63,6 +68,11 @@ const PresupuestarioPage = () => {
       .filter((m) => m.name === selectedMunicipality && selectedYears.includes(m.year))
       .sort((a, b) => b.year - a.year);
   }, [selectedMunicipality, selectedYears, municipalities]);
+
+  const selectedMockMuni: any = useMemo(() => {
+    if (!selectedMuniId) return null;
+    return getMunicipio(selectedMuniId) || null;
+  }, [selectedMuniId]);
 
   if (loading) {
     return (
@@ -88,9 +98,12 @@ const PresupuestarioPage = () => {
     (a.name || '').localeCompare(b.name || ''),
   );
 
-  const departments = Array.from(new Set(allMunicipalities.map((m) => m.department))).sort() as string[];
-
-  const municipalitiesByDept = selectedDepartment ? allMunicipalities.filter((m) => m.department === selectedDepartment) : [];
+  // Municipios del departamento seleccionado, filtrados por búsqueda
+  const muniOptions: any[] = selectedDeptId
+    ? (getMunicipiosByDept(selectedDeptId) as any[])
+        .filter((m: any) => !muniSearch.trim() || m.nombre.toLowerCase().includes(muniSearch.toLowerCase()))
+        .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
+    : [];
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) => {
@@ -611,108 +624,262 @@ const PresupuestarioPage = () => {
     }
   };
 
+  // ── Filter UI helpers ─────────────────────────────────────────────────────
+
+  const MOCK_DEPTS: any[] = (DEPARTAMENTOS as any[])
+    .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'));
+
+  const FLABEL: React.CSSProperties = {
+    fontSize: 9, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace",
+    letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8,
+    display: 'block',
+  };
+  const PILL: React.CSSProperties = {
+    border: '1px solid #1f2937', background: 'transparent', color: '#9ca3af',
+    borderRadius: 6, padding: '8px 16px', cursor: 'pointer', fontSize: 12,
+    fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1,
+  };
+  const PILL_ON: React.CSSProperties = {
+    ...PILL, background: '#2dd4bf', color: '#0a0f1a', fontWeight: 600,
+    border: '1px solid #2dd4bf',
+  };
+
+  const presupuestoLabel = presupuestoMin === 0
+    ? 'Sin mínimo'
+    : `L ${(presupuestoMin / 1_000_000).toFixed(0)} M`;
+
   return (
     <DashboardLayout title="Datos Financieros">
-      <div className="space-y-6">
-        {/* SELECCIONES - RESPONSIVO */}
-        <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'} space-y-4`}>
-          {/* DEPARTAMENTO */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* ── HEADER ROW ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <label className={`block font-semibold mb-2 text-gray-900 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              Departamento
-            </label>
-            <select
-              value={selectedDepartment}
-              onChange={(e) => {
-                setSelectedDepartment(e.target.value);
-                setSelectedMunicipality('');
-                setSelectedYears([2024]);
-              }}
-              className={`w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-900 ${
-                isMobile ? 'px-3 py-3 text-sm' : 'px-4 py-2'
-              }`}
-            >
-              <option value="">-- Selecciona Departamento --</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+            <div style={{
+              fontSize: 10, color: '#2dd4bf', fontFamily: "'IBM Plex Mono', monospace",
+              letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4,
+            }}>
+              BASE DE DATOS MUNICIPAL
+            </div>
+            <div style={{
+              fontSize: 36, fontWeight: 700, color: '#e8eef6', lineHeight: 1.1,
+              fontFamily: "'Barlow Condensed', sans-serif",
+            }}>
+              Datos Financieros
+            </div>
+            <div style={{ fontSize: 13, color: '#7c8aa3', marginTop: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
+              298 registros · ejercicio 2024
+            </div>
           </div>
-
-          {/* MUNICIPIOS */}
-          {selectedDepartment && (
-            <div>
-              <label className={`block font-semibold mb-2 text-gray-900 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Municipios
-              </label>
-              <div
-                className={`grid gap-2 p-3 border border-gray-300 rounded-lg bg-gray-50 max-h-40 overflow-y-auto ${
-                  isMobile ? 'grid-cols-2' : 'grid-cols-3 lg:grid-cols-4'
-                }`}
-              >
-                {municipalitiesByDept.map((mun) => (
-                  <label
-                    key={mun.name}
-                    className={`flex items-center space-x-2 cursor-pointer p-1 hover:bg-blue-100 rounded ${
-                      isMobile ? 'text-xs' : 'text-sm'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="municipality"
-                      value={mun.name}
-                      checked={selectedMunicipality === mun.name}
-                      onChange={(e) => {
-                        setSelectedMunicipality(e.target.value);
-                        setSelectedYears([2024]);
-                      }}
-                      className="w-4 h-4 accent-blue-600"
-                    />
-                    <span className="text-gray-900">{mun.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* AÑOS */}
-          {selectedMunicipality && (
-            <div>
-              <label className={`block font-semibold mb-2 text-gray-900 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Años para Comparar
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {[2024, 2023, 2022, 2021].map((year) => (
-                  <label
-                    key={year}
-                    className={`flex items-center space-x-2 border rounded-lg cursor-pointer transition ${
-                      isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'
-                    }`}
-                    style={{
-                      borderColor: selectedYears.includes(year) ? '#2563eb' : '#d1d5db',
-                      backgroundColor: selectedYears.includes(year) ? '#dbeafe' : 'transparent',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedYears.includes(year)}
-                      onChange={() => toggleYear(year)}
-                      className="w-4 h-4 accent-blue-600"
-                    />
-                    <span className="font-medium text-gray-900">{year}</span>
-                  </label>
-                ))}
-              </div>
-              <p className={`text-gray-600 mt-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Municipio: <span className="font-bold text-blue-700">{selectedMunicipality}</span>
-              </p>
-            </div>
-          )}
+          <button style={{
+            border: '1px solid rgba(0,212,184,0.5)', color: '#2dd4bf',
+            background: '#0d1628', borderRadius: 8, padding: '12px 20px',
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: 12,
+            textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.08em',
+            flexShrink: 0, marginTop: 8,
+          }}>
+            ↓ EXPORTAR CSV
+          </button>
         </div>
 
-        {/* KPI CARDS */}
+        {/* ── FILTER CARD ── */}
+        <div style={{
+          background: '#111827', border: '1px solid #1f2937',
+          borderRadius: 8, padding: 20,
+        }}>
+          {/* Row 1 — 3 columns */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 20 }}>
+
+            {/* AÑO pills */}
+            <div>
+              <span style={FLABEL}>AÑO</span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[2021, 2022, 2023, 2024].map(y => (
+                  <button key={y}
+                    onClick={() => setSelectedYears([y])}
+                    style={selectedYears.includes(y) ? PILL_ON : PILL}>
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* DEPARTAMENTO dropdown */}
+            <div>
+              <span style={FLABEL}>DEPARTAMENTO</span>
+              <select
+                className="simho-select"
+                value={selectedDeptId}
+                onChange={e => { setSelectedDeptId(e.target.value); setSelectedMuniId(''); setSelectedMunicipality(''); }}
+              >
+                <option value="">Todos los Departamentos</option>
+                {MOCK_DEPTS.map((d: any) => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* BUSCAR MUNICIPIO text input */}
+            <div>
+              <span style={FLABEL}>BUSCAR MUNICIPIO</span>
+              <input
+                type="text"
+                value={muniSearch}
+                onChange={e => setMuniSearch(e.target.value)}
+                placeholder="Nombre..."
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: '#0d1628', border: '1px solid rgba(0,212,184,0.25)',
+                  borderRadius: 8, color: '#e8eef6',
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 12,
+                  padding: '9px 12px', outline: 'none',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(0,212,184,0.65)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,212,184,0.12)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,212,184,0.25)'; e.currentTarget.style.boxShadow = 'none'; }}
+              />
+            </div>
+          </div>
+
+          {/* MUNICIPIO dropdown — visible cuando hay depto seleccionado */}
+          {selectedDeptId !== '' && (
+            <div style={{ marginBottom: 20 }}>
+              <span style={FLABEL}>
+                MUNICIPIO
+                {muniOptions.length > 0 && (
+                  <span style={{ color: '#4a5a73', marginLeft: 8 }}>({muniOptions.length})</span>
+                )}
+              </span>
+              <select
+                className="simho-select"
+                value={selectedMuniId}
+                onChange={e => {
+                  const id = e.target.value;
+                  setSelectedMuniId(id);
+                  const m = getMunicipio(id);
+                  setSelectedMunicipality(m?.nombre || '');
+                }}
+              >
+                <option value="">— Seleccionar municipio —</option>
+                {muniOptions.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Row 2 — 2 columns */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+
+            {/* CATEGORÍA pills */}
+            <div>
+              <span style={FLABEL}>CATEGORÍA</span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['Todas', 'A', 'B', 'C', 'D'].map(cat => {
+                  const isActive = cat === 'Todas' ? selectedCategoria === '' : selectedCategoria === cat;
+                  return (
+                    <button key={cat}
+                      onClick={() => setSelectedCategoria(cat === 'Todas' ? '' : cat)}
+                      style={isActive ? PILL_ON : PILL}>
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* PRESUPUESTO MÍN slider */}
+            <div>
+              <span style={FLABEL}>
+                PRESUPUESTO MÍN ·{' '}
+                <span style={{ color: '#2dd4bf' }}>{presupuestoLabel}</span>
+              </span>
+              <input
+                type="range"
+                className="simho-slider"
+                min={0} max={500000000} step={10000000}
+                value={presupuestoMin}
+                onChange={e => setPresupuestoMin(Number(e.target.value))}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* KPI CARDS — mock data (always available) */}
+        {selectedMockMuni && (() => {
+          const m = selectedMockMuni;
+          const autonomia = m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto * 100) : 0;
+          const fmtM = (n: number) => n >= 1_000_000_000
+            ? `L ${(n / 1_000_000_000).toFixed(1)} mil M`
+            : n >= 1_000_000
+              ? `L ${(n / 1_000_000).toFixed(1)} M`
+              : n > 0 ? `L ${n.toLocaleString('es-HN')}` : '—';
+          const fmtPop = new Intl.NumberFormat('es-HN');
+          const kpis = [
+            { title: 'Presupuesto',      value: fmtM(m.presupuesto),                   color: '#2dd4bf' },
+            { title: 'Ingresos Propios', value: fmtM(m.ingresosPropios),               color: '#2dd4bf' },
+            { title: 'Transferencias',   value: fmtM(m.transferencia),                  color: '#f59e0b' },
+            { title: 'Autonomía',        value: `${autonomia.toFixed(1)}%`,              color: '#8b5cf6' },
+            { title: 'Población',        value: fmtPop.format(m.poblacion) + ' hab.',   color: '#e8eef6' },
+            { title: 'IDH',              value: m.idh > 0 ? m.idh.toFixed(3) : '—',    color: '#f59e0b' },
+          ];
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Muni header */}
+              <div style={{
+                background: '#111827', border: '1px solid #1f2937', borderRadius: 8,
+                padding: '16px 20px', display: 'flex', alignItems: 'baseline', gap: 12,
+              }}>
+                <span style={{
+                  fontSize: 28, fontWeight: 700, color: '#e8eef6',
+                  fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
+                }}>
+                  {m.nombre}
+                </span>
+                <span style={{
+                  fontSize: 10, color: '#5eead4', background: 'rgba(94,234,212,0.1)',
+                  border: '1px solid rgba(94,234,212,0.3)', borderRadius: 4,
+                  padding: '2px 8px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
+                }}>
+                  {m.departamento.toUpperCase()}
+                </span>
+                {m.isCapital && (
+                  <span style={{
+                    fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,0.12)',
+                    border: '1px solid rgba(245,158,11,0.4)', borderRadius: 4,
+                    padding: '2px 8px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
+                  }}>
+                    CAPITAL DEPARTAMENTAL
+                  </span>
+                )}
+              </div>
+              {/* KPI grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+                {kpis.map(k => (
+                  <div key={k.title} style={{
+                    background: '#111827', border: '1px solid #1f2937',
+                    borderRadius: 8, padding: '14px 16px',
+                  }}>
+                    <div style={{
+                      fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
+                      letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6,
+                    }}>
+                      {k.title}
+                    </div>
+                    <div style={{
+                      fontSize: 20, fontWeight: 700, color: k.color,
+                      fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1.1,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {k.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* KPI CARDS — Supabase data (when available) */}
         {selectedMunicipalityData.length > 0 && (
           <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isMobile ? 'p-3' : 'p-6'}`}>
             <h2 className={`font-bold mb-4 text-gray-900 ${isMobile ? 'text-base' : 'text-lg'}`}>
@@ -722,7 +889,7 @@ const PresupuestarioPage = () => {
           </div>
         )}
 
-        {/* TABS */}
+        {/* TABS — Supabase data */}
         {selectedMunicipalityData.length > 0 && (
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="flex border-b overflow-x-auto">
@@ -746,7 +913,7 @@ const PresupuestarioPage = () => {
         )}
 
         {/* MENSAJE INICIAL */}
-        {!selectedMunicipality && (
+        {!selectedMockMuni && !selectedMunicipality && (
           <div
             className={`bg-blue-50 border-l-4 border-blue-600 rounded-lg text-center ${
               isMobile ? 'p-4' : 'p-6'
@@ -757,7 +924,7 @@ const PresupuestarioPage = () => {
             </p>
           </div>
         )}
-      </div>
+      </div>  {/* end flex column */}
     </DashboardLayout>
   );
 };

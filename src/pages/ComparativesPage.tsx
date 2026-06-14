@@ -558,17 +558,36 @@ function FinancialChartsSection({
 }) {
   const [finYear, setFinYear] = useState<number>(2024);
 
+  // Which years have at least one record for any selected entity
+  const yearsWithData = useMemo(() => {
+    const s = new Set<number>();
+    municipalities.forEach(m => {
+      const match = mode === 'muni'
+        ? selected.includes(m.name ?? '')
+        : selected.includes(m.department ?? '');
+      if (match) s.add(m.year);
+    });
+    return s;
+  }, [selected, municipalities, mode]);
+
+  // Use finYear if it has data, otherwise fall back to most recent year with data
+  const effectiveFinYear = useMemo(() => {
+    if (yearsWithData.has(finYear)) return finYear;
+    const sorted = [...yearsWithData].sort((a, b) => b - a);
+    return sorted[0] ?? finYear;
+  }, [finYear, yearsWithData]);
+
   const barData = useMemo(() => {
     if (!selected.length) return [];
     return selected.map(entity => {
       const recs = mode === 'muni'
-        ? municipalities.filter(m => m.name === entity && m.year === finYear)
-        : municipalities.filter(m => m.department === entity && m.year === finYear);
+        ? municipalities.filter(m => m.name === entity && m.year === effectiveFinYear)
+        : municipalities.filter(m => m.department === entity && m.year === effectiveFinYear);
       if (!recs.length) return null;
       const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
       return { name: entity, ...fc };
     }).filter(Boolean) as any[];
-  }, [selected, municipalities, finYear, mode]);
+  }, [selected, municipalities, effectiveFinYear, mode]);
 
   const radarData = useMemo(() => {
     if (selected.length < 2 || !barData.length) return [];
@@ -598,28 +617,36 @@ function FinancialChartsSection({
   return (
     <>
       <div style={{ ...CARD, marginTop: 20 }}>
-        <span style={FLABEL}>AÑO PARA ANÁLISIS FINANCIERO</span>
+        <span style={FLABEL}>
+          AÑO PARA ANÁLISIS FINANCIERO
+          {effectiveFinYear !== finYear && (
+            <span style={{ color: '#f59e0b', marginLeft: 8, fontWeight: 400, textTransform: 'none' }}>
+              (sin datos en {finYear}, mostrando {effectiveFinYear})
+            </span>
+          )}
+        </span>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {YEARS.map(y => (
             <button
               key={y}
-              className={finYear === y ? 'rk-pill rk-pill--active' : 'rk-pill'}
+              className={effectiveFinYear === y ? 'rk-pill rk-pill--active' : 'rk-pill'}
               onClick={() => setFinYear(y)}
+              style={{ opacity: yearsWithData.size > 0 && !yearsWithData.has(y) ? 0.4 : 1 }}
             >{y}</button>
           ))}
         </div>
       </div>
 
       <ComposicionFinancieraCard
-        title={`COMPOSICIÓN FINANCIERA · ${finYear}`}
+        title={`COMPOSICIÓN FINANCIERA · ${effectiveFinYear}`}
         data={barData}
       />
       <IncomeBarCard
-        title={`COMPOSICIÓN DE INGRESOS · ${finYear}`}
+        title={`COMPOSICIÓN DE INGRESOS · ${effectiveFinYear}`}
         data={barData}
       />
       <GastosBarCard
-        title={`ESTRUCTURA DE GASTOS · ${finYear}`}
+        title={`ESTRUCTURA DE GASTOS · ${effectiveFinYear}`}
         data={barData}
       />
       <RadarCard

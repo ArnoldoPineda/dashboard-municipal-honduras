@@ -220,7 +220,7 @@ function TopNavbar() {
       </div>
 
       {/* Indicator toggles */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}>
         {INDICATORS.map((ind) => (
           <button
             key={ind.key}

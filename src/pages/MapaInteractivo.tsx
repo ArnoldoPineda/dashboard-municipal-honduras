@@ -31,10 +31,15 @@ function categoryOf(budget: number): string {
 
 function deptCatData(topoName: string): { dominant: string; counts: Record<string, number> } {
   const id    = deptNameToId(topoName);
-  const munis = id ? getMunicipiosByDept(id) : [];
+  const munis = id ? (getMunicipiosByDept(id) as any[]) : [];
   const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-  (munis as any[]).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
-  const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'D';
+  munis.forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
+  // Use capital city's category as the dept color — freq-dominant always returns D
+  // because most municipalities are small towns (< 50M)
+  const capital = munis.find((m: any) => m.isCapital);
+  const dominant = capital
+    ? categoryOf(capital.presupuesto || 0)
+    : (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'D');
   return { dominant, counts };
 }
 
@@ -177,7 +182,7 @@ export default function MapaInteractivo() {
               ${topoName}
             </div>
             <div style="font-size:12px;color:#9ca3af;font-family:'IBM Plex Mono',monospace;margin-bottom:6px">
-              Categoría predominante: <span style="color:${CAT_COLORS[dominant]};font-weight:700">${dominant}</span>
+              Capital municipal: <span style="color:${CAT_COLORS[dominant]};font-weight:700">Cat ${dominant}</span>
             </div>
             <div style="font-size:11px;color:#9ca3af;font-family:'IBM Plex Mono',monospace">
               <span style="color:${CAT_COLORS.A}">A:${counts.A}</span> ·

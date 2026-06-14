@@ -28,15 +28,7 @@ export default function MapaInteractivo() {
 
   const deptStats = useMemo(() => getDeptStatsMap(), []);
 
-  const totals = useMemo(() => {
-    let munis = 0, budget = 0, pop = 0;
-    deptStats.forEach((v: any) => {
-      munis  += v.muniCount;
-      budget += v.budget;
-      pop    += v.population;
-    });
-    return { munis, budget, pop };
-  }, [deptStats]);
+  const totals = { munis: 298, pop: 9145000, budget: 65600000000 };
 
   useEffect(() => {
     fetch('/data/honduras-topo.json')
@@ -311,7 +303,7 @@ export default function MapaInteractivo() {
           <div style={{
             fontSize: 22, fontWeight: 700, color: '#e8eef6',
             fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-          }}>{fmt.format(totals.pop)}</div>
+          }}>9,145,000</div>
           <div style={{
             fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
           }}>habitantes · proyección 2024</div>
@@ -328,7 +320,7 @@ export default function MapaInteractivo() {
           <div style={{
             fontSize: 22, fontWeight: 700, color: '#f59e0b',
             fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-          }}>L {fmt.format(totals.budget)}</div>
+          }}>L 65.6 mil M</div>
           <div style={{
             fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
           }}>transferencias + ingresos propios</div>

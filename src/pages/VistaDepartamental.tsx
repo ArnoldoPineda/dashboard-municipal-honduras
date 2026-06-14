@@ -166,7 +166,7 @@ function DeptMuniMap({
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <svg ref={svgRef} style={{ display: 'block', width: '100%' }} />
+      <svg ref={svgRef} style={{ display: 'block', width: '100%', height: '100%' }} />
       {tooltip && (
         <div style={{
           position: 'absolute',
@@ -283,7 +283,7 @@ export default function VistaDepartamental() {
           <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
             MAPA MUNICIPAL — clic para ver detalle
           </div>
-          <div style={{ flex: 1, minHeight: '500px', position: 'relative' }}>
+          <div style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
             <DeptMuniMap
               topoData={topoData}
               deptName={dept.topoNombre}

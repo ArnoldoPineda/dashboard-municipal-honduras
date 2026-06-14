@@ -211,7 +211,7 @@ export default function MapaInteractivo() {
           <div style={{
             fontSize: 14, color: '#7c8aa3', maxWidth: 460, lineHeight: 1.5,
           }}>
-            Coropleta por presupuesto 2024. Seleccione un departamento para explorar sus municipios.
+            {`Coropleta por presupuesto ${fiscalYear}. Seleccione un departamento para explorar sus municipios.`}
           </div>
         </div>
 
@@ -306,7 +306,7 @@ export default function MapaInteractivo() {
           }}>9,145,000</div>
           <div style={{
             fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
-          }}>habitantes · proyección 2024</div>
+          }}>{`habitantes · proyección ${fiscalYear}`}</div>
         </div>
 
         <div style={{

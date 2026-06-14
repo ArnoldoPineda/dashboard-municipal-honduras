@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
-import { getDeptStatsMap, deptNameToId, getDepartamento } from '../data/municipios';
+import { getDeptStatsMap, deptNameToId, getDepartamento, getMunicipiosByDept } from '../data/municipios';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -23,17 +23,17 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 function categoryOf(budget: number): string {
-  if (budget > 3_000_000_000) return 'A';
-  if (budget > 1_200_000_000) return 'B';
-  if (budget >   400_000_000) return 'C';
+  if (budget > 500_000_000) return 'A';
+  if (budget > 150_000_000) return 'B';
+  if (budget >  50_000_000) return 'C';
   return 'D';
 }
 
 function deptCatData(topoName: string): { dominant: string; counts: Record<string, number> } {
-  const id   = deptNameToId(topoName);
-  const dept = id ? getDepartamento(id) : null;
+  const id    = deptNameToId(topoName);
+  const munis = id ? getMunicipiosByDept(id) : [];
   const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-  (dept?.municipios || []).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
+  (munis as any[]).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
   const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'D';
   return { dominant, counts };
 }
@@ -58,9 +58,9 @@ export default function MapaInteractivo() {
   const catTotals = useMemo(() => {
     const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
     deptStats.forEach((_: any, deptName: string) => {
-      const id   = deptNameToId(deptName);
-      const dept = id ? getDepartamento(id) : null;
-      (dept?.municipios || []).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
+      const id    = deptNameToId(deptName);
+      const munis = id ? getMunicipiosByDept(id) : [];
+      (munis as any[]).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
     });
     return counts;
   }, [deptStats]);

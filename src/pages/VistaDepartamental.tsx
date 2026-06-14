@@ -26,9 +26,9 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 function categoryOf(budget: number): string {
-  if (budget > 3_000_000_000) return 'A';
-  if (budget > 1_200_000_000) return 'B';
-  if (budget >   400_000_000) return 'C';
+  if (budget > 500_000_000) return 'A';
+  if (budget > 150_000_000) return 'B';
+  if (budget >  50_000_000) return 'C';
   return 'D';
 }
 

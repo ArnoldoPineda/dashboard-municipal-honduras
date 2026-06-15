@@ -223,120 +223,103 @@ export default function MunicipioDETALLE() {
     : 0;
   const scale: number = muni && muni.presupuesto > 0 ? yearPresupuesto / muni.presupuesto : 1;
 
-  // ── Derived accordion sections ────────────────────────────────────────────
+  // ── Derived values — plain render-body variables, always fresh ───────────
 
-  const sections: AccordionSection[] = useMemo(() => {
-    if (!muni || !yearPresupuesto) return [];
-    const presupuesto = yearPresupuesto;
-    const ingresosPropios = Math.round(muni.ingresosPropios * scale);
-    const transferencia   = Math.round(muni.transferencia   * scale);
-    const otros           = Math.max(0, presupuesto - ingresosPropios - transferencia);
-    const { poblacion, area, idh, departamento } = muni;
-    const tribut   = Math.round(ingresosPropios * 0.58);
-    const noTribut = ingresosPropios - tribut;
-    const capital  = otros;
-    const gastFunc = Math.round(presupuesto * 0.63);
-    const gastCap  = presupuesto - gastFunc;
-    const densidad = area > 0 ? (poblacion / area).toFixed(1) : '—';
+  const _pres   = yearPresupuesto;
+  const _ip     = muni ? Math.round(muni.ingresosPropios * scale) : 0;
+  const _trans  = muni ? Math.round(muni.transferencia   * scale) : 0;
+  const _otros  = muni ? Math.max(0, _pres - _ip - _trans) : 0;
+  const _tribut = Math.round(_ip * 0.58);
+  const _noTrib = _ip - _tribut;
+  const _gFunc  = Math.round(_pres * 0.63);
+  const _gCap   = _pres - _gFunc;
+  const fm      = (v: number) => formatMoney(Math.round(v));
 
-    const fm = (v: number) => formatMoney(Math.round(v));
+  // ── Accordion sections ────────────────────────────────────────────────────
 
-    return [
-      {
-        key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
-        rows: [
-          { label: 'Departamento',        value: departamento },
-          { label: 'Categoría Municipal', value: muniCategory(poblacion) },
-          { label: 'Población',           value: fmtP.format(poblacion) + ' hab.' },
-          { label: 'Área',                value: area > 0 ? `${area.toFixed(1)} km²` : '—' },
-          { label: 'Densidad',            value: area > 0 ? `${densidad} hab/km²` : '—' },
-          { label: 'IDH',                 value: idh > 0 ? idh.toFixed(3) : '—' },
-        ],
-      },
-      {
-        key: 'ing_tributarios', title: 'Ingresos Tributarios', color: '#2dd4bf', amount: tribut,
-        rows: [
-          { label: 'Impuesto sobre Bienes Inmuebles', value: fm(tribut * 0.35) },
-          { label: 'Industria, Comercio y Servicios', value: fm(tribut * 0.28) },
-          { label: 'Impuesto Personal (Vecinal)',     value: fm(tribut * 0.18) },
-          { label: 'Impuesto Pecuario',               value: fm(tribut * 0.12) },
-          { label: 'Extracción de Recursos',          value: fm(tribut * 0.07) },
-        ],
-      },
-      {
-        key: 'ing_no_tributarios', title: 'Ingresos No Tributarios', color: '#f59e0b', amount: noTribut,
-        rows: [
-          { label: 'Tasas por Servicios',         value: fm(noTribut * 0.40) },
-          { label: 'Derechos Administrativos',    value: fm(noTribut * 0.22) },
-          { label: 'Multas y Recargos',           value: fm(noTribut * 0.18) },
-          { label: 'Venta de Bienes y Servicios', value: fm(noTribut * 0.12) },
-          { label: 'Rentas de la Propiedad',      value: fm(noTribut * 0.08) },
-        ],
-      },
-      {
-        key: 'ing_capital', title: 'Ingresos de Capital', color: '#ec4899', amount: capital,
-        rows: [
-          { label: 'Transferencias de Capital', value: fm(capital * 0.55) },
-          { label: 'Donaciones Externas',        value: fm(capital * 0.30) },
-          { label: 'Venta de Activos',           value: fm(capital * 0.15) },
-        ],
-      },
-      {
-        key: 'gast_funcionamiento', title: 'Gastos de Funcionamiento', color: '#f97316', amount: gastFunc,
-        rows: [
-          { label: 'Servicios Personales',     value: fm(gastFunc * 0.58) },
-          { label: 'Servicios No Personales',  value: fm(gastFunc * 0.28) },
-          { label: 'Materiales y Suministros', value: fm(gastFunc * 0.14) },
-        ],
-      },
-      {
-        key: 'gast_capital', title: 'Gastos de Capital y Deuda Pública', color: '#8b5cf6', amount: gastCap,
-        rows: [
-          { label: 'Inversión en Obras',      value: fm(gastCap * 0.62) },
-          { label: 'Amortización de Deuda',   value: fm(gastCap * 0.25) },
-          { label: 'Intereses y Comisiones',  value: fm(gastCap * 0.13) },
-        ],
-      },
-    ];
-  }, [muni, yearPresupuesto, scale]);
+  const sections: AccordionSection[] = !muni ? [] : [
+    {
+      key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
+      rows: [
+        { label: 'Departamento',        value: muni.departamento },
+        { label: 'Categoría Municipal', value: muniCategory(muni.poblacion) },
+        { label: 'Población',           value: fmtP.format(muni.poblacion) + ' hab.' },
+        { label: 'Área',                value: muni.area > 0 ? `${muni.area.toFixed(1)} km²` : '—' },
+        { label: 'Densidad',            value: muni.area > 0 ? `${(muni.poblacion / muni.area).toFixed(1)} hab/km²` : '—' },
+        { label: 'IDH',                 value: muni.idh > 0 ? muni.idh.toFixed(3) : '—' },
+      ],
+    },
+    {
+      key: 'ing_tributarios', title: 'Ingresos Tributarios', color: '#2dd4bf', amount: _tribut,
+      rows: [
+        { label: 'Impuesto sobre Bienes Inmuebles', value: fm(_tribut * 0.35) },
+        { label: 'Industria, Comercio y Servicios', value: fm(_tribut * 0.28) },
+        { label: 'Impuesto Personal (Vecinal)',     value: fm(_tribut * 0.18) },
+        { label: 'Impuesto Pecuario',               value: fm(_tribut * 0.12) },
+        { label: 'Extracción de Recursos',          value: fm(_tribut * 0.07) },
+      ],
+    },
+    {
+      key: 'ing_no_tributarios', title: 'Ingresos No Tributarios', color: '#f59e0b', amount: _noTrib,
+      rows: [
+        { label: 'Tasas por Servicios',         value: fm(_noTrib * 0.40) },
+        { label: 'Derechos Administrativos',    value: fm(_noTrib * 0.22) },
+        { label: 'Multas y Recargos',           value: fm(_noTrib * 0.18) },
+        { label: 'Venta de Bienes y Servicios', value: fm(_noTrib * 0.12) },
+        { label: 'Rentas de la Propiedad',      value: fm(_noTrib * 0.08) },
+      ],
+    },
+    {
+      key: 'ing_capital', title: 'Ingresos de Capital', color: '#ec4899', amount: _otros,
+      rows: [
+        { label: 'Transferencias de Capital', value: fm(_otros * 0.55) },
+        { label: 'Donaciones Externas',        value: fm(_otros * 0.30) },
+        { label: 'Venta de Activos',           value: fm(_otros * 0.15) },
+      ],
+    },
+    {
+      key: 'gast_funcionamiento', title: 'Gastos de Funcionamiento', color: '#f97316', amount: _gFunc,
+      rows: [
+        { label: 'Servicios Personales',     value: fm(_gFunc * 0.58) },
+        { label: 'Servicios No Personales',  value: fm(_gFunc * 0.28) },
+        { label: 'Materiales y Suministros', value: fm(_gFunc * 0.14) },
+      ],
+    },
+    {
+      key: 'gast_capital', title: 'Gastos de Capital y Deuda Pública', color: '#8b5cf6', amount: _gCap,
+      rows: [
+        { label: 'Inversión en Obras',     value: fm(_gCap * 0.62) },
+        { label: 'Amortización de Deuda',  value: fm(_gCap * 0.25) },
+        { label: 'Intereses y Comisiones', value: fm(_gCap * 0.13) },
+      ],
+    },
+  ];
 
   // ── Donut data ────────────────────────────────────────────────────────────
 
-  const donutData = useMemo(() => {
-    if (!muni || !yearPresupuesto) return [];
-    const presupuesto     = yearPresupuesto;
-    const ingresosPropios = Math.round(muni.ingresosPropios * scale);
-    const transferencia   = Math.round(muni.transferencia   * scale);
-    const otros           = Math.max(0, presupuesto - ingresosPropios - transferencia);
-    const total = ingresosPropios + transferencia + otros;
-    const pct = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
+  const donutData = !muni ? [] : (() => {
+    const total = _ip + _trans + _otros;
+    const pct   = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
     return [
-      { name: 'Ingresos Propios',    value: ingresosPropios, fill: '#2dd4bf', pct: pct(ingresosPropios) },
-      { name: 'Transferencias',      value: transferencia,   fill: '#f59e0b', pct: pct(transferencia)   },
-      { name: 'Ingresos de Capital', value: otros,           fill: '#ec4899', pct: pct(otros)           },
+      { name: 'Ingresos Propios',    value: _ip,     fill: '#2dd4bf', pct: pct(_ip)    },
+      { name: 'Transferencias',      value: _trans,  fill: '#f59e0b', pct: pct(_trans) },
+      { name: 'Ingresos de Capital', value: _otros,  fill: '#ec4899', pct: pct(_otros) },
     ].filter(d => d.value > 0);
-  }, [muni, yearPresupuesto, scale]);
+  })();
 
   // ── Top 5 ─────────────────────────────────────────────────────────────────
 
-  const top5 = useMemo(() => {
-    if (!muni || !yearPresupuesto) return [];
-    const presupuesto     = yearPresupuesto;
-    const ingresosPropios = Math.round(muni.ingresosPropios * scale);
-    const transferencia   = Math.round(muni.transferencia   * scale);
-    const otros           = Math.max(0, presupuesto - ingresosPropios - transferencia);
-    const tribut   = Math.round(ingresosPropios * 0.58);
-    const noTribut = ingresosPropios - tribut;
+  const top5 = !muni ? [] : (() => {
     const items = [
-      { label: 'Transferencias Gobierno Central', value: transferencia,               color: '#f59e0b' },
-      { label: 'Ingresos Tributarios',            value: tribut,                      color: '#2dd4bf' },
-      { label: 'Ingresos No Tributarios',         value: noTribut,                    color: '#2dd4bf' },
-      { label: 'Ingresos de Capital',             value: otros,                       color: '#ec4899' },
-      { label: 'Tasas por Servicios',             value: Math.round(noTribut * 0.40), color: '#2dd4bf' },
+      { label: 'Transferencias Gobierno Central', value: _trans,                      color: '#f59e0b' },
+      { label: 'Ingresos Tributarios',            value: _tribut,                     color: '#2dd4bf' },
+      { label: 'Ingresos No Tributarios',         value: _noTrib,                     color: '#2dd4bf' },
+      { label: 'Ingresos de Capital',             value: _otros,                      color: '#ec4899' },
+      { label: 'Tasas por Servicios',             value: Math.round(_noTrib * 0.40),  color: '#2dd4bf' },
     ].sort((a, b) => b.value - a.value).slice(0, 5);
     const max = items[0]?.value || 1;
     return items.map(i => ({ ...i, pct: Math.round(i.value / max * 100) }));
-  }, [muni, yearPresupuesto, scale]);
+  })();
 
   // ── Render ────────────────────────────────────────────────────────────────
 

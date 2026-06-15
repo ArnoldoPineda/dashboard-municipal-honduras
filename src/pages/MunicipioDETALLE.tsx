@@ -3,6 +3,7 @@ import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio } from '../data/municipios';
+import { useNavbar } from '../context/NavbarContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -191,7 +192,7 @@ function DonutTooltip({ active, payload }: any) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MunicipioDETALLE() {
-  const [year,     setYear]     = useState<number>(2024);
+  const { fiscalYear, setFiscalYear } = useNavbar();
   const [deptCode, setDeptCode] = useState<string>('');
   const [muniId,   setMuniId]   = useState<string>('');
   const [openSections, setOpenSections] = useState<Set<string>>(
@@ -219,7 +220,7 @@ export default function MunicipioDETALLE() {
 
   const sections: AccordionSection[] = useMemo(() => {
     if (!muni) return [];
-    const evo       = muni.evolucion?.find((e: any) => e.year === year);
+    const evo       = muni.evolucion?.find((e: any) => e.year === fiscalYear);
     const presupuesto = evo?.presupuesto ?? muni.presupuesto;
     const ratio       = muni.presupuesto > 0 ? presupuesto / muni.presupuesto : 1;
     const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
@@ -254,7 +255,7 @@ export default function MunicipioDETALLE() {
           { label: 'Industria, Comercio y Servicios', value: fm(tribut * 0.28) },
           { label: 'Impuesto Personal (Vecinal)',     value: fm(tribut * 0.18) },
           { label: 'Impuesto Pecuario',               value: fm(tribut * 0.12) },
-          { label: 'Extracción de Recursos',          value: fm(tribut * 0.07) },
+          { label: 'Extracción de Recursos',         value: fm(tribut * 0.07) },
         ],
       },
       {
@@ -292,13 +293,13 @@ export default function MunicipioDETALLE() {
         ],
       },
     ];
-  }, [muni]);
+  }, [muni, fiscalYear]);
 
   // ── Donut data ────────────────────────────────────────────────────────────
 
   const donutData = useMemo(() => {
     if (!muni) return [];
-    const evo   = muni.evolucion?.find((e: any) => e.year === year);
+    const evo   = muni.evolucion?.find((e: any) => e.year === fiscalYear);
     const pres  = evo?.presupuesto ?? muni.presupuesto;
     const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
     const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
@@ -311,13 +312,13 @@ export default function MunicipioDETALLE() {
       { name: 'Transferencias',      value: transferencia,   fill: '#f59e0b', pct: pct(transferencia)   },
       { name: 'Ingresos de Capital', value: otros,           fill: '#ec4899', pct: pct(otros)           },
     ].filter(d => d.value > 0);
-  }, [muni]);
+  }, [muni, fiscalYear]);
 
   // ── Top 5 ─────────────────────────────────────────────────────────────────
 
   const top5 = useMemo(() => {
     if (!muni) return [];
-    const evo   = muni.evolucion?.find((e: any) => e.year === year);
+    const evo   = muni.evolucion?.find((e: any) => e.year === fiscalYear);
     const pres  = evo?.presupuesto ?? muni.presupuesto;
     const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
     const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
@@ -334,7 +335,7 @@ export default function MunicipioDETALLE() {
     ].sort((a, b) => b.value - a.value).slice(0, 5);
     const max = items[0]?.value || 1;
     return items.map(i => ({ ...i, pct: Math.round(i.value / max * 100) }));
-  }, [muni]);
+  }, [muni, fiscalYear]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -380,8 +381,8 @@ export default function MunicipioDETALLE() {
           }}>
             <label>
               <span style={LABEL}>AÑO</span>
-              <select className="simho-select" value={year}
-                onChange={e => setYear(Number(e.target.value))}>
+              <select className="simho-select" value={fiscalYear}
+                onChange={e => setFiscalYear(Number(e.target.value))}>
                 {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
@@ -528,7 +529,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 32, fontWeight: 700, color: '#2dd4bf',
                     fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
                   }}>
-                    {L((muni.evolucion?.find((e: any) => e.year === year)?.presupuesto) ?? muni.presupuesto)}
+                    {L((muni.evolucion?.find((e: any) => e.year === fiscalYear)?.presupuesto) ?? muni.presupuesto)}
                   </div>
                 </div>
                 <div>
@@ -602,7 +603,7 @@ export default function MunicipioDETALLE() {
                     fontFamily: "'IBM Plex Mono', monospace",
                   }}>
                     {(() => {
-                      const evo = muni.evolucion?.find((e: any) => e.year === year);
+                      const evo = muni.evolucion?.find((e: any) => e.year === fiscalYear);
                       const p   = evo?.presupuesto ?? muni.presupuesto;
                       const r   = muni.presupuesto > 0 ? p / muni.presupuesto : 1;
                       return L(Math.round((muni.ingresosPropios + muni.transferencia + muni.otros) * r));

@@ -216,15 +216,20 @@ export default function MunicipioDETALLE() {
     });
   }
 
+  // ── Year snapshot — computed every render so memos always get fresh primitives ─
+
+  const yearPresupuesto: number = muni
+    ? (muni.evolucion?.find((e: any) => e.year === fiscalYear)?.presupuesto ?? muni.presupuesto)
+    : 0;
+  const scale: number = muni && muni.presupuesto > 0 ? yearPresupuesto / muni.presupuesto : 1;
+
   // ── Derived accordion sections ────────────────────────────────────────────
 
   const sections: AccordionSection[] = useMemo(() => {
-    if (!muni) return [];
-    const evo       = muni.evolucion?.find((e: any) => e.year === fiscalYear);
-    const presupuesto = evo?.presupuesto ?? muni.presupuesto;
-    const ratio       = muni.presupuesto > 0 ? presupuesto / muni.presupuesto : 1;
-    const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
-    const transferencia   = Math.round(muni.transferencia   * ratio);
+    if (!muni || !yearPresupuesto) return [];
+    const presupuesto = yearPresupuesto;
+    const ingresosPropios = Math.round(muni.ingresosPropios * scale);
+    const transferencia   = Math.round(muni.transferencia   * scale);
     const otros           = Math.max(0, presupuesto - ingresosPropios - transferencia);
     const { poblacion, area, idh, departamento } = muni;
     const tribut   = Math.round(ingresosPropios * 0.58);
@@ -255,17 +260,17 @@ export default function MunicipioDETALLE() {
           { label: 'Industria, Comercio y Servicios', value: fm(tribut * 0.28) },
           { label: 'Impuesto Personal (Vecinal)',     value: fm(tribut * 0.18) },
           { label: 'Impuesto Pecuario',               value: fm(tribut * 0.12) },
-          { label: 'Extracción de Recursos',         value: fm(tribut * 0.07) },
+          { label: 'Extracción de Recursos',          value: fm(tribut * 0.07) },
         ],
       },
       {
         key: 'ing_no_tributarios', title: 'Ingresos No Tributarios', color: '#f59e0b', amount: noTribut,
         rows: [
-          { label: 'Tasas por Servicios',        value: fm(noTribut * 0.40) },
-          { label: 'Derechos Administrativos',   value: fm(noTribut * 0.22) },
-          { label: 'Multas y Recargos',          value: fm(noTribut * 0.18) },
-          { label: 'Venta de Bienes y Servicios',value: fm(noTribut * 0.12) },
-          { label: 'Rentas de la Propiedad',     value: fm(noTribut * 0.08) },
+          { label: 'Tasas por Servicios',         value: fm(noTribut * 0.40) },
+          { label: 'Derechos Administrativos',    value: fm(noTribut * 0.22) },
+          { label: 'Multas y Recargos',           value: fm(noTribut * 0.18) },
+          { label: 'Venta de Bienes y Servicios', value: fm(noTribut * 0.12) },
+          { label: 'Rentas de la Propiedad',      value: fm(noTribut * 0.08) },
         ],
       },
       {
@@ -279,32 +284,30 @@ export default function MunicipioDETALLE() {
       {
         key: 'gast_funcionamiento', title: 'Gastos de Funcionamiento', color: '#f97316', amount: gastFunc,
         rows: [
-          { label: 'Servicios Personales',    value: fm(gastFunc * 0.58) },
-          { label: 'Servicios No Personales', value: fm(gastFunc * 0.28) },
-          { label: 'Materiales y Suministros',value: fm(gastFunc * 0.14) },
+          { label: 'Servicios Personales',     value: fm(gastFunc * 0.58) },
+          { label: 'Servicios No Personales',  value: fm(gastFunc * 0.28) },
+          { label: 'Materiales y Suministros', value: fm(gastFunc * 0.14) },
         ],
       },
       {
         key: 'gast_capital', title: 'Gastos de Capital y Deuda Pública', color: '#8b5cf6', amount: gastCap,
         rows: [
-          { label: 'Inversión en Obras',        value: fm(gastCap * 0.62) },
-          { label: 'Amortización de Deuda',     value: fm(gastCap * 0.25) },
-          { label: 'Intereses y Comisiones',    value: fm(gastCap * 0.13) },
+          { label: 'Inversión en Obras',      value: fm(gastCap * 0.62) },
+          { label: 'Amortización de Deuda',   value: fm(gastCap * 0.25) },
+          { label: 'Intereses y Comisiones',  value: fm(gastCap * 0.13) },
         ],
       },
     ];
-  }, [muni, fiscalYear]);
+  }, [muni, yearPresupuesto, scale]);
 
   // ── Donut data ────────────────────────────────────────────────────────────
 
   const donutData = useMemo(() => {
-    if (!muni) return [];
-    const evo   = muni.evolucion?.find((e: any) => e.year === fiscalYear);
-    const pres  = evo?.presupuesto ?? muni.presupuesto;
-    const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
-    const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
-    const transferencia   = Math.round(muni.transferencia   * ratio);
-    const otros           = Math.max(0, pres - ingresosPropios - transferencia);
+    if (!muni || !yearPresupuesto) return [];
+    const presupuesto     = yearPresupuesto;
+    const ingresosPropios = Math.round(muni.ingresosPropios * scale);
+    const transferencia   = Math.round(muni.transferencia   * scale);
+    const otros           = Math.max(0, presupuesto - ingresosPropios - transferencia);
     const total = ingresosPropios + transferencia + otros;
     const pct = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
     return [
@@ -312,30 +315,28 @@ export default function MunicipioDETALLE() {
       { name: 'Transferencias',      value: transferencia,   fill: '#f59e0b', pct: pct(transferencia)   },
       { name: 'Ingresos de Capital', value: otros,           fill: '#ec4899', pct: pct(otros)           },
     ].filter(d => d.value > 0);
-  }, [muni, fiscalYear]);
+  }, [muni, yearPresupuesto, scale]);
 
   // ── Top 5 ─────────────────────────────────────────────────────────────────
 
   const top5 = useMemo(() => {
-    if (!muni) return [];
-    const evo   = muni.evolucion?.find((e: any) => e.year === fiscalYear);
-    const pres  = evo?.presupuesto ?? muni.presupuesto;
-    const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
-    const ingresosPropios = Math.round(muni.ingresosPropios * ratio);
-    const transferencia   = Math.round(muni.transferencia   * ratio);
-    const otros           = Math.max(0, pres - ingresosPropios - transferencia);
+    if (!muni || !yearPresupuesto) return [];
+    const presupuesto     = yearPresupuesto;
+    const ingresosPropios = Math.round(muni.ingresosPropios * scale);
+    const transferencia   = Math.round(muni.transferencia   * scale);
+    const otros           = Math.max(0, presupuesto - ingresosPropios - transferencia);
     const tribut   = Math.round(ingresosPropios * 0.58);
     const noTribut = ingresosPropios - tribut;
     const items = [
-      { label: 'Transferencias Gobierno Central', value: transferencia,           color: '#f59e0b' },
-      { label: 'Ingresos Tributarios',            value: tribut,                  color: '#2dd4bf' },
-      { label: 'Ingresos No Tributarios',         value: noTribut,                color: '#2dd4bf' },
-      { label: 'Ingresos de Capital',             value: otros,                   color: '#ec4899' },
+      { label: 'Transferencias Gobierno Central', value: transferencia,               color: '#f59e0b' },
+      { label: 'Ingresos Tributarios',            value: tribut,                      color: '#2dd4bf' },
+      { label: 'Ingresos No Tributarios',         value: noTribut,                    color: '#2dd4bf' },
+      { label: 'Ingresos de Capital',             value: otros,                       color: '#ec4899' },
       { label: 'Tasas por Servicios',             value: Math.round(noTribut * 0.40), color: '#2dd4bf' },
     ].sort((a, b) => b.value - a.value).slice(0, 5);
     const max = items[0]?.value || 1;
     return items.map(i => ({ ...i, pct: Math.round(i.value / max * 100) }));
-  }, [muni, fiscalYear]);
+  }, [muni, yearPresupuesto, scale]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -529,7 +530,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 32, fontWeight: 700, color: '#2dd4bf',
                     fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
                   }}>
-                    {L((muni.evolucion?.find((e: any) => e.year === fiscalYear)?.presupuesto) ?? muni.presupuesto)}
+                    {L(yearPresupuesto)}
                   </div>
                 </div>
                 <div>
@@ -602,12 +603,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 18, fontWeight: 700, color: '#ffffff',
                     fontFamily: "'IBM Plex Mono', monospace",
                   }}>
-                    {(() => {
-                      const evo = muni.evolucion?.find((e: any) => e.year === fiscalYear);
-                      const p   = evo?.presupuesto ?? muni.presupuesto;
-                      const r   = muni.presupuesto > 0 ? p / muni.presupuesto : 1;
-                      return L(Math.round((muni.ingresosPropios + muni.transferencia + muni.otros) * r));
-                    })()}
+                    {L(Math.round((muni.ingresosPropios + muni.transferencia + muni.otros) * scale))}
                   </div>
                   <div style={{
                     fontSize: 9, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace",

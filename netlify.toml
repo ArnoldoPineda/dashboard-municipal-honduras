@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "echo 'using pre-built'"
   publish = "build"
 
 [[headers]]

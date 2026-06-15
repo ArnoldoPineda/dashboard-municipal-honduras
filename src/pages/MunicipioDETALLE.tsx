@@ -192,6 +192,7 @@ function DonutTooltip({ active, payload }: any) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MunicipioDETALLE() {
+  const _v = '2';
   const { fiscalYear, setFiscalYear } = useNavbar();
   const [deptCode, setDeptCode] = useState<string>('');
   const [muniId,   setMuniId]   = useState<string>('');
@@ -239,7 +240,7 @@ export default function MunicipioDETALLE() {
 
   const sections: AccordionSection[] = !muni ? [] : [
     {
-      key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
+      key: 'general', title: 'Información General ', color: '#2dd4bf', amount: 0,
       rows: [
         { label: 'Departamento',        value: muni.departamento },
         { label: 'Categoría Municipal', value: muniCategory(muni.poblacion) },
@@ -647,3 +648,4 @@ export default function MunicipioDETALLE() {
     </div>
   );
 }
+

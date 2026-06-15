@@ -192,7 +192,6 @@ function DonutTooltip({ active, payload }: any) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MunicipioDETALLE() {
-  const _v = '2';
   const { fiscalYear, setFiscalYear } = useNavbar();
   const [deptCode, setDeptCode] = useState<string>('');
   const [muniId,   setMuniId]   = useState<string>('');

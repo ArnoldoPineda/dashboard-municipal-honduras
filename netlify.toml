@@ -1,6 +1,9 @@
 [build]
-  command = "echo 'using pre-built'"
+  command = "echo 'skip'"
   publish = "build"
+
+[build.environment]
+  NODE_VERSION = "24"
 
 [[headers]]
   for = "/*.html"

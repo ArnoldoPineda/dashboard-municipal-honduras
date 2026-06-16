@@ -942,7 +942,12 @@ const PresupuestarioPage = () => {
                 </thead>
                 <tbody>
                   {filteredMunis.map((m: any) => {
-                    const autonomia = m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto * 100).toFixed(1) : '—';
+                    const selectedYear = selectedYears[0] ?? 2024;
+                    const evoYear = m.evolucion?.find((e: any) => e.year === selectedYear);
+                    const yearPres = evoYear?.presupuesto ?? m.presupuesto;
+                    const scale = m.presupuesto > 0 ? yearPres / m.presupuesto : 1;
+                    const yearIP = Math.round(m.ingresosPropios * scale);
+                    const autonomia = yearPres > 0 ? Math.round((yearIP / yearPres) * 1000) / 10 : 0;
                     const fmtM = (n: number) => n >= 1_000_000 ? `L ${(n / 1_000_000).toFixed(1)}M` : `L ${n.toLocaleString()}`;
                     const cat = muniCat(m.poblacion);
                     const catColor: Record<string,string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
@@ -958,9 +963,9 @@ const PresupuestarioPage = () => {
                         <td style={{ padding: '10px 16px', textAlign: 'right' }}>
                           <span style={{ color: catColor[cat] || '#9ca3af', fontWeight: 700 }}>{cat}</span>
                         </td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#2dd4bf' }}>{fmtM(m.presupuesto)}</td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{fmtM(m.ingresosPropios)}</td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{typeof autonomia === 'string' ? autonomia : `${autonomia}%`}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#2dd4bf' }}>{fmtM(yearPres)}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{fmtM(yearIP)}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{autonomia > 0 ? `${autonomia}%` : '—'}</td>
                       </tr>
                     );
                   })}

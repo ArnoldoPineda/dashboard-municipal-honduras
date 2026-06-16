@@ -84,7 +84,7 @@ function muni(id, nombre, departamento, departamentoId, poblacion, presupuesto, 
 
 const OTRAS_MUNIS = [
 
-  // ── Francisco Morazán – 27 ───────────────────────────────────────────────
+  // ── Francisco Morazán – 28 ───────────────────────────────────────────────
   muni('francisco-morazan-distrito-central',    'Distrito Central',     'Francisco Morazán','francisco-morazan',1412000,1450000000,640000000,480000000,0.702,1541.8,true),
   muni('francisco-morazan-santa-lucia',         'Santa Lucía',          'Francisco Morazán','francisco-morazan',  18400,   22000000,  5800000, 11000000,0.648, 121.5,false),
   muni('francisco-morazan-valle-de-angeles',    'Valle de Ángeles',     'Francisco Morazán','francisco-morazan',  21300,   26000000,  7200000, 13000000,0.641, 134.2,false),
@@ -106,6 +106,7 @@ const OTRAS_MUNIS = [
   muni('francisco-morazan-orica',               'Orica',                'Francisco Morazán','francisco-morazan',  12800,   14000000,  3200000,  7200000,0.596, 214.8,false),
   muni('francisco-morazan-reitoca',             'Reitoca',              'Francisco Morazán','francisco-morazan',  11200,   12000000,  2800000,  6200000,0.584, 142.6,false),
   muni('francisco-morazan-sabanagrande',        'Sabanagrande',         'Francisco Morazán','francisco-morazan',  21800,   24000000,  6000000, 12200000,0.614, 248.4,false),
+  muni('francisco-morazan-san-ana',             'San Ana',              'Francisco Morazán','francisco-morazan',   6800,    8000000,  1800000,  4200000,0.580,  76.4,false),
   muni('francisco-morazan-san-buenaventura',    'San Buenaventura',     'Francisco Morazán','francisco-morazan',   4200,    5000000,  1100000,  2700000,0.571,  68.2,false),
   muni('francisco-morazan-san-ignacio',         'San Ignacio',          'Francisco Morazán','francisco-morazan',   6400,    7000000,  1600000,  3700000,0.579,  84.6,false),
   muni('francisco-morazan-san-miguelito',       'San Miguelito',        'Francisco Morazán','francisco-morazan',   8800,   10000000,  2300000,  5200000,0.585, 112.4,false),
@@ -2581,6 +2582,58 @@ export const MUNICIPIOS = [
       }
     ],
     "categoria": "C"
+  },
+  {
+    "id": "francisco-morazan-san-ana",
+    "nombre": "San Ana",
+    "departamento": "Francisco Morazán",
+    "departamentoId": "francisco-morazan",
+    "poblacion": 6800,
+    "presupuesto": 8000000,
+    "ingresosPropios": 1800000,
+    "transferencia": 4200000,
+    "otros": 2000000,
+    "idh": 0.58,
+    "area": 76.4,
+    "isCapital": false,
+    "evolucion": [
+      {
+        "year": 2019,
+        "presupuesto": 6281282,
+        "poblacion": 6185
+      },
+      {
+        "year": 2020,
+        "presupuesto": 6519971,
+        "poblacion": 6315
+      },
+      {
+        "year": 2021,
+        "presupuesto": 6793810,
+        "poblacion": 6445
+      },
+      {
+        "year": 2022,
+        "presupuesto": 7140294,
+        "poblacion": 6560
+      },
+      {
+        "year": 2023,
+        "presupuesto": 7525870,
+        "poblacion": 6680
+      },
+      {
+        "year": 2024,
+        "presupuesto": 8000000,
+        "poblacion": 6800
+      },
+      {
+        "year": 2025,
+        "presupuesto": 8304000,
+        "poblacion": 6915
+      }
+    ],
+    "categoria": "D"
   },
   {
     "id": "francisco-morazan-san-buenaventura",

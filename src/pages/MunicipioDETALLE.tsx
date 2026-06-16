@@ -25,13 +25,12 @@ function formatMoney(n: number): string {
   return `L ${fmtF.format(n)}`;
 }
 
-function muniCategory(pop: number): string {
-  if (pop >= 80000) return 'Categoría A — Municipio Grande';
-  if (pop >= 40000) return 'Categoría B — Municipio Mediano';
-  if (pop >= 15000) return 'Categoría C — Municipio Intermedio';
-  if (pop >= 5000)  return 'Categoría D — Municipio Pequeño';
-  return 'Categoría E — Municipio Rural';
-}
+const CATEGORIA_LABEL: Record<string, string> = {
+  A: 'Categoría A — Municipio Grande',
+  B: 'Categoría B — Municipio Mediano',
+  C: 'Categoría C — Municipio Intermedio',
+  D: 'Categoría D — Municipio Pequeño',
+};
 
 function getDeptMunis(code: string): { id: string; name: string }[] {
   if (!code) return [];
@@ -218,8 +217,12 @@ export default function MunicipioDETALLE() {
 
   // ── Year snapshot — computed every render so memos always get fresh primitives ─
 
+  const yearEvo: any = muni?.evolucion?.find((e: any) => e.year === fiscalYear);
   const yearPresupuesto: number = muni
-    ? (muni.evolucion?.find((e: any) => e.year === fiscalYear)?.presupuesto ?? muni.presupuesto)
+    ? (yearEvo?.presupuesto ?? muni.presupuesto)
+    : 0;
+  const yearPoblacion: number = muni
+    ? (yearEvo?.poblacion ?? muni.poblacion)
     : 0;
   const scale: number = muni && muni.presupuesto > 0 ? yearPresupuesto / muni.presupuesto : 1;
 
@@ -242,10 +245,10 @@ export default function MunicipioDETALLE() {
       key: 'general', title: 'Información General ', color: '#2dd4bf', amount: 0,
       rows: [
         { label: 'Departamento',        value: muni.departamento },
-        { label: 'Categoría Municipal', value: muniCategory(muni.poblacion) },
-        { label: 'Población',           value: fmtP.format(muni.poblacion) + ' hab.' },
+        { label: 'Categoría Municipal', value: CATEGORIA_LABEL[muni.categoria] ?? `Categoría ${muni.categoria}` },
+        { label: 'Población',           value: fmtP.format(yearPoblacion) + ' hab.' },
         { label: 'Área',                value: muni.area > 0 ? `${muni.area.toFixed(1)} km²` : '—' },
-        { label: 'Densidad',            value: muni.area > 0 ? `${(muni.poblacion / muni.area).toFixed(1)} hab/km²` : '—' },
+        { label: 'Densidad',            value: muni.area > 0 && yearPoblacion > 0 ? `${(yearPoblacion / muni.area).toFixed(1)} hab/km²` : '—' },
         { label: 'IDH',                 value: muni.idh > 0 ? muni.idh.toFixed(3) : '—' },
       ],
     },

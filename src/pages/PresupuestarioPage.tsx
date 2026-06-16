@@ -74,7 +74,9 @@ const PresupuestarioPage = () => {
     return getMunicipio(selectedMuniId) || null;
   }, [selectedMuniId]);
 
-  const muniCat = (pop: number): string => {
+  const muniCat = (m: any): string => {
+    if (m.categoria) return m.categoria;
+    const pop = m.poblacion ?? 0;
     if (pop > 100000) return 'A';
     if (pop >= 20000) return 'B';
     if (pop >= 5000)  return 'C';
@@ -85,7 +87,7 @@ const PresupuestarioPage = () => {
     return (MUNICIPIOS as any[]).filter((m: any) => {
       if (selectedDeptId && m.departamentoId !== selectedDeptId) return false;
       if (muniSearch.trim() && !m.nombre.toLowerCase().includes(muniSearch.toLowerCase())) return false;
-      if (selectedCategoria && muniCat(m.poblacion) !== selectedCategoria) return false;
+      if (selectedCategoria && muniCat(m) !== selectedCategoria) return false;
       if (presupuestoMin > 0 && m.presupuesto < presupuestoMin) return false;
       return true;
     }).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'));
@@ -949,7 +951,7 @@ const PresupuestarioPage = () => {
                     const yearIP = Math.round(m.ingresosPropios * scale);
                     const autonomia = yearPres > 0 ? Math.round((yearIP / yearPres) * 1000) / 10 : 0;
                     const fmtM = (n: number) => n >= 1_000_000 ? `L ${(n / 1_000_000).toFixed(1)}M` : `L ${n.toLocaleString()}`;
-                    const cat = muniCat(m.poblacion);
+                    const cat = muniCat(m);
                     const catColor: Record<string,string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
                     return (
                       <tr key={m.id}

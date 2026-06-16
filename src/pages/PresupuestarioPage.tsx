@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
-import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio } from '../data/municipios';
+import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio, MUNICIPIOS } from '../data/municipios';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -73,6 +73,23 @@ const PresupuestarioPage = () => {
     if (!selectedMuniId) return null;
     return getMunicipio(selectedMuniId) || null;
   }, [selectedMuniId]);
+
+  const muniCat = (pop: number): string => {
+    if (pop > 100000) return 'A';
+    if (pop >= 20000) return 'B';
+    if (pop >= 5000)  return 'C';
+    return 'D';
+  };
+
+  const filteredMunis: any[] = useMemo(() => {
+    return (MUNICIPIOS as any[]).filter((m: any) => {
+      if (selectedDeptId && m.departamentoId !== selectedDeptId) return false;
+      if (muniSearch.trim() && !m.nombre.toLowerCase().includes(muniSearch.toLowerCase())) return false;
+      if (selectedCategoria && muniCat(m.poblacion) !== selectedCategoria) return false;
+      if (presupuestoMin > 0 && m.presupuesto < presupuestoMin) return false;
+      return true;
+    }).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'));
+  }, [selectedDeptId, muniSearch, selectedCategoria, presupuestoMin]);
 
   if (loading) {
     return (
@@ -671,15 +688,6 @@ const PresupuestarioPage = () => {
               298 registros · ejercicio 2024
             </div>
           </div>
-          <button style={{
-            border: '1px solid rgba(0,212,184,0.5)', color: '#2dd4bf',
-            background: '#0d1628', borderRadius: 8, padding: '12px 20px',
-            fontFamily: "'IBM Plex Mono', monospace", fontSize: 12,
-            textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.08em',
-            flexShrink: 0, marginTop: 8,
-          }}>
-            ↓ EXPORTAR CSV
-          </button>
         </div>
 
         {/* ── FILTER CARD ── */}
@@ -912,16 +920,60 @@ const PresupuestarioPage = () => {
           </div>
         )}
 
-        {/* MENSAJE INICIAL */}
+        {/* TABLA DE MUNICIPIOS — visible cuando no hay municipio seleccionado */}
         {!selectedMockMuni && !selectedMunicipality && (
-          <div
-            className={`bg-blue-50 border-l-4 border-blue-600 rounded-lg text-center ${
-              isMobile ? 'p-4' : 'p-6'
-            }`}
-          >
-            <p className={`text-gray-600 ${isMobile ? 'text-sm' : 'text-lg'}`}>
-              👆 Selecciona departamento y municipio para comenzar
-            </p>
+          <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{
+              padding: '12px 20px', borderBottom: '1px solid #1f2937',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span style={{ fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                {filteredMunis.length} municipios
+              </span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #1f2937' }}>
+                    {['Municipio', 'Departamento', 'Cat.', 'Presupuesto', 'Ing. Propios', 'Autonomía'].map(h => (
+                      <th key={h} style={{ textAlign: h === 'Municipio' || h === 'Departamento' ? 'left' : 'right', padding: '10px 16px', color: '#4a5a73', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: 9 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMunis.map((m: any) => {
+                    const autonomia = m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto * 100).toFixed(1) : '—';
+                    const fmtM = (n: number) => n >= 1_000_000 ? `L ${(n / 1_000_000).toFixed(1)}M` : `L ${n.toLocaleString()}`;
+                    const cat = muniCat(m.poblacion);
+                    const catColor: Record<string,string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
+                    return (
+                      <tr key={m.id}
+                        onClick={() => { setSelectedMuniId(m.id); setSelectedMunicipality(m.nombre); setSelectedDeptId(m.departamentoId); }}
+                        style={{ borderBottom: '1px solid #1a2232', cursor: 'pointer', transition: 'background 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#0d1628')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '10px 16px', color: '#e8eef6', fontWeight: 600 }}>{m.nombre}</td>
+                        <td style={{ padding: '10px 16px', color: '#7c8aa3' }}>{m.departamento}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right' }}>
+                          <span style={{ color: catColor[cat] || '#9ca3af', fontWeight: 700 }}>{cat}</span>
+                        </td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#2dd4bf' }}>{fmtM(m.presupuesto)}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{fmtM(m.ingresosPropios)}</td>
+                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{typeof autonomia === 'string' ? autonomia : `${autonomia}%`}</td>
+                      </tr>
+                    );
+                  })}
+                  {filteredMunis.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: '#4a5a73' }}>
+                        Sin municipios para los filtros seleccionados
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>  {/* end flex column */}

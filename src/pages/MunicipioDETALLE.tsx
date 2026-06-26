@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio } from '../data/municipios';
+import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio, MUNICIPIOS } from '../data/municipios';
 import { useNavbar } from '../context/NavbarContext';
+import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,56 @@ const CATEGORIA_LABEL: Record<string, string> = {
   C: 'Categoría C — Municipio Intermedio',
   D: 'Categoría D — Municipio Pequeño',
 };
+
+const DEPT_CODES: Record<string, string> = {
+  'atlantida': '01', 'choluteca': '02', 'colon': '03', 'comayagua': '04',
+  'copan': '05', 'cortes': '06', 'el-paraiso': '07', 'francisco-morazan': '08',
+  'gracias-a-dios': '09', 'intibuca': '10', 'islas-de-la-bahia': '11',
+  'la-paz': '12', 'lempira': '13', 'ocotepeque': '14', 'olancho': '15',
+  'santa-barbara': '16', 'valle': '17', 'yoro': '18',
+};
+
+const DEPT_ORDER: Record<string, number> = Object.fromEntries(
+  Object.entries(DEPT_CODES).map(([k, v]) => [k, parseInt(v, 10)])
+);
+
+const ALL_MUNIS_SORTED: any[] = [...(MUNICIPIOS as any[])].sort((a, b) => {
+  const oa = DEPT_ORDER[a.departamentoId] ?? 99;
+  const ob = DEPT_ORDER[b.departamentoId] ?? 99;
+  if (oa !== ob) return oa - ob;
+  return a.nombre.localeCompare(b.nombre, 'es');
+});
+
+function fmtPct(n: number | null | undefined): string {
+  if (n === null || n === undefined) return '—';
+  return `${n.toFixed(1)}%`;
+}
+
+function fmtSigned(n: number | null | undefined): string {
+  if (n === null || n === undefined) return '—';
+  if (n === 0) return 'L 0';
+  const abs = Math.abs(n);
+  const label = abs >= 1_000_000_000 ? `L ${(abs / 1_000_000_000).toFixed(1)} mil M`
+              : abs >= 1_000_000     ? `L ${(abs / 1_000_000).toFixed(1)} M`
+              : `L ${fmtF.format(abs)}`;
+  return n < 0 ? `−${label}` : label;
+}
+
+// Municipios que reportan bajo sistema RGL (NO SAMI).
+// Para estos, `INGRESOS_NO_TRIBUTARIOS` no es confiable y se excluye de G2.
+// Los 288 municipios restantes usan SAMI y sí incluyen ese campo en G2.
+const NO_SAMI_IDS = new Set([
+  'atlantida-la-ceiba',
+  'comayagua-comayagua',
+  'comayagua-siguatepeque',
+  'cortes-san-pedro-sula',
+  'cortes-puerto-cortes',
+  'cortes-villanueva',
+  'cortes-la-lima',
+  'francisco-morazan-distrito-central',
+  'francisco-morazan-el-porvenir',
+  'yoro-el-progreso',
+]);
 
 function getDeptMunis(code: string): { id: string; name: string }[] {
   if (!code) return [];
@@ -87,7 +138,7 @@ function AccordionItem({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const isInfo = section.key === 'general';
+  const isInfo = section.key === 'general' || section.key === 'notas';
   return (
     <div style={{
       background: 'rgba(13,21,38,0.74)',
@@ -195,12 +246,24 @@ export default function MunicipioDETALLE() {
   const [deptCode, setDeptCode] = useState<string>('');
   const [muniId,   setMuniId]   = useState<string>('');
   const [openSections, setOpenSections] = useState<Set<string>>(
-    new Set(['general', 'ing_tributarios', 'ing_no_tributarios',
-             'ing_capital', 'gast_funcionamiento', 'gast_capital'])
+    new Set(['general', 'resumen', 'ing_tributarios', 'ing_no_tributarios',
+             'ing_transferencias', 'ing_capital', 'gast_funcionamiento', 'gast_capital',
+             'resultado', 'notas'])
   );
 
   const deptMunis = useMemo(() => getDeptMunis(deptCode), [deptCode]);
   const muni: any = useMemo(() => muniId ? getMunicipio(muniId) : null, [muniId]);
+
+  // Supabase data for the selected year
+  const { municipalities } = useMunicipalitiesMultiYear([fiscalYear]);
+  const sb = useMemo(() => {
+    if (!muni) return null;
+    const norm = (s: string) =>
+      s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+    return municipalities.find(
+      m => norm(m.name) === norm(muni.nombre) && norm(m.department) === norm(muni.departamento)
+    ) ?? null;
+  }, [municipalities, muni]);
 
   function handleDeptChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setDeptCode(e.target.value);
@@ -237,24 +300,133 @@ export default function MunicipioDETALLE() {
   const _gFunc  = Math.round(_pres * 0.63);
   const _gCap   = _pres - _gFunc;
   const fm      = (v: number) => formatMoney(Math.round(v));
+  const fmZ     = (v: number | null | undefined): string => {
+    const n = Math.round(v ?? 0);
+    if (n === 0) return 'L 0';
+    if (n >= 1_000_000_000) return `L ${(n / 1_000_000_000).toFixed(1)} mil M`;
+    if (n >= 1_000_000)     return `L ${(n / 1_000_000).toFixed(1)} M`;
+    return `L ${fmtF.format(n)}`;
+  };
+
+  const codDep = muni ? (DEPT_CODES[muni.departamentoId] ?? '—') : '—';
+  const codMun = muni && muniId
+    ? String(deptMunis.findIndex(m => m.id === muniId) + 1).padStart(2, '0')
+    : '—';
+  const noMun  = muni
+    ? ALL_MUNIS_SORTED.findIndex((m: any) => m.id === muni.id) + 1
+    : 0;
+
+  // ── Sistema fuente: SAMI (288 munis) vs RGL/NO-SAMI (10 munis grandes) ────
+  const isSAMI: boolean = muni ? !NO_SAMI_IDS.has(muni.id) : true;
+
+  // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
+  const g1 = sb
+    ? (sb.impuesto_bi ?? 0) + (sb.impuesto_personal ?? 0)
+      + (sb.impuesto_industria ?? 0) + (sb.impuesto_comercio ?? 0)
+      + (sb.impuesto_servicios ?? 0) + (sb.impuesto_pecuario ?? 0)
+      + (sb.impuesto_extraccion ?? 0) + (sb.impuesto_telecomunicaciones ?? 0)
+    : _tribut;
+
+  // G2: SAMI incluye INGRESOS_NO_TRIBUTARIOS (multas, mora, recargos);
+  //     RGL/NO-SAMI solo tasas + derechos (el campo subtotal RGL no es confiable).
+  const g2 = sb
+    ? (sb.tasas_servicios ?? 0) + (sb.derechos ?? 0)
+      + (isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0)
+    : _noTrib;
+
+  // G3: TRANSFERENCIAS ya incluye Art.91 + otras (no desagregable en el Excel SEFIN).
+  //     OTRAS_TRANSFERENCIAS siempre = 0 en ambos sistemas, se omite.
+  const g3 = sb
+    ? (sb.transferencias_art91 ?? 0)
+      + (sb.subsidios ?? 0) + (sb.herencias_legados ?? 0)
+    : _trans;
+
+  const g4 = sb
+    ? (sb.venta_activos ?? 0) + (sb.contribuciones ?? 0)
+      + (sb.prestamos ?? 0) + (sb.colocacion_bonos ?? 0)
+      + (sb.otros_ingresos_capital ?? 0) + (sb.recursos_balance ?? 0)
+    : _otros;
+
+  // AF SEFIN Oficial: usa campos directos para comparabilidad con reportes del gobierno
+  const afSEFIN: number = sb && (sb.ingresos_recaudados ?? 0) > 0
+    ? (sb.ingresos_propios ?? 0) / (sb.ingresos_recaudados as number) * 100
+    : _pres > 0 ? (_ip / _pres * 100) : 0;
+
+  // AF Operativa SIMHO: (G1+G2) / (Recaudados − Balance). Corrige errores de clasificación SEFIN.
+  const afOperativa: number = sb && (sb.ingresos_recaudados ?? 0) > 0
+    ? (g1 + g2) / Math.max(1, (sb.ingresos_recaudados as number) - (sb.recursos_balance ?? 0)) * 100
+    : _pres > 0 ? ((_tribut + _noTrib) / _pres * 100) : 0;
+
+  // Gap AF: diferencia entre métrica oficial y métrica corregida SIMHO
+  const afGap: number = afSEFIN - afOperativa;
 
   // ── Accordion sections ────────────────────────────────────────────────────
 
   const sections: AccordionSection[] = !muni ? [] : [
     {
-      key: 'general', title: 'Información General ', color: '#2dd4bf', amount: 0,
+      key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
       rows: [
+        { label: 'No. Municipio',       value: noMun > 0 ? String(noMun).padStart(3, '0') : '—' },
+        { label: 'Cód. Departamento',   value: codDep },
+        { label: 'Cód. Municipio',      value: codMun },
         { label: 'Departamento',        value: muni.departamento },
+        { label: 'Municipio',           value: muni.nombre },
         { label: 'Categoría Municipal', value: CATEGORIA_LABEL[muni.categoria] ?? `Categoría ${muni.categoria}` },
-        { label: 'Población',           value: fmtP.format(yearPoblacion) + ' hab.' },
+        { label: 'Pob. Ajustada 2002',  value: sb?.population ? fmtP.format(Number(sb.population)) + ' hab.' : fmtP.format(yearPoblacion) + ' hab.' },
         { label: 'Área',                value: muni.area > 0 ? `${muni.area.toFixed(1)} km²` : '—' },
         { label: 'Densidad',            value: muni.area > 0 && yearPoblacion > 0 ? `${(yearPoblacion / muni.area).toFixed(1)} hab/km²` : '—' },
         { label: 'IDH',                 value: muni.idh > 0 ? muni.idh.toFixed(3) : '—' },
       ],
     },
     {
-      key: 'ing_tributarios', title: 'Ingresos Tributarios', color: '#2dd4bf', amount: _tribut,
-      rows: [
+      key: 'resumen', title: 'Resumen Financiero', color: '#06b6d4',
+      amount: sb?.presupuesto_municipal ?? yearPresupuesto,
+      rows: sb ? ([
+        { label: 'Presupuesto Municipal',         value: fmZ(sb.presupuesto_municipal)   },
+        { label: 'Gastos Presupuestados',         value: fmZ(sb.gastos_presupuestados)   },
+        { label: 'Ingresos Recaudados',           value: fmZ(sb.ingresos_recaudados)     },
+        { label: 'Ingresos Propios (SEFIN)',      value: fmZ(sb.ingresos_propios)        },
+        { label: 'G1 Tributarios (SIMHO)',        value: fmZ(g1)                         },
+        { label: 'G2 No Tributarios (SIMHO)',     value: fmZ(g2)                         },
+        { label: 'G3 Transferencias (SIMHO)',     value: fmZ(g3)                         },
+        { label: 'G4 Capital y Financ. (SIMHO)',  value: fmZ(g4)                         },
+        ...(!isSAMI ? [
+          { label: 'Gap sin columna RGL',         value: fmZ(sb.ingresos_no_tributarios) },
+        ] : []),
+        { label: 'AF SEFIN Oficial',              value: fmtPct(afSEFIN)                 },
+        { label: 'AF Operativa (SIMHO)',          value: fmtPct(afOperativa)             },
+        { label: 'Gap AF (SEFIN − Operativa)',    value: fmtPct(afGap)                   },
+        { label: 'Ingresos Corrientes',           value: fmZ(sb.ingresos_corrientes)     },
+        { label: 'Sistema fuente',                value: isSAMI ? 'SAMI' : 'RGL (NO-SAMI)' },
+      ] as {label:string;value:string}[]) : [
+        { label: 'Presupuesto Municipal',        value: fm(yearPresupuesto)               },
+        { label: 'Gastos Presupuestados',        value: fm(yearPresupuesto)               },
+        { label: 'Ingresos Recaudados',          value: fm(yearPresupuesto)               },
+        { label: 'Ingresos Propios (est.)',      value: fm(_ip)                           },
+        { label: 'G1 Tributarios (est.)',        value: fm(_tribut)                       },
+        { label: 'G2 No Tributarios (est.)',     value: fm(_noTrib)                       },
+        { label: 'G3 Transferencias (est.)',     value: fm(_trans)                        },
+        { label: 'G4 Capital (est.)',            value: fm(_otros)                        },
+        { label: 'AF SEFIN (est.)',              value: fmtPct(afSEFIN)                   },
+        { label: 'AF Operativa (est.)',          value: fmtPct(afOperativa)               },
+        { label: 'Gap AF (SEFIN − Operativa)',   value: fmtPct(afGap)                     },
+      ],
+    },
+    {
+      key: 'ing_tributarios',
+      title: 'G1 — Ingresos Tributarios',
+      color: '#2dd4bf',
+      amount: g1,
+      rows: sb ? [
+        { label: 'Impuesto s/Bienes Inmuebles', value: fmZ(sb.impuesto_bi)                  },
+        { label: 'Impuesto Personal (Vecinal)',  value: fmZ(sb.impuesto_personal)            },
+        { label: 'Impuesto s/Industria',         value: fmZ(sb.impuesto_industria)           },
+        { label: 'Impuesto s/Comercio',          value: fmZ(sb.impuesto_comercio)            },
+        { label: 'Impuesto s/Servicios',         value: fmZ(sb.impuesto_servicios)           },
+        { label: 'Impuesto Pecuario',            value: fmZ(sb.impuesto_pecuario)            },
+        { label: 'Impuesto s/Extracción',        value: fmZ(sb.impuesto_extraccion)          },
+        { label: 'Impuesto Telecomunicaciones',  value: fmZ(sb.impuesto_telecomunicaciones)  },
+      ] : [
         { label: 'Impuesto sobre Bienes Inmuebles', value: fm(_tribut * 0.35) },
         { label: 'Industria, Comercio y Servicios', value: fm(_tribut * 0.28) },
         { label: 'Impuesto Personal (Vecinal)',     value: fm(_tribut * 0.18) },
@@ -263,37 +435,110 @@ export default function MunicipioDETALLE() {
       ],
     },
     {
-      key: 'ing_no_tributarios', title: 'Ingresos No Tributarios', color: '#f59e0b', amount: _noTrib,
-      rows: [
-        { label: 'Tasas por Servicios',         value: fm(_noTrib * 0.40) },
-        { label: 'Derechos Administrativos',    value: fm(_noTrib * 0.22) },
-        { label: 'Multas y Recargos',           value: fm(_noTrib * 0.18) },
-        { label: 'Venta de Bienes y Servicios', value: fm(_noTrib * 0.12) },
-        { label: 'Rentas de la Propiedad',      value: fm(_noTrib * 0.08) },
+      key: 'ing_no_tributarios',
+      title: 'G2 — Ingresos No Tributarios Propios',
+      color: '#f59e0b',
+      amount: g2,
+      rows: sb ? ([
+        { label: 'Tasas por Servicios', value: fmZ(sb.tasas_servicios) },
+        { label: 'Derechos',            value: fmZ(sb.derechos)        },
+        ...(isSAMI ? [
+          { label: 'Otros (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios) },
+        ] : []),
+      ] as {label:string;value:string}[]) : [
+        { label: 'Tasas por Servicios',      value: fm(_noTrib * 0.53) },
+        { label: 'Derechos Administrativos', value: fm(_noTrib * 0.47) },
       ],
     },
     {
-      key: 'ing_capital', title: 'Ingresos de Capital', color: '#ec4899', amount: _otros,
-      rows: [
-        { label: 'Transferencias de Capital', value: fm(_otros * 0.55) },
-        { label: 'Donaciones Externas',        value: fm(_otros * 0.30) },
-        { label: 'Venta de Activos',           value: fm(_otros * 0.15) },
+      key: 'ing_transferencias',
+      title: 'G3 — Transferencias',
+      color: '#ec4899',
+      amount: g3,
+      rows: sb ? [
+        { label: 'Transferencias',           value: fmZ(sb.transferencias_art91)  },
+        { label: 'Subsidios',                value: fmZ(sb.subsidios)             },
+        { label: 'Herencias, Leg. y Donac.', value: fmZ(sb.herencias_legados)     },
+      ] : [
+        { label: 'Transferencias', value: fm(_trans) },
       ],
     },
     {
-      key: 'gast_funcionamiento', title: 'Gastos de Funcionamiento', color: '#f97316', amount: _gFunc,
-      rows: [
+      key: 'ing_capital',
+      title: 'G4 — Recursos de Capital y Financiamiento',
+      color: '#a855f7',
+      amount: g4,
+      rows: sb ? [
+        { label: 'Venta de Activos',                  value: fmZ(sb.venta_activos)    },
+        { label: 'Contribución por Mejoras (Art.85)', value: fmZ(sb.contribuciones)   },
+        { label: 'Préstamos',                    value: fmZ(sb.prestamos)              },
+        { label: 'Colocación en Bonos',          value: fmZ(sb.colocacion_bonos)       },
+        { label: 'Otros Ingresos de Capital',    value: fmZ(sb.otros_ingresos_capital) },
+        { label: 'Recursos de Balance ★',        value: fmZ(sb.recursos_balance)       },
+      ] : [
+        { label: 'Recursos de Capital',   value: fm(_otros * 0.60) },
+        { label: 'Préstamos',             value: fm(_otros * 0.25) },
+        { label: 'Recursos de Balance ★', value: fm(_otros * 0.15) },
+      ],
+    },
+    {
+      key: 'gast_funcionamiento', title: 'Gastos de Funcionamiento', color: '#f97316',
+      amount: sb?.gastos_funcionamiento ?? _gFunc,
+      rows: sb ? [
+        { label: 'Servicios Personales',      value: fmZ(sb.servicios_personales)      },
+        { label: 'Servicios No Personales',   value: fmZ(sb.servicios_no_personales)   },
+        { label: 'Materiales, Sumin. y Maq.', value: fmZ(sb.materiales_suministro)     },
+        { label: 'Transferencias Corrientes', value: fmZ(sb.transferencias_corrientes) },
+        { label: 'Otros',                     value: fmZ(sb.otros_gastos)              },
+      ] : [
         { label: 'Servicios Personales',     value: fm(_gFunc * 0.58) },
         { label: 'Servicios No Personales',  value: fm(_gFunc * 0.28) },
         { label: 'Materiales y Suministros', value: fm(_gFunc * 0.14) },
       ],
     },
     {
-      key: 'gast_capital', title: 'Gastos de Capital y Deuda Pública', color: '#8b5cf6', amount: _gCap,
-      rows: [
+      key: 'gast_capital', title: 'Gastos de Capital y Deuda Pública', color: '#8b5cf6',
+      amount: sb?.gastos_capital_deuda ?? _gCap,
+      rows: sb ? [
+        { label: 'Bienes Capitalizables', value: fmZ(sb.bienes_capitalizables)  },
+        { label: 'Transferencias',        value: fmZ(sb.transferencias_capital) },
+        { label: 'Activos Financieros',   value: fmZ(sb.activos_financieros)    },
+        { label: 'Servicios de Deuda',    value: fmZ(sb.servicios_deuda)        },
+        { label: 'Otros Gastos',          value: fmZ(sb.otros_gastos_capital)   },
+        { label: 'Asignaciones Globales', value: fmZ(sb.asignaciones_globales)  },
+      ] : [
         { label: 'Inversión en Obras',     value: fm(_gCap * 0.62) },
         { label: 'Amortización de Deuda',  value: fm(_gCap * 0.25) },
         { label: 'Intereses y Comisiones', value: fm(_gCap * 0.13) },
+      ],
+    },
+    {
+      key: 'resultado', title: 'Resultado Fiscal', color: '#a78bfa',
+      amount: sb?.total_egresos ?? yearPresupuesto,
+      rows: sb ? [
+        { label: 'Total Egresos',              value: fmZ(sb.total_egresos)              },
+        { label: 'Superávit / Déficit',        value: fmtSigned(sb.superavit_deficit)    },
+        { label: 'Gasto Corriente',            value: fmZ(sb.gasto_corriente)            },
+        { label: 'Ingreso Corriente Ajustado', value: fmZ(sb.ingreso_corriente_ajustado) },
+      ] : [
+        { label: 'Total Egresos (est.)',              value: fm(yearPresupuesto)                  },
+        { label: 'Superávit / Déficit (est.)',        value: fmtSigned(Math.round(_pres * 0.04))  },
+        { label: 'Gasto Corriente (est.)',            value: fm(_gFunc)                           },
+        { label: 'Ingreso Corriente Ajustado (est.)', value: fm(_ip + _trans)                     },
+      ],
+    },
+    {
+      key: 'notas', title: 'Notas Metodológicas', color: '#6b7280', amount: 0,
+      rows: [
+        { label: 'G1 — Tributarios',        value: 'Suma directa de 8 impuestos (Art.75 Ley). No usa el subtotal "INGRESOS TRIBUTARIOS" de SEFIN, que tiene errores sistemáticos de clasificación.' },
+        { label: 'Tasas y Derechos',         value: 'Clasificados como no tributarios en el Manual SEFIN 2018 (Tipo 12.5), aunque el Art.73 Ley los define como tributarios. SIMHO sigue el Manual para coherencia con la fuente.' },
+        { label: 'Contribución por Mejoras', value: 'Cobro a propietarios beneficiados por obras (Art.85 Ley). Registrada en Forma 11 de capital (código 23). Se muestra en G4 por estructura presupuestaria SEFIN.' },
+        { label: 'Transferencias',           value: 'La columna TRANSFERENCIAS incluye Art.91 (5% tributos nacionales) junto con otras transferencias corrientes y de capital. No es posible desagregarlas con los datos del Excel SEFIN.' },
+        { label: '★ Recursos de Balance',    value: 'Saldo de caja del ejercicio anterior (disminución de activos financieros). No es un ingreso generado en el período actual. Excluido del denominador de AF Operativa.' },
+        { label: 'AF SEFIN vs Operativa',    value: 'AF SEFIN usa campos directos SEFIN (comparabilidad con reportes oficiales). AF Operativa corrige errores de clasificación y excluye Recursos de Balance del denominador. El Gap indica la magnitud de la distorsión.' },
+        { label: 'SAMI vs RGL',              value: '288 municipios usan SAMI (cuarto trimestre); 10 municipios grandes usan RGL. Solo en SAMI el campo "Ingresos No Tributarios" es una agregación legítima de multas, mora y recargos — se incluye en G2. En RGL ese campo es un subtotal con errores y se excluye.' },
+        { label: 'NO-SAMI (10 munis)',        value: 'Distrito Central, San Pedro Sula, La Ceiba, El Progreso, Puerto Cortés, Villanueva, La Lima, Comayagua, Siguatepeque, El Porvenir (FM). Su G2 = Tasas + Derechos únicamente.' },
+        { label: 'Impuesto Pecuario',         value: 'Uno de los 5 impuestos municipales oficiales (Art.75 y 82 Ley). Se muestra aunque el valor sea cero para reflejar la estructura legal completa.' },
       ],
     },
   ];
@@ -301,27 +546,47 @@ export default function MunicipioDETALLE() {
   // ── Donut data ────────────────────────────────────────────────────────────
 
   const donutData = !muni ? [] : (() => {
-    const total = _ip + _trans + _otros;
+    if (sb) {
+      const total = g1 + g2 + g3 + g4;
+      const pct   = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
+      return [
+        { name: 'G1 Tributarios',             value: g1, fill: '#2dd4bf', pct: pct(g1) },
+        { name: 'G2 No Tributarios Propios',  value: g2, fill: '#06b6d4', pct: pct(g2) },
+        { name: 'G3 Transferencias',          value: g3, fill: '#f59e0b', pct: pct(g3) },
+        { name: 'G4 Capital y Financ.',       value: g4, fill: '#a855f7', pct: pct(g4) },
+      ].filter(d => d.value > 0);
+    }
+    const total = _tribut + _noTrib + _trans + _otros;
     const pct   = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
     return [
-      { name: 'Ingresos Propios',    value: _ip,     fill: '#2dd4bf', pct: pct(_ip)    },
-      { name: 'Transferencias',      value: _trans,  fill: '#f59e0b', pct: pct(_trans) },
-      { name: 'Ingresos de Capital', value: _otros,  fill: '#ec4899', pct: pct(_otros) },
+      { name: 'G1 Tributarios',    value: _tribut, fill: '#2dd4bf', pct: pct(_tribut) },
+      { name: 'G2 No Tributarios', value: _noTrib, fill: '#06b6d4', pct: pct(_noTrib) },
+      { name: 'G3 Transferencias', value: _trans,  fill: '#f59e0b', pct: pct(_trans)  },
+      { name: 'G4 Capital',        value: _otros,  fill: '#a855f7', pct: pct(_otros)  },
     ].filter(d => d.value > 0);
   })();
 
   // ── Top 5 ─────────────────────────────────────────────────────────────────
 
   const top5 = !muni ? [] : (() => {
-    const items = [
-      { label: 'Transferencias Gobierno Central', value: _trans,                      color: '#f59e0b' },
-      { label: 'Ingresos Tributarios',            value: _tribut,                     color: '#2dd4bf' },
-      { label: 'Ingresos No Tributarios',         value: _noTrib,                     color: '#2dd4bf' },
-      { label: 'Ingresos de Capital',             value: _otros,                      color: '#ec4899' },
-      { label: 'Tasas por Servicios',             value: Math.round(_noTrib * 0.40),  color: '#2dd4bf' },
-    ].sort((a, b) => b.value - a.value).slice(0, 5);
-    const max = items[0]?.value || 1;
-    return items.map(i => ({ ...i, pct: Math.round(i.value / max * 100) }));
+    const items = sb ? [
+      { label: 'G1 Tributarios',            value: g1, color: '#2dd4bf' },
+      { label: 'G2 No Tributarios Propios', value: g2, color: '#06b6d4' },
+      { label: 'G3 Transferencias',         value: g3, color: '#f59e0b' },
+      { label: 'G4 Capital y Financ.',      value: g4, color: '#a855f7' },
+      { label: 'Transferencias Art. 91',    value: sb.transferencias_art91 ?? 0,  color: '#f59e0b' },
+      { label: 'Imp. Bienes Inmuebles',     value: sb.impuesto_bi ?? 0,           color: '#2dd4bf' },
+      { label: 'Tasas por Servicios',       value: sb.tasas_servicios ?? 0,       color: '#06b6d4' },
+      { label: 'Imp. Ind./Com./Serv.',      value: (sb.impuesto_industria ?? 0) + (sb.impuesto_comercio ?? 0) + (sb.impuesto_servicios ?? 0), color: '#2dd4bf' },
+    ] : [
+      { label: 'G1 Tributarios',    value: _tribut, color: '#2dd4bf' },
+      { label: 'G2 No Tributarios', value: _noTrib, color: '#06b6d4' },
+      { label: 'G3 Transferencias', value: _trans,  color: '#f59e0b' },
+      { label: 'G4 Capital',        value: _otros,  color: '#a855f7' },
+    ];
+    const sorted = [...items].sort((a, b) => b.value - a.value).slice(0, 5);
+    const max = sorted[0]?.value || 1;
+    return sorted.map(i => ({ ...i, pct: Math.round(i.value / max * 100) }));
   })();
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -516,7 +781,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 32, fontWeight: 700, color: '#2dd4bf',
                     fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
                   }}>
-                    {L(yearPresupuesto)}
+                    {L(sb?.ingresos_recaudados ?? yearPresupuesto)}
                   </div>
                 </div>
                 <div>

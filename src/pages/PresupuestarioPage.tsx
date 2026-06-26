@@ -19,6 +19,74 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+// ── SEFIN table helpers ────────────────────────────────────────────────────────
+const normalize = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+const COD_DEP_MAP: Record<string, string> = {
+  'atlantida': '01', 'colon': '02', 'comayagua': '03', 'copan': '04',
+  'cortes': '05', 'choluteca': '06', 'el paraiso': '07', 'francisco morazan': '08',
+  'gracias a dios': '09', 'intibuca': '10', 'islas de la bahia': '11', 'la paz': '12',
+  'lempira': '13', 'ocotepeque': '14', 'olancho': '15', 'santa barbara': '16',
+  'valle': '17', 'yoro': '18',
+};
+
+const SEFIN_COLUMNS: { key: string; header: string; isText?: boolean }[] = [
+  { key: 'no_mun',                     header: 'No. MUN.',                          isText: true },
+  { key: 'cod_dep',                    header: 'COD. DEP',                          isText: true },
+  { key: 'cod_mun',                    header: 'COD. MUN.',                         isText: true },
+  { key: 'department',                 header: 'DEPARTAMENTO',                      isText: true },
+  { key: 'name',                       header: 'MUNICIPIO',                         isText: true },
+  { key: 'categoria',                  header: 'CATEGORIA',                         isText: true },
+  { key: 'population',                 header: 'POBLACION AJUSTADA 2002' },
+  { key: 'presupuesto_municipal',      header: 'PRESUPUESTO MUNICIPAL' },
+  { key: 'gastos_presupuestados',      header: 'GASTOS PRESUPUESTADOS' },
+  { key: 'ingresos_propios',           header: 'INGRESOS PROPIOS' },
+  { key: 'ingresos_recaudados',        header: 'INGRESOS RECAUDADOS' },
+  { key: 'autonomia_financiera',       header: 'AUTONOMIA FINANCIERA' },
+  { key: 'ingresos_corrientes',        header: 'INGRESOS CORRIENTES' },
+  { key: 'ingresos_tributarios',       header: 'INGRESOS TRIBUTARIOS' },
+  { key: 'impuesto_bi',                header: 'IMPUESTO SOBRE BI' },
+  { key: 'impuesto_personal',          header: 'IMPUESTO PERSONAL O VECINAL' },
+  { key: 'impuesto_industria',         header: 'IMPUESTO S/INDUSTRIA' },
+  { key: 'impuesto_comercio',          header: 'IMPUESTO S/COMERCIO' },
+  { key: 'impuesto_servicios',         header: 'IMPUESTO S/SERVICIOS' },
+  { key: 'impuesto_pecuario',          header: 'IMPUESTO PECUARIO' },
+  { key: 'impuesto_extraccion',        header: 'IMPUESTO S/EXTRACCION' },
+  { key: 'impuesto_telecomunicaciones', header: 'IMPUESTO DE TELECOMUNICACIONES' },
+  { key: 'tasas_servicios',            header: 'TASAS POR SERVICIOS' },
+  { key: 'derechos',                   header: 'DERECHOS' },
+  { key: 'ingresos_no_tributarios',    header: 'INGRESOS NO TRIBUTARIOS' },
+  { key: 'ingresos_capital',           header: 'INGRESOS DE CAPITAL' },
+  { key: 'prestamos',                  header: 'PRESTAMOS' },
+  { key: 'venta_activos',              header: 'VENTA DE ACTIVOS' },
+  { key: 'contribuciones',             header: 'CONTRIBUCIONES' },
+  { key: 'colocacion_bonos',           header: 'COLOCACION EN BONOS' },
+  { key: 'transferencias_art91',       header: 'TRANSFERENCIAS Art. 91' },
+  { key: 'otras_transferencias',       header: 'OTRAS TRANSFERENCIAS' },
+  { key: 'subsidios',                  header: 'SUBSIDIOS' },
+  { key: 'herencias_legados',          header: 'HERENCIAS LEGADOS Y DONACIONES' },
+  { key: 'otros_ingresos_capital',     header: 'OTROS INGRESOS DE CAPITAL' },
+  { key: 'recursos_balance',           header: 'RECURSOS DE BALANCE' },
+  { key: 'gastos_funcionamiento',      header: 'GASTOS DE FUNCIONAMIENTO' },
+  { key: 'servicios_personales',       header: 'SERVICIOS PERSONALES' },
+  { key: 'servicios_no_personales',    header: 'SERVICIOS NO PERSONALES' },
+  { key: 'materiales_suministro',      header: 'MATERIALES Y SUMINISTRO Y MAQUINARIA' },
+  { key: 'transferencias_corrientes',  header: 'TRANSFERENCIAS CORRIENTES' },
+  { key: 'otros_gastos',               header: 'OTROS' },
+  { key: 'gastos_capital_deuda',       header: 'GASTOS DE CAPITAL Y DEUDA PUBLICA' },
+  { key: 'bienes_capitalizables',      header: 'BIENES CAPITALIZABLES' },
+  { key: 'transferencias_capital',     header: 'TRANSFERENCIAS' },
+  { key: 'activos_financieros',        header: 'ACTIVOS FINANCIEROS' },
+  { key: 'servicios_deuda',            header: 'SERVICIOS DE DEUDA' },
+  { key: 'otros_gastos_capital',       header: 'OTROS GASTOS' },
+  { key: 'asignaciones_globales',      header: 'ASIGNACIONES GLOBALES' },
+  { key: 'total_egresos',              header: 'TOTAL EGRESOS' },
+  { key: 'superavit_deficit',          header: 'SUPERAVIT O DEFICIT' },
+  { key: 'gasto_corriente',            header: 'Gasto Corriente' },
+  { key: 'ingreso_corriente_ajustado', header: 'Ingreso Corriente Ajustado' },
+];
+
 // 👇 AJUSTE: aceptar number | string | null para evitar error con ValueType
 const formatNumber = (
   num: number | string | null | undefined,
@@ -92,6 +160,30 @@ const PresupuestarioPage = () => {
       return true;
     }).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'));
   }, [selectedDeptId, muniSearch, selectedCategoria, presupuestoMin]);
+
+  const categoriaByName = useMemo(() => {
+    const map = new Map<string, string>();
+    (MUNICIPIOS as any[]).forEach((m: any) => {
+      map.set(normalize(m.nombre), m.categoria || '');
+    });
+    return map;
+  }, []);
+
+  const sefinTableData = useMemo(() => {
+    const year = selectedYears[0] ?? 2024;
+    const deptNorm = selectedDeptId ? normalize(selectedDeptId.replace(/-/g, ' ')) : null;
+    return municipalities
+      .filter(m => {
+        if (m.year !== year) return false;
+        if (deptNorm && normalize(m.department || '') !== deptNorm) return false;
+        if (muniSearch.trim() && !normalize(m.name || '').includes(normalize(muniSearch))) return false;
+        const cat = categoriaByName.get(normalize(m.name || '')) || '';
+        if (selectedCategoria && cat !== selectedCategoria) return false;
+        if (presupuestoMin > 0 && (m.presupuesto_municipal || 0) < presupuestoMin) return false;
+        return true;
+      })
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+  }, [municipalities, selectedYears, selectedDeptId, muniSearch, selectedCategoria, presupuestoMin, categoriaByName]);
 
   if (loading) {
     return (
@@ -922,7 +1014,7 @@ const PresupuestarioPage = () => {
           </div>
         )}
 
-        {/* TABLA DE MUNICIPIOS — visible cuando no hay municipio seleccionado */}
+        {/* TABLA SEFIN — visible cuando no hay municipio seleccionado */}
         {!selectedMockMuni && !selectedMunicipality && (
           <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{
@@ -930,51 +1022,129 @@ const PresupuestarioPage = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <span style={{ fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                {filteredMunis.length} municipios
+                {sefinTableData.length} municipios · {selectedYears[0] ?? 2024} · {SEFIN_COLUMNS.length} columnas SEFIN
               </span>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #1f2937' }}>
-                    {['Municipio', 'Departamento', 'Cat.', 'Presupuesto', 'Ing. Propios', 'Autonomía'].map(h => (
-                      <th key={h} style={{ textAlign: h === 'Municipio' || h === 'Departamento' ? 'left' : 'right', padding: '10px 16px', color: '#4a5a73', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: 9 }}>{h}</th>
+            <div style={{ overflowX: 'auto', maxHeight: '70vh', overflowY: 'auto' }}>
+              <table style={{ width: 'max-content', borderCollapse: 'collapse', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                  <tr style={{ borderBottom: '2px solid #1f2937' }}>
+                    {SEFIN_COLUMNS.map(col => (
+                      <th key={col.key} style={{
+                        padding: '8px 10px', color: '#4a5a73', fontWeight: 600,
+                        letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 8,
+                        textAlign: col.isText ? 'left' : 'right',
+                        background: '#0d1628', whiteSpace: 'nowrap',
+                        borderRight: '1px solid #1f2937',
+                      }}>
+                        {col.header}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMunis.map((m: any) => {
-                    const selectedYear = selectedYears[0] ?? 2024;
-                    const evoYear = m.evolucion?.find((e: any) => e.year === selectedYear);
-                    const yearPres = evoYear?.presupuesto ?? m.presupuesto;
-                    const scale = m.presupuesto > 0 ? yearPres / m.presupuesto : 1;
-                    const yearIP = Math.round(m.ingresosPropios * scale);
-                    const autonomia = yearPres > 0 ? Math.round((yearIP / yearPres) * 1000) / 10 : 0;
-                    const fmtM = (n: number) => n >= 1_000_000 ? `L ${(n / 1_000_000).toFixed(1)}M` : `L ${n.toLocaleString()}`;
-                    const cat = muniCat(m);
-                    const catColor: Record<string,string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
+                  {sefinTableData.map((m, i) => {
+                    const catKey = normalize(m.name || '');
+                    const cat = categoriaByName.get(catKey) || '';
+                    const codDep = COD_DEP_MAP[normalize(m.department || '')] || '';
+                    const catColor: Record<string, string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
+                    const row: Record<string, any> = {
+                      no_mun: i + 1,
+                      cod_dep: codDep,
+                      cod_mun: m.code != null ? String(m.code) : '',
+                      department: m.department || '',
+                      name: m.name || '',
+                      categoria: cat,
+                      population: m.population,
+                      presupuesto_municipal: m.presupuesto_municipal,
+                      gastos_presupuestados: m.gastos_presupuestados,
+                      ingresos_propios: m.ingresos_propios,
+                      ingresos_recaudados: m.ingresos_recaudados,
+                      autonomia_financiera: m.autonomia_financiera,
+                      ingresos_corrientes: m.ingresos_corrientes,
+                      ingresos_tributarios: m.ingresos_tributarios,
+                      impuesto_bi: m.impuesto_bi,
+                      impuesto_personal: m.impuesto_personal,
+                      impuesto_industria: m.impuesto_industria,
+                      impuesto_comercio: m.impuesto_comercio,
+                      impuesto_servicios: m.impuesto_servicios,
+                      impuesto_pecuario: m.impuesto_pecuario,
+                      impuesto_extraccion: m.impuesto_extraccion,
+                      impuesto_telecomunicaciones: m.impuesto_telecomunicaciones,
+                      tasas_servicios: m.tasas_servicios,
+                      derechos: m.derechos,
+                      ingresos_no_tributarios: m.ingresos_no_tributarios,
+                      ingresos_capital: m.ingresos_capital,
+                      prestamos: m.prestamos,
+                      venta_activos: m.venta_activos,
+                      contribuciones: m.contribuciones,
+                      colocacion_bonos: m.colocacion_bonos,
+                      transferencias_art91: m.transferencias_art91,
+                      otras_transferencias: m.otras_transferencias,
+                      subsidios: m.subsidios,
+                      herencias_legados: m.herencias_legados,
+                      otros_ingresos_capital: m.otros_ingresos_capital,
+                      recursos_balance: m.recursos_balance,
+                      gastos_funcionamiento: m.gastos_funcionamiento,
+                      servicios_personales: m.servicios_personales,
+                      servicios_no_personales: m.servicios_no_personales,
+                      materiales_suministro: m.materiales_suministro,
+                      transferencias_corrientes: m.transferencias_corrientes,
+                      otros_gastos: m.otros_gastos,
+                      gastos_capital_deuda: m.gastos_capital_deuda,
+                      bienes_capitalizables: m.bienes_capitalizables,
+                      transferencias_capital: m.transferencias_capital,
+                      activos_financieros: m.activos_financieros,
+                      servicios_deuda: m.servicios_deuda,
+                      otros_gastos_capital: m.otros_gastos_capital,
+                      asignaciones_globales: m.asignaciones_globales,
+                      total_egresos: m.total_egresos,
+                      superavit_deficit: m.superavit_deficit,
+                      gasto_corriente: m.gasto_corriente,
+                      ingreso_corriente_ajustado: m.ingreso_corriente_ajustado,
+                    };
                     return (
-                      <tr key={m.id}
-                        onClick={() => { setSelectedMuniId(m.id); setSelectedMunicipality(m.nombre); setSelectedDeptId(m.departamentoId); }}
+                      <tr key={`${m.id}-${m.year}`}
+                        onClick={() => setSelectedMunicipality(m.name || '')}
                         style={{ borderBottom: '1px solid #1a2232', cursor: 'pointer', transition: 'background 0.15s' }}
                         onMouseEnter={e => (e.currentTarget.style.background = '#0d1628')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <td style={{ padding: '10px 16px', color: '#e8eef6', fontWeight: 600 }}>{m.nombre}</td>
-                        <td style={{ padding: '10px 16px', color: '#7c8aa3' }}>{m.departamento}</td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                          <span style={{ color: catColor[cat] || '#9ca3af', fontWeight: 700 }}>{cat}</span>
-                        </td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#2dd4bf' }}>{fmtM(yearPres)}</td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{fmtM(yearIP)}</td>
-                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#9ca3af' }}>{autonomia > 0 ? `${autonomia}%` : '—'}</td>
+                        {SEFIN_COLUMNS.map(col => {
+                          const val = row[col.key];
+                          if (col.isText) {
+                            return (
+                              <td key={col.key} style={{
+                                padding: '8px 10px', whiteSpace: 'nowrap', borderRight: '1px solid #1a2232',
+                                color: col.key === 'name' ? '#e8eef6'
+                                  : col.key === 'categoria' ? (catColor[val] || '#9ca3af')
+                                  : '#7c8aa3',
+                                fontWeight: col.key === 'name' ? 600 : 400,
+                              }}>
+                                {val}
+                              </td>
+                            );
+                          }
+                          const num = val == null ? 0 : Number(val);
+                          return (
+                            <td key={col.key} style={{
+                              padding: '8px 10px', textAlign: 'right', whiteSpace: 'nowrap',
+                              borderRight: '1px solid #1a2232',
+                              color: col.key === 'superavit_deficit'
+                                ? (num >= 0 ? '#2dd4bf' : '#f87171')
+                                : '#9ca3af',
+                            }}>
+                              {num.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
                   })}
-                  {filteredMunis.length === 0 && (
+                  {sefinTableData.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: '#4a5a73' }}>
-                        Sin municipios para los filtros seleccionados
+                      <td colSpan={SEFIN_COLUMNS.length} style={{ padding: '32px 16px', textAlign: 'center', color: '#4a5a73' }}>
+                        {municipalities.length === 0 ? 'Cargando datos SEFIN...' : 'Sin municipios para los filtros seleccionados'}
                       </td>
                     </tr>
                   )}

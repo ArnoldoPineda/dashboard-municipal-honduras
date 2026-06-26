@@ -85,34 +85,34 @@ function muni(id, nombre, departamento, departamentoId, poblacion, presupuesto, 
 const OTRAS_MUNIS = [
 
   // ── Francisco Morazán – 28 ───────────────────────────────────────────────
-  muni('francisco-morazan-distrito-central',    'Distrito Central',     'Francisco Morazán','francisco-morazan',1412000,1450000000,640000000,480000000,0.702,1541.8,true),
-  muni('francisco-morazan-santa-lucia',         'Santa Lucía',          'Francisco Morazán','francisco-morazan',  18400,   22000000,  5800000, 11000000,0.648, 121.5,false),
-  muni('francisco-morazan-valle-de-angeles',    'Valle de Ángeles',     'Francisco Morazán','francisco-morazan',  21300,   26000000,  7200000, 13000000,0.641, 134.2,false),
-  muni('francisco-morazan-san-juan-de-flores',  'San Juan de Flores',   'Francisco Morazán','francisco-morazan',  11200,   14000000,  3000000,  7500000,0.627,  89.3,false),
-  muni('francisco-morazan-talanga',             'Talanga',              'Francisco Morazán','francisco-morazan',  42600,   48000000, 12000000, 24000000,0.619, 312.4,false),
-  muni('francisco-morazan-alubaren',            'Alubarén',             'Francisco Morazán','francisco-morazan',   8200,    9000000,  2000000,  4600000,0.591,  98.3,false),
-  muni('francisco-morazan-cedros',              'Cedros',               'Francisco Morazán','francisco-morazan',  21400,   22000000,  5500000, 11200000,0.609, 214.6,false),
-  muni('francisco-morazan-curaren',             'Curarén',              'Francisco Morazán','francisco-morazan',  14800,   15000000,  3600000,  7800000,0.598, 186.4,false),
-  muni('francisco-morazan-el-porvenir',         'El Porvenir',          'Francisco Morazán','francisco-morazan',  12400,   13000000,  3000000,  6600000,0.601, 142.8,false),
-  muni('francisco-morazan-el-rosario-fm',       'El Rosario',           'Francisco Morazán','francisco-morazan',   9600,   10000000,  2400000,  5200000,0.589,  96.4,false),
-  muni('francisco-morazan-guaimaca',            'Guaimaca',             'Francisco Morazán','francisco-morazan',  28400,   32000000,  8000000, 16200000,0.618, 312.4,false),
-  muni('francisco-morazan-la-libertad-fm',      'La Libertad',          'Francisco Morazán','francisco-morazan',   8200,    9000000,  2100000,  4600000,0.588, 124.8,false),
-  muni('francisco-morazan-la-venta',            'La Venta',             'Francisco Morazán','francisco-morazan',   4800,    6000000,  1400000,  3200000,0.574,  74.6,false),
-  muni('francisco-morazan-lepaterique',         'Lepaterique',          'Francisco Morazán','francisco-morazan',  14600,   15000000,  3500000,  7800000,0.597, 148.2,false),
-  muni('francisco-morazan-maraita',             'Maraita',              'Francisco Morazán','francisco-morazan',   5400,    6000000,  1300000,  3200000,0.577,  82.4,false),
-  muni('francisco-morazan-marale',              'Marale',               'Francisco Morazán','francisco-morazan',   8400,    9000000,  2000000,  4700000,0.581, 198.4,false),
-  muni('francisco-morazan-nueva-armenia',       'Nueva Armenia',        'Francisco Morazán','francisco-morazan',   6200,    7000000,  1600000,  3700000,0.579,  86.3,false),
-  muni('francisco-morazan-ojojona',             'Ojojona',              'Francisco Morazán','francisco-morazan',  16400,   18000000,  4400000,  9200000,0.608, 186.4,false),
-  muni('francisco-morazan-orica',               'Orica',                'Francisco Morazán','francisco-morazan',  12800,   14000000,  3200000,  7200000,0.596, 214.8,false),
-  muni('francisco-morazan-reitoca',             'Reitoca',              'Francisco Morazán','francisco-morazan',  11200,   12000000,  2800000,  6200000,0.584, 142.6,false),
-  muni('francisco-morazan-sabanagrande',        'Sabanagrande',         'Francisco Morazán','francisco-morazan',  21800,   24000000,  6000000, 12200000,0.614, 248.4,false),
-  muni('francisco-morazan-san-ana',             'San Ana',              'Francisco Morazán','francisco-morazan',   6800,    8000000,  1800000,  4200000,0.580,  76.4,false),
-  muni('francisco-morazan-san-buenaventura',    'San Buenaventura',     'Francisco Morazán','francisco-morazan',   4200,    5000000,  1100000,  2700000,0.571,  68.2,false),
-  muni('francisco-morazan-san-ignacio',         'San Ignacio',          'Francisco Morazán','francisco-morazan',   6400,    7000000,  1600000,  3700000,0.579,  84.6,false),
-  muni('francisco-morazan-san-miguelito',       'San Miguelito',        'Francisco Morazán','francisco-morazan',   8800,   10000000,  2300000,  5200000,0.585, 112.4,false),
-  muni('francisco-morazan-santa-ana',           'Santa Ana',            'Francisco Morazán','francisco-morazan',   5200,    6000000,  1300000,  3200000,0.575,  72.8,false),
-  muni('francisco-morazan-tamara',              'Tamara',               'Francisco Morazán','francisco-morazan',  18400,   21000000,  5200000, 10800000,0.611, 198.4,false),
-  muni('francisco-morazan-tegucigalpita',       'Tegucigalpita',        'Francisco Morazán','francisco-morazan',   3800,    5000000,  1100000,  2700000,0.568,  62.4,false),
+  muni('francisco-morazan-distrito-central',        'Distrito Central',       'Francisco Morazán','francisco-morazan',1412000,1450000000,640000000,480000000,0.702,1541.8,true),
+  muni('francisco-morazan-alubaren',                'Alubarén',               'Francisco Morazán','francisco-morazan',   8200,    9000000,  2000000,  4600000,0.591,  98.3,false),
+  muni('francisco-morazan-cantarranas',             'Cantarranas',            'Francisco Morazán','francisco-morazan',  19921,   14000000,  3000000,  7500000,0.627,  89.3,false),
+  muni('francisco-morazan-cedros',                  'Cedros',                 'Francisco Morazán','francisco-morazan',  21400,   22000000,  5500000, 11200000,0.609, 214.6,false),
+  muni('francisco-morazan-curaren',                 'Curarén',                'Francisco Morazán','francisco-morazan',  14800,   15000000,  3600000,  7800000,0.598, 186.4,false),
+  muni('francisco-morazan-el-porvenir',             'El Porvenir',            'Francisco Morazán','francisco-morazan',  12400,   13000000,  3000000,  6600000,0.601, 142.8,false),
+  muni('francisco-morazan-guaimaca',                'Guaimaca',               'Francisco Morazán','francisco-morazan',  28400,   32000000,  8000000, 16200000,0.618, 312.4,false),
+  muni('francisco-morazan-la-libertad-fm',          'La Libertad',            'Francisco Morazán','francisco-morazan',   8200,    9000000,  2100000,  4600000,0.588, 124.8,false),
+  muni('francisco-morazan-la-venta',                'La Venta',               'Francisco Morazán','francisco-morazan',   4800,    6000000,  1400000,  3200000,0.574,  74.6,false),
+  muni('francisco-morazan-lepaterique',             'Lepaterique',            'Francisco Morazán','francisco-morazan',  14600,   15000000,  3500000,  7800000,0.597, 148.2,false),
+  muni('francisco-morazan-maraita',                 'Maraita',                'Francisco Morazán','francisco-morazan',   5400,    6000000,  1300000,  3200000,0.577,  82.4,false),
+  muni('francisco-morazan-marale',                  'Marale',                 'Francisco Morazán','francisco-morazan',   8400,    9000000,  2000000,  4700000,0.581, 198.4,false),
+  muni('francisco-morazan-nueva-armenia',           'Nueva Armenia',          'Francisco Morazán','francisco-morazan',   6200,    7000000,  1600000,  3700000,0.579,  86.3,false),
+  muni('francisco-morazan-ojojona',                 'Ojojona',                'Francisco Morazán','francisco-morazan',  16400,   18000000,  4400000,  9200000,0.608, 186.4,false),
+  muni('francisco-morazan-orica',                   'Orica',                  'Francisco Morazán','francisco-morazan',  12800,   14000000,  3200000,  7200000,0.596, 214.8,false),
+  muni('francisco-morazan-reitoca',                 'Reitoca',                'Francisco Morazán','francisco-morazan',  11200,   12000000,  2800000,  6200000,0.584, 142.6,false),
+  muni('francisco-morazan-sabanagrande',            'Sabanagrande',           'Francisco Morazán','francisco-morazan',  21800,   24000000,  6000000, 12200000,0.614, 248.4,false),
+  muni('francisco-morazan-san-antonio-de-oriente',  'San Antonio de Oriente', 'Francisco Morazán','francisco-morazan',  23400,   20000000,  5200000, 10400000,0.612, 162.4,false),
+  muni('francisco-morazan-san-buenaventura',        'San Buenaventura',       'Francisco Morazán','francisco-morazan',   4200,    5000000,  1100000,  2700000,0.571,  68.2,false),
+  muni('francisco-morazan-san-ignacio',             'San Ignacio',            'Francisco Morazán','francisco-morazan',   6400,    7000000,  1600000,  3700000,0.579,  84.6,false),
+  muni('francisco-morazan-san-miguelito',           'San Miguelito',          'Francisco Morazán','francisco-morazan',   8800,   10000000,  2300000,  5200000,0.585, 112.4,false),
+  muni('francisco-morazan-santa-ana',               'Santa Ana',              'Francisco Morazán','francisco-morazan',  18555,    6000000,  1300000,  3200000,0.575,  72.8,false),
+  muni('francisco-morazan-santa-lucia',             'Santa Lucía',            'Francisco Morazán','francisco-morazan',  18400,   22000000,  5800000, 11000000,0.648, 121.5,false),
+  muni('francisco-morazan-talanga',                 'Talanga',                'Francisco Morazán','francisco-morazan',  42600,   48000000, 12000000, 24000000,0.619, 312.4,false),
+  muni('francisco-morazan-tatumbla',                'Tatumbla',               'Francisco Morazán','francisco-morazan',  13800,   14000000,  3200000,  7400000,0.599, 118.6,false),
+  muni('francisco-morazan-valle-de-angeles',        'Valle de Ángeles',       'Francisco Morazán','francisco-morazan',  21300,   26000000,  7200000, 13000000,0.641, 134.2,false),
+  muni('francisco-morazan-vallecillo',              'Vallecillo',             'Francisco Morazán','francisco-morazan',   7800,    9000000,  1900000,  4900000,0.583, 214.2,false),
+  muni('francisco-morazan-villa-de-san-francisco',  'Villa de San Francisco', 'Francisco Morazán','francisco-morazan',  16200,   16000000,  3800000,  8600000,0.604,  84.8,false),
 
   // ── Cortés – 12 ──────────────────────────────────────────────────────────
   muni('cortes-san-pedro-sula',              'San Pedro Sula',       'Cortés','cortes', 912000,1200000000,528000000,398000000,0.714, 874.5,true),
@@ -1648,8 +1648,8 @@ export const MUNICIPIOS = [
     "categoria": "A"
   },
   {
-    "id": "francisco-morazan-san-juan-de-flores",
-    "nombre": "San Juan de Flores",
+    "id": "francisco-morazan-cantarranas",
+    "nombre": "Cantarranas",
     "departamento": "Francisco Morazán",
     "departamentoId": "francisco-morazan",
     "poblacion": 19921,
@@ -1955,58 +1955,6 @@ export const MUNICIPIOS = [
         "year": 2025,
         "presupuesto": 13559000,
         "poblacion": 36478
-      }
-    ],
-    "categoria": "C"
-  },
-  {
-    "id": "francisco-morazan-el-rosario-fm",
-    "nombre": "El Rosario",
-    "departamento": "Francisco Morazán",
-    "departamentoId": "francisco-morazan",
-    "poblacion": 36089,
-    "presupuesto": 10000000,
-    "ingresosPropios": 2400000,
-    "transferencia": 5200000,
-    "otros": 2400000,
-    "idh": 0.589,
-    "area": 96.4,
-    "isCapital": false,
-    "evolucion": [
-      {
-        "year": 2019,
-        "presupuesto": 7851603,
-        "poblacion": 32495
-      },
-      {
-        "year": 2020,
-        "presupuesto": 8149964,
-        "poblacion": 33328
-      },
-      {
-        "year": 2021,
-        "presupuesto": 8492262,
-        "poblacion": 34000
-      },
-      {
-        "year": 2022,
-        "presupuesto": 8925368,
-        "poblacion": 34686
-      },
-      {
-        "year": 2023,
-        "presupuesto": 9407338,
-        "poblacion": 35383
-      },
-      {
-        "year": 2024,
-        "presupuesto": 10000000,
-        "poblacion": 36089
-      },
-      {
-        "year": 2025,
-        "presupuesto": 10400000,
-        "poblacion": 36804
       }
     ],
     "categoria": "C"
@@ -2584,58 +2532,6 @@ export const MUNICIPIOS = [
     "categoria": "C"
   },
   {
-    "id": "francisco-morazan-san-ana",
-    "nombre": "San Ana",
-    "departamento": "Francisco Morazán",
-    "departamentoId": "francisco-morazan",
-    "poblacion": 6800,
-    "presupuesto": 8000000,
-    "ingresosPropios": 1800000,
-    "transferencia": 4200000,
-    "otros": 2000000,
-    "idh": 0.58,
-    "area": 76.4,
-    "isCapital": false,
-    "evolucion": [
-      {
-        "year": 2019,
-        "presupuesto": 6281282,
-        "poblacion": 6185
-      },
-      {
-        "year": 2020,
-        "presupuesto": 6519971,
-        "poblacion": 6315
-      },
-      {
-        "year": 2021,
-        "presupuesto": 6793810,
-        "poblacion": 6445
-      },
-      {
-        "year": 2022,
-        "presupuesto": 7140294,
-        "poblacion": 6560
-      },
-      {
-        "year": 2023,
-        "presupuesto": 7525870,
-        "poblacion": 6680
-      },
-      {
-        "year": 2024,
-        "presupuesto": 8000000,
-        "poblacion": 6800
-      },
-      {
-        "year": 2025,
-        "presupuesto": 8304000,
-        "poblacion": 6915
-      }
-    ],
-    "categoria": "D"
-  },
-  {
     "id": "francisco-morazan-san-buenaventura",
     "nombre": "San Buenaventura",
     "departamento": "Francisco Morazán",
@@ -2844,94 +2740,100 @@ export const MUNICIPIOS = [
     "categoria": "A"
   },
   {
-    "id": "francisco-morazan-tamara",
-    "nombre": "Tamara",
+    "id": "francisco-morazan-san-antonio-de-oriente",
+    "nombre": "San Antonio de Oriente",
     "departamento": "Francisco Morazán",
     "departamentoId": "francisco-morazan",
-    "poblacion": 18400,
-    "presupuesto": 21000000,
+    "poblacion": 23400,
+    "presupuesto": 20000000,
     "ingresosPropios": 5200000,
-    "transferencia": 10800000,
-    "otros": 5000000,
-    "idh": 0.611,
-    "area": 198.4,
+    "transferencia": 10400000,
+    "otros": 4400000,
+    "idh": 0.612,
+    "area": 162.4,
     "isCapital": false,
     "evolucion": [
-      {
-        "year": 2019,
-        "presupuesto": 16488366
-      },
-      {
-        "year": 2020,
-        "presupuesto": 17114924
-      },
-      {
-        "year": 2021,
-        "presupuesto": 17833751
-      },
-      {
-        "year": 2022,
-        "presupuesto": 18743273
-      },
-      {
-        "year": 2023,
-        "presupuesto": 19755409
-      },
-      {
-        "year": 2024,
-        "presupuesto": 21000000
-      },
-      {
-        "year": 2025,
-        "presupuesto": 22071000
-      }
+      { "year": 2019, "presupuesto": 15703000, "poblacion": 21194 },
+      { "year": 2020, "presupuesto": 16300000, "poblacion": 21618 },
+      { "year": 2021, "presupuesto": 16985000, "poblacion": 22050 },
+      { "year": 2022, "presupuesto": 17851000, "poblacion": 22491 },
+      { "year": 2023, "presupuesto": 18815000, "poblacion": 22941 },
+      { "year": 2024, "presupuesto": 20000000, "poblacion": 23400 },
+      { "year": 2025, "presupuesto": 21000000, "poblacion": 23868 }
+    ],
+    "categoria": "B"
+  },
+  {
+    "id": "francisco-morazan-tatumbla",
+    "nombre": "Tatumbla",
+    "departamento": "Francisco Morazán",
+    "departamentoId": "francisco-morazan",
+    "poblacion": 13800,
+    "presupuesto": 14000000,
+    "ingresosPropios": 3200000,
+    "transferencia": 7400000,
+    "otros": 3400000,
+    "idh": 0.599,
+    "area": 118.6,
+    "isCapital": false,
+    "evolucion": [
+      { "year": 2019, "presupuesto": 10993000, "poblacion": 12468 },
+      { "year": 2020, "presupuesto": 11410000, "poblacion": 12748 },
+      { "year": 2021, "presupuesto": 11889000, "poblacion": 12978 },
+      { "year": 2022, "presupuesto": 12495000, "poblacion": 13238 },
+      { "year": 2023, "presupuesto": 13170000, "poblacion": 13516 },
+      { "year": 2024, "presupuesto": 14000000, "poblacion": 13800 },
+      { "year": 2025, "presupuesto": 14588000, "poblacion": 14070 }
     ],
     "categoria": "C"
   },
   {
-    "id": "francisco-morazan-tegucigalpita",
-    "nombre": "Tegucigalpita",
+    "id": "francisco-morazan-vallecillo",
+    "nombre": "Vallecillo",
     "departamento": "Francisco Morazán",
     "departamentoId": "francisco-morazan",
-    "poblacion": 3800,
-    "presupuesto": 5000000,
-    "ingresosPropios": 1100000,
-    "transferencia": 2700000,
-    "otros": 1200000,
-    "idh": 0.568,
-    "area": 62.4,
+    "poblacion": 7800,
+    "presupuesto": 9000000,
+    "ingresosPropios": 1900000,
+    "transferencia": 4900000,
+    "otros": 2200000,
+    "idh": 0.583,
+    "area": 214.2,
     "isCapital": false,
     "evolucion": [
-      {
-        "year": 2019,
-        "presupuesto": 3925802
-      },
-      {
-        "year": 2020,
-        "presupuesto": 4074982
-      },
-      {
-        "year": 2021,
-        "presupuesto": 4246131
-      },
-      {
-        "year": 2022,
-        "presupuesto": 4462684
-      },
-      {
-        "year": 2023,
-        "presupuesto": 4703669
-      },
-      {
-        "year": 2024,
-        "presupuesto": 5000000
-      },
-      {
-        "year": 2025,
-        "presupuesto": 5175000
-      }
+      { "year": 2019, "presupuesto": 7067000, "poblacion": 7050 },
+      { "year": 2020, "presupuesto": 7335000, "poblacion": 7208 },
+      { "year": 2021, "presupuesto": 7641000, "poblacion": 7337 },
+      { "year": 2022, "presupuesto": 8029000, "poblacion": 7481 },
+      { "year": 2023, "presupuesto": 8467000, "poblacion": 7635 },
+      { "year": 2024, "presupuesto": 9000000, "poblacion": 7800 },
+      { "year": 2025, "presupuesto": 9396000, "poblacion": 7956 }
     ],
-    "categoria": "D"
+    "categoria": "C"
+  },
+  {
+    "id": "francisco-morazan-villa-de-san-francisco",
+    "nombre": "Villa de San Francisco",
+    "departamento": "Francisco Morazán",
+    "departamentoId": "francisco-morazan",
+    "poblacion": 16200,
+    "presupuesto": 16000000,
+    "ingresosPropios": 3800000,
+    "transferencia": 8600000,
+    "otros": 3600000,
+    "idh": 0.604,
+    "area": 84.8,
+    "isCapital": false,
+    "evolucion": [
+      { "year": 2019, "presupuesto": 12562000, "poblacion": 14642 },
+      { "year": 2020, "presupuesto": 13040000, "poblacion": 14972 },
+      { "year": 2021, "presupuesto": 13584000, "poblacion": 15248 },
+      { "year": 2022, "presupuesto": 14278000, "poblacion": 15547 },
+      { "year": 2023, "presupuesto": 15138000, "poblacion": 15861 },
+      { "year": 2024, "presupuesto": 16000000, "poblacion": 16200 },
+      { "year": 2025, "presupuesto": 16640000, "poblacion": 16524 }
+    ],
+    "categoria": "C"
   },
   {
     "id": "cortes-san-pedro-sula",

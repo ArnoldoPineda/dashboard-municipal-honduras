@@ -527,20 +527,6 @@ export default function MunicipioDETALLE() {
         { label: 'Ingreso Corriente Ajustado (est.)', value: fm(_ip + _trans)                     },
       ],
     },
-    {
-      key: 'notas', title: 'Notas Metodológicas', color: '#6b7280', amount: 0,
-      rows: [
-        { label: 'G1 — Tributarios',        value: 'Suma directa de 8 impuestos (Art.75 Ley). No usa el subtotal "INGRESOS TRIBUTARIOS" de SEFIN, que tiene errores sistemáticos de clasificación.' },
-        { label: 'Tasas y Derechos',         value: 'Clasificados como no tributarios en el Manual SEFIN 2018 (Tipo 12.5), aunque el Art.73 Ley los define como tributarios. SIMHO sigue el Manual para coherencia con la fuente.' },
-        { label: 'Contribución por Mejoras', value: 'Cobro a propietarios beneficiados por obras (Art.85 Ley). Registrada en Forma 11 de capital (código 23). Se muestra en G4 por estructura presupuestaria SEFIN.' },
-        { label: 'Transferencias',           value: 'La columna TRANSFERENCIAS incluye Art.91 (5% tributos nacionales) junto con otras transferencias corrientes y de capital. No es posible desagregarlas con los datos del Excel SEFIN.' },
-        { label: '★ Recursos de Balance',    value: 'Saldo de caja del ejercicio anterior (disminución de activos financieros). No es un ingreso generado en el período actual. Excluido del denominador de AF Operativa.' },
-        { label: 'AF SEFIN vs Operativa',    value: 'AF SEFIN usa campos directos SEFIN (comparabilidad con reportes oficiales). AF Operativa corrige errores de clasificación y excluye Recursos de Balance del denominador. El Gap indica la magnitud de la distorsión.' },
-        { label: 'SAMI vs RGL',              value: '288 municipios usan SAMI (cuarto trimestre); 10 municipios grandes usan RGL. Solo en SAMI el campo "Ingresos No Tributarios" es una agregación legítima de multas, mora y recargos — se incluye en G2. En RGL ese campo es un subtotal con errores y se excluye.' },
-        { label: 'NO-SAMI (10 munis)',        value: 'Distrito Central, San Pedro Sula, La Ceiba, El Progreso, Puerto Cortés, Villanueva, La Lima, Comayagua, Siguatepeque, El Porvenir (FM). Su G2 = Tasas + Derechos únicamente.' },
-        { label: 'Impuesto Pecuario',         value: 'Uno de los 5 impuestos municipales oficiales (Art.75 y 82 Ley). Se muestra aunque el valor sea cero para reflejar la estructura legal completa.' },
-      ],
-    },
   ];
 
   // ── Donut data ────────────────────────────────────────────────────────────

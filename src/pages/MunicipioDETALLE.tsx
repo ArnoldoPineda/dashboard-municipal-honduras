@@ -328,11 +328,9 @@ export default function MunicipioDETALLE() {
       + (sb.tasas_servicios ?? 0) + (sb.derechos ?? 0)
     : _tribut;
 
-  // G2: SAMI incluye INGRESOS_NO_TRIBUTARIOS (multas, mora, recargos);
-  //     RGL/NO-SAMI solo tasas + derechos (el campo subtotal RGL no es confiable).
+  // G2: solo multas/mora/recargos. Tasas y derechos ya están en G1.
   const g2 = sb
-    ? (sb.tasas_servicios ?? 0) + (sb.derechos ?? 0)
-      + (isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0)
+    ? (isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0)
     : _noTrib;
 
   // G3: TRANSFERENCIAS ya incluye Art.91 + otras (no desagregable en el Excel SEFIN).
@@ -428,14 +426,13 @@ export default function MunicipioDETALLE() {
       color: '#f59e0b',
       amount: g2,
       rows: sb ? ([
-        { label: 'Tasas por Servicios', value: fmZ(sb.tasas_servicios) },
-        { label: 'Derechos',            value: fmZ(sb.derechos)        },
+        { label: 'Tasas por Servicios (→ G1)', value: fmZ(sb.tasas_servicios) },
+        { label: 'Derechos (→ G1)',             value: fmZ(sb.derechos)        },
         ...(isSAMI ? [
           { label: 'Otros (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios) },
         ] : []),
       ] as {label:string;value:string}[]) : [
-        { label: 'Tasas por Servicios',      value: fm(_noTrib * 0.53) },
-        { label: 'Derechos Administrativos', value: fm(_noTrib * 0.47) },
+        { label: 'Otros (multas, mora, recargos)', value: fm(_noTrib) },
       ],
     },
     {

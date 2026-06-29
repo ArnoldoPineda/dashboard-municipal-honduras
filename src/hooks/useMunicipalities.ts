@@ -69,39 +69,33 @@ export const useMunicipalitiesMultiYear = (
   const yearsStringRef = useRef<string>('');
 
   useEffect(() => {
-    // Convertir array a string para comparar (evita recrear el array)
-    const yearsString = JSON.stringify(selectedYears.sort());
-    
-    // Si el string es igual, NO hacer fetch
-    if (yearsStringRef.current === yearsString && municipalities.length > 0) {
-      return;
-    }
+    // Copia + sort numérico para no mutar el array de entrada
+    const yearsKey = [...selectedYears].sort((a, b) => a - b).join(',');
 
-    yearsStringRef.current = yearsString;
+    if (yearsStringRef.current === yearsKey) return;
+    yearsStringRef.current = yearsKey;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
 
-      console.log('[useMunicipalities] Querying years:', selectedYears);
-
       try {
+        // Garantizar que los años se envían como Number (evita mismatch string/int en Supabase)
+        const yearsNum = selectedYears.map(Number);
         let query = supabase.from('municipalities').select('*');
-
-        if (selectedYears && selectedYears.length > 0) {
-          query = query.in('year', selectedYears);
+        if (yearsNum.length > 0) {
+          query = query.in('year', yearsNum);
         }
 
-        const { data, error } = await query.limit(5000);
+        const { data, error } = await query.limit(10000);
 
-        console.log('[useMunicipalities] rows returned:', data?.length ?? 0,
-          '| by year:', selectedYears.map(y => `${y}:${data?.filter((r: any) => r.year === y).length ?? 0}`).join(' '),
-          '| error:', error?.message ?? 'none');
+        console.log(
+          '[useMunicipalities] rows:', data?.length ?? 0,
+          '| by year:', yearsNum.map(y => `${y}:${data?.filter((r: any) => Number(r.year) === y).length ?? 0}`).join(' '),
+          '| error:', error?.message ?? 'none'
+        );
 
-        if (error) {
-          throw error;
-        }
-
+        if (error) throw error;
         setMunicipalities((data as Municipality[]) || []);
       } catch (err: any) {
         setError(err.message ?? 'Error al cargar municipios');
@@ -111,7 +105,8 @@ export const useMunicipalitiesMultiYear = (
     };
 
     fetchData();
-  }, [selectedYears, municipalities.length]); // Añadir municipalities.length para evitar bucle infinito
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYears]); // municipalities.length eliminado — yearsKey ref es suficiente como guard
 
   return { municipalities, loading, error };
 };

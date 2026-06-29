@@ -227,7 +227,7 @@ export default function AnalyticsPage() {
   const yearDataMap = useMemo(() => {
     const map: Record<number, YearData> = {};
     for (const year of activeYears) {
-      let rows = municipalities.filter(m => m.year === year);
+      let rows = municipalities.filter(m => Number(m.year) === Number(year));
 
       if (scope === 'departamento' && deptName) {
         rows = rows.filter(m => m.department && norm(m.department) === norm(deptName));

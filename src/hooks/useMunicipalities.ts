@@ -57,7 +57,27 @@ export type Municipality = {
   ingreso_corriente_ajustado: number | null;
 };
 
-// Hook multi-año
+const PAGE_SIZE = 1000;
+
+async function fetchAllPages(yearsNum: number[]): Promise<Municipality[]> {
+  const all: Municipality[] = [];
+  let from = 0;
+
+  while (true) {
+    let q = supabase.from('municipalities').select('*');
+    if (yearsNum.length > 0) q = q.in('year', yearsNum);
+    const { data, error } = await q.range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...(data as Municipality[]));
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return all;
+}
+
+// Hook multi-año — paginación automática en lotes de 1 000 filas
 export const useMunicipalitiesMultiYear = (
   selectedYears: number[] = [2024]
 ) => {
@@ -65,7 +85,7 @@ export const useMunicipalitiesMultiYear = (
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Primitive string dep — React compara por valor, no por referencia de array
+  // Dep como string primitivo: React compara por valor, no por referencia de array
   const yearsKey = [...selectedYears].sort((a, b) => a - b).join(',');
 
   useEffect(() => {
@@ -75,16 +95,16 @@ export const useMunicipalitiesMultiYear = (
     setError(null);
 
     const yearsNum = yearsKey.split(',').map(Number);
-    let query = supabase.from('municipalities').select('*');
-    if (yearsNum.length > 0) {
-      query = query.in('year', yearsNum);
-    }
 
-    query.range(0, 9999).then(({ data, error: err }) => {
-      if (err) { setError(err.message ?? 'Error al cargar municipios'); setLoading(false); return; }
-      setMunicipalities((data as Municipality[]) || []);
-      setLoading(false);
-    });
+    fetchAllPages(yearsNum)
+      .then(all => {
+        setMunicipalities(all);
+        setLoading(false);
+      })
+      .catch((err: any) => {
+        setError(err.message ?? 'Error al cargar municipios');
+        setLoading(false);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearsKey]);
 

@@ -9,7 +9,7 @@ import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipali
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ALL_YEARS = [2020, 2021, 2022, 2023, 2024, 2025];
+const ALL_YEARS = [2021, 2022, 2023, 2024, 2025];
 
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
   .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))

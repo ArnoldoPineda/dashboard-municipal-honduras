@@ -1,5 +1,5 @@
 // src/hooks/useMunicipalities.ts
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient.ts';
 
 export type Municipality = {
@@ -57,56 +57,36 @@ export type Municipality = {
   ingreso_corriente_ajustado: number | null;
 };
 
-// Hook multi-año - OPTIMIZADO SIN REFETCH INNECESARIO
+// Hook multi-año
 export const useMunicipalitiesMultiYear = (
   selectedYears: number[] = [2024]
 ) => {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Ref para almacenar el string de años y evitar refetch innecesario
-  const yearsStringRef = useRef<string>('');
+
+  // Primitive string dep — React compara por valor, no por referencia de array
+  const yearsKey = [...selectedYears].sort((a, b) => a - b).join(',');
 
   useEffect(() => {
-    // Copia + sort numérico para no mutar el array de entrada
-    const yearsKey = [...selectedYears].sort((a, b) => a - b).join(',');
+    if (!yearsKey) return;
 
-    if (yearsStringRef.current === yearsKey) return;
-    yearsStringRef.current = yearsKey;
+    setLoading(true);
+    setError(null);
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+    const yearsNum = yearsKey.split(',').map(Number);
+    let query = supabase.from('municipalities').select('*');
+    if (yearsNum.length > 0) {
+      query = query.in('year', yearsNum);
+    }
 
-      try {
-        // Garantizar que los años se envían como Number (evita mismatch string/int en Supabase)
-        const yearsNum = selectedYears.map(Number);
-        let query = supabase.from('municipalities').select('*');
-        if (yearsNum.length > 0) {
-          query = query.in('year', yearsNum);
-        }
-
-        const { data, error } = await query.limit(10000);
-
-        console.log(
-          '[useMunicipalities] rows:', data?.length ?? 0,
-          '| by year:', yearsNum.map(y => `${y}:${data?.filter((r: any) => Number(r.year) === y).length ?? 0}`).join(' '),
-          '| error:', error?.message ?? 'none'
-        );
-
-        if (error) throw error;
-        setMunicipalities((data as Municipality[]) || []);
-      } catch (err: any) {
-        setError(err.message ?? 'Error al cargar municipios');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    query.range(0, 9999).then(({ data, error: err }) => {
+      if (err) { setError(err.message ?? 'Error al cargar municipios'); setLoading(false); return; }
+      setMunicipalities((data as Municipality[]) || []);
+      setLoading(false);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYears]); // municipalities.length eliminado — yearsKey ref es suficiente como guard
+  }, [yearsKey]);
 
   return { municipalities, loading, error };
 };

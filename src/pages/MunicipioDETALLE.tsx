@@ -325,6 +325,7 @@ export default function MunicipioDETALLE() {
       + (sb.impuesto_industria ?? 0) + (sb.impuesto_comercio ?? 0)
       + (sb.impuesto_servicios ?? 0) + (sb.impuesto_pecuario ?? 0)
       + (sb.impuesto_extraccion ?? 0) + (sb.impuesto_telecomunicaciones ?? 0)
+      + (sb.tasas_servicios ?? 0) + (sb.derechos ?? 0)
     : _tribut;
 
   // G2: SAMI incluye INGRESOS_NO_TRIBUTARIOS (multas, mora, recargos);
@@ -379,37 +380,22 @@ export default function MunicipioDETALLE() {
       ],
     },
     {
-      key: 'resumen', title: 'Resumen Financiero', color: '#06b6d4',
+      key: 'resumen', title: 'Datos Presupuestarios', color: '#06b6d4',
       amount: sb?.presupuesto_municipal ?? yearPresupuesto,
-      rows: sb ? ([
-        { label: 'Presupuesto Municipal',         value: fmZ(sb.presupuesto_municipal)   },
-        { label: 'Gastos Presupuestados',         value: fmZ(sb.gastos_presupuestados)   },
-        { label: 'Ingresos Recaudados',           value: fmZ(sb.ingresos_recaudados)     },
-        { label: 'Ingresos Propios (SEFIN)',      value: fmZ(sb.ingresos_propios)        },
-        { label: 'G1 Tributarios (SIMHO)',        value: fmZ(g1)                         },
-        { label: 'G2 No Tributarios (SIMHO)',     value: fmZ(g2)                         },
-        { label: 'G3 Transferencias (SIMHO)',     value: fmZ(g3)                         },
-        { label: 'G4 Capital y Financ. (SIMHO)',  value: fmZ(g4)                         },
-        ...(!isSAMI ? [
-          { label: 'Gap sin columna RGL',         value: fmZ(sb.ingresos_no_tributarios) },
-        ] : []),
-        { label: 'AF SEFIN Oficial',              value: fmtPct(afSEFIN)                 },
-        { label: 'AF Operativa (SIMHO)',          value: fmtPct(afOperativa)             },
-        { label: 'Gap AF (SEFIN − Operativa)',    value: fmtPct(afGap)                   },
-        { label: 'Ingresos Corrientes',           value: fmZ(sb.ingresos_corrientes)     },
-        { label: 'Sistema fuente',                value: isSAMI ? 'SAMI' : 'RGL (NO-SAMI)' },
-      ] as {label:string;value:string}[]) : [
-        { label: 'Presupuesto Municipal',        value: fm(yearPresupuesto)               },
-        { label: 'Gastos Presupuestados',        value: fm(yearPresupuesto)               },
-        { label: 'Ingresos Recaudados',          value: fm(yearPresupuesto)               },
-        { label: 'Ingresos Propios (est.)',      value: fm(_ip)                           },
-        { label: 'G1 Tributarios (est.)',        value: fm(_tribut)                       },
-        { label: 'G2 No Tributarios (est.)',     value: fm(_noTrib)                       },
-        { label: 'G3 Transferencias (est.)',     value: fm(_trans)                        },
-        { label: 'G4 Capital (est.)',            value: fm(_otros)                        },
-        { label: 'AF SEFIN (est.)',              value: fmtPct(afSEFIN)                   },
-        { label: 'AF Operativa (est.)',          value: fmtPct(afOperativa)               },
-        { label: 'Gap AF (SEFIN − Operativa)',   value: fmtPct(afGap)                     },
+      rows: sb ? [
+        { label: 'Presupuesto Municipal', value: fmZ(sb.presupuesto_municipal) },
+        { label: 'Gastos Presupuestados', value: fmZ(sb.gastos_presupuestados) },
+        { label: 'Ingresos Propios',      value: fmZ(sb.ingresos_propios)      },
+        { label: 'Ingresos Recaudados',   value: fmZ(sb.ingresos_recaudados)   },
+        { label: 'Autonomía Financiera',  value: sb.autonomia_financiera != null ? `${Number(sb.autonomia_financiera).toFixed(1)}%` : '0.0%' },
+        { label: 'Ingresos Corrientes',   value: fmZ(sb.ingresos_corrientes)   },
+      ] : [
+        { label: 'Presupuesto Municipal', value: fm(yearPresupuesto)           },
+        { label: 'Gastos Presupuestados', value: fm(yearPresupuesto)           },
+        { label: 'Ingresos Propios',      value: fm(_ip)                       },
+        { label: 'Ingresos Recaudados',   value: fm(yearPresupuesto)           },
+        { label: 'Autonomía Financiera',  value: `${afSEFIN.toFixed(1)}%`      },
+        { label: 'Ingresos Corrientes',   value: fm(_ip + _trans)              },
       ],
     },
     {
@@ -420,12 +406,14 @@ export default function MunicipioDETALLE() {
       rows: sb ? [
         { label: 'Impuesto s/Bienes Inmuebles', value: fmZ(sb.impuesto_bi)                  },
         { label: 'Impuesto Personal (Vecinal)',  value: fmZ(sb.impuesto_personal)            },
-        { label: 'Impuesto s/Industria',         value: fmZ(sb.impuesto_industria)           },
-        { label: 'Impuesto s/Comercio',          value: fmZ(sb.impuesto_comercio)            },
-        { label: 'Impuesto s/Servicios',         value: fmZ(sb.impuesto_servicios)           },
+        { label: 'Impuesto s/Industria (ICS)',   value: fmZ(sb.impuesto_industria)           },
+        { label: 'Impuesto s/Comercio (ICS)',    value: fmZ(sb.impuesto_comercio)            },
+        { label: 'Impuesto s/Servicios (ICS)',   value: fmZ(sb.impuesto_servicios)           },
         { label: 'Impuesto Pecuario',            value: fmZ(sb.impuesto_pecuario)            },
         { label: 'Impuesto s/Extracción',        value: fmZ(sb.impuesto_extraccion)          },
         { label: 'Impuesto Telecomunicaciones',  value: fmZ(sb.impuesto_telecomunicaciones)  },
+        { label: 'Tasas por Servicios',          value: fmZ(sb.tasas_servicios)              },
+        { label: 'Derechos',                     value: fmZ(sb.derechos)                     },
       ] : [
         { label: 'Impuesto sobre Bienes Inmuebles', value: fm(_tribut * 0.35) },
         { label: 'Industria, Comercio y Servicios', value: fm(_tribut * 0.28) },

@@ -52,11 +52,6 @@ const ALL_MUNIS_SORTED: any[] = [...(MUNICIPIOS as any[])].sort((a, b) => {
   return a.nombre.localeCompare(b.nombre, 'es');
 });
 
-function fmtPct(n: number | null | undefined): string {
-  if (n === null || n === undefined) return '—';
-  return `${n.toFixed(1)}%`;
-}
-
 function fmtSigned(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—';
   if (n === 0) return 'L 0';
@@ -350,14 +345,6 @@ export default function MunicipioDETALLE() {
   const afSEFIN: number = sb && (sb.ingresos_recaudados ?? 0) > 0
     ? (sb.ingresos_propios ?? 0) / (sb.ingresos_recaudados as number) * 100
     : _pres > 0 ? (_ip / _pres * 100) : 0;
-
-  // AF Operativa SIMHO: (G1+G2) / (Recaudados − Balance). Corrige errores de clasificación SEFIN.
-  const afOperativa: number = sb && (sb.ingresos_recaudados ?? 0) > 0
-    ? (g1 + g2) / Math.max(1, (sb.ingresos_recaudados as number) - (sb.recursos_balance ?? 0)) * 100
-    : _pres > 0 ? ((_tribut + _noTrib) / _pres * 100) : 0;
-
-  // Gap AF: diferencia entre métrica oficial y métrica corregida SIMHO
-  const afGap: number = afSEFIN - afOperativa;
 
   // ── Accordion sections ────────────────────────────────────────────────────
 

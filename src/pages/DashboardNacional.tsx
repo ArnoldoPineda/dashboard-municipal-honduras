@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
-import { MUNICIPIOS, DEPARTAMENTOS } from '../data/municipios';
+import { MUNICIPIOS } from '../data/municipios';
 
 const YEARS = [2021, 2022, 2023, 2024, 2025];
 

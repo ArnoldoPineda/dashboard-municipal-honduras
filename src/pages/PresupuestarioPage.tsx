@@ -142,25 +142,6 @@ const PresupuestarioPage = () => {
     return getMunicipio(selectedMuniId) || null;
   }, [selectedMuniId]);
 
-  const muniCat = (m: any): string => {
-    if (m.categoria) return m.categoria;
-    const pop = m.poblacion ?? 0;
-    if (pop > 100000) return 'A';
-    if (pop >= 20000) return 'B';
-    if (pop >= 5000)  return 'C';
-    return 'D';
-  };
-
-  const filteredMunis: any[] = useMemo(() => {
-    return (MUNICIPIOS as any[]).filter((m: any) => {
-      if (selectedDeptId && m.departamentoId !== selectedDeptId) return false;
-      if (muniSearch.trim() && !m.nombre.toLowerCase().includes(muniSearch.toLowerCase())) return false;
-      if (selectedCategoria && muniCat(m) !== selectedCategoria) return false;
-      if (presupuestoMin > 0 && m.presupuesto < presupuestoMin) return false;
-      return true;
-    }).sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'));
-  }, [selectedDeptId, muniSearch, selectedCategoria, presupuestoMin]);
-
   const categoriaByName = useMemo(() => {
     const map = new Map<string, string>();
     (MUNICIPIOS as any[]).forEach((m: any) => {
@@ -205,26 +186,12 @@ const PresupuestarioPage = () => {
     );
   }
 
-  const allMunicipalities = Array.from(new Map(municipalities.map((m) => [m.name, m])).values()).sort((a, b) =>
-    (a.name || '').localeCompare(b.name || ''),
-  );
-
   // Municipios del departamento seleccionado, filtrados por búsqueda
   const muniOptions: any[] = selectedDeptId
     ? (getMunicipiosByDept(selectedDeptId) as any[])
         .filter((m: any) => !muniSearch.trim() || m.nombre.toLowerCase().includes(muniSearch.toLowerCase()))
         .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
     : [];
-
-  const toggleYear = (year: number) => {
-    setSelectedYears((prev) => {
-      if (prev.includes(year)) {
-        return prev.filter((y) => y !== year);
-      } else {
-        return [...prev, year].sort((a, b) => b - a);
-      }
-    });
-  };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658'];
 

@@ -371,7 +371,7 @@ export default function MunicipioDETALLE() {
         { label: 'Departamento',        value: muni.departamento },
         { label: 'Municipio',           value: muni.nombre },
         { label: 'Categoría Municipal', value: CATEGORIA_LABEL[muni.categoria] ?? `Categoría ${muni.categoria}` },
-        { label: 'Pob. Ajustada 2002',  value: sb?.population ? fmtP.format(Number(sb.population)) + ' hab.' : fmtP.format(yearPoblacion) + ' hab.' },
+        { label: 'Población',           value: sb?.population ? fmtP.format(Number(sb.population)) + ' hab.' : fmtP.format(yearPoblacion) + ' hab.' },
         { label: 'Área',                value: muni.area > 0 ? `${muni.area.toFixed(1)} km²` : '—' },
         { label: 'Densidad',            value: muni.area > 0 && yearPoblacion > 0 ? `${(yearPoblacion / muni.area).toFixed(1)} hab/km²` : '—' },
         { label: 'IDH',                 value: muni.idh > 0 ? muni.idh.toFixed(3) : '—' },
@@ -381,14 +381,14 @@ export default function MunicipioDETALLE() {
       key: 'resumen', title: 'Datos Presupuestarios', color: '#06b6d4',
       amount: sb?.presupuesto_municipal ?? yearPresupuesto,
       rows: sb ? [
-        { label: 'Presupuesto Municipal', value: fmZ(sb.presupuesto_municipal) },
+        { label: 'Presupuesto Aprobado',  value: fmZ(sb.presupuesto_municipal) },
         { label: 'Gastos Presupuestados', value: fmZ(sb.gastos_presupuestados) },
         { label: 'Ingresos Propios',      value: fmZ(sb.ingresos_propios)      },
         { label: 'Ingresos Recaudados',   value: fmZ(sb.ingresos_recaudados)   },
         { label: 'Autonomía Financiera',  value: sb.autonomia_financiera != null ? `${Number(sb.autonomia_financiera).toFixed(1)}%` : '0.0%' },
         { label: 'Ingresos Corrientes',   value: fmZ(sb.ingresos_corrientes)   },
       ] : [
-        { label: 'Presupuesto Municipal', value: fm(yearPresupuesto)           },
+        { label: 'Presupuesto Aprobado',  value: fm(yearPresupuesto)           },
         { label: 'Gastos Presupuestados', value: fm(yearPresupuesto)           },
         { label: 'Ingresos Propios',      value: fm(_ip)                       },
         { label: 'Ingresos Recaudados',   value: fm(yearPresupuesto)           },
@@ -746,7 +746,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 11, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
                     letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3,
                   }}>
-                    PRESUPUESTO
+                    INGRESOS RECAUDADOS
                   </div>
                   <div style={{
                     fontSize: 32, fontWeight: 700, color: '#2dd4bf',
@@ -766,7 +766,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 26, fontWeight: 700, color: '#f9fafb',
                     fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
                   }}>
-                    {fmtP.format(muni.poblacion)}
+                    {fmtP.format(Number(sb?.population ?? yearPoblacion))}
                   </div>
                 </div>
               </div>
@@ -825,7 +825,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 18, fontWeight: 700, color: '#ffffff',
                     fontFamily: "'IBM Plex Mono', monospace",
                   }}>
-                    {L(Math.round((muni.ingresosPropios + muni.transferencia + muni.otros) * scale))}
+                    {L(g1 + g2 + g3 + g4)}
                   </div>
                   <div style={{
                     fontSize: 9, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace",

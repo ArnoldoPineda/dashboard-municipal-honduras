@@ -38,7 +38,12 @@ function getMetricValue(m: any, metric: Metric): number {
     case 'poblacion':      return m.poblacion || 0;
     case 'presupuesto':    return m.presupuesto || 0;
     case 'ingresosPropios':return m.ingresosPropios || 0;
-    case 'autonomia':      return m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto) * 100 : 0;
+    case 'autonomia':
+      // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (fórmula estándar, afSEFIN).
+      // Fallback a presupuesto solo si la fila viene del mock (sin ingresos_recaudados, ej. Supabase caído).
+      return m.ingresosRecaudados > 0
+        ? (m.ingresosPropios / m.ingresosRecaudados) * 100
+        : (m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto) * 100 : 0);
     case 'gastosCapital':  return m.otros || 0;
     case 'superavit':      return (m.ingresosPropios + m.transferencia + m.otros) - m.presupuesto;
     default:               return 0;
@@ -86,6 +91,7 @@ export default function RankingsPage() {
         poblacion:     m.population ?? 0,
         presupuesto:   m.presupuesto_municipal ?? 0,
         ingresosPropios: m.ingresos_propios ?? 0,
+        ingresosRecaudados: m.ingresos_recaudados ?? 0,
         transferencia: m.otras_transferencias ?? 0,
         otros:         m.gastos_capital_deuda ?? 0,
         isCapital:     false,

@@ -111,8 +111,9 @@ function getMetricValue(m: any, metric: MetricKey): number {
     case 'ingresos':
       return m.ingresos_propios ? Math.round(m.ingresos_propios / 1_000_000) : 0;
     case 'autonomia':
-      return m.presupuesto_municipal
-        ? Math.round((m.ingresos_propios / m.presupuesto_municipal) * 1000) / 10 : 0;
+      // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (fórmula estándar, afSEFIN).
+      return m.ingresos_recaudados
+        ? Math.round((m.ingresos_propios / m.ingresos_recaudados) * 1000) / 10 : 0;
     case 'poblacion':
       return m.population || 0;
     case 'transferencias':
@@ -159,6 +160,7 @@ function getMetricLabel(metric: MetricKey): string {
 
 function getRawFinCats(m: any) {
   const pres     = m.presupuesto_municipal || 0;
+  const ingRecaud = m.ingresos_recaudados || 0;
   const ingProp  = m.ingresos_propios || 0;
   const ingTrans = m.otras_transferencias || 0;
   const tribut   = m.ingresos_tributarios || Math.round(ingProp * 0.58);
@@ -166,7 +168,7 @@ function getRawFinCats(m: any) {
   const capital  = m.ingresos_capital || Math.max(0, pres - ingProp - ingTrans);
   const gastF    = m.gastos_funcionamiento || Math.round(pres * 0.63);
   const gastC    = m.gastos_capital_deuda  || Math.max(0, pres - gastF);
-  return { pres, ingProp, tribut, noTrib, capital, gastF, gastC };
+  return { pres, ingRecaud, ingProp, tribut, noTrib, capital, gastF, gastC };
 }
 
 function getFinCats(m: any) {
@@ -178,7 +180,7 @@ function getFinCats(m: any) {
     ingCapital:           Math.round(r.capital / M),
     gastosFuncionamiento: Math.round(r.gastF / M),
     gastosCapital:        Math.round(r.gastC / M),
-    autonomiaPct:         r.pres > 0 ? Math.round(r.ingProp / r.pres * 1000) / 10 : 0,
+    autonomiaPct:         r.ingRecaud > 0 ? Math.round(r.ingProp / r.ingRecaud * 1000) / 10 : 0,
     ingTributarioPct:     r.pres > 0 ? Math.round(r.tribut / r.pres * 1000) / 10 : 0,
     ingCapitalPct:        r.pres > 0 ? Math.round(r.capital / r.pres * 1000) / 10 : 0,
     gastCapitalPct:       r.pres > 0 ? Math.round(r.gastC / r.pres * 1000) / 10 : 0,
@@ -188,6 +190,7 @@ function getFinCats(m: any) {
 function getAggFinCats(recs: any[]) {
   const raw      = recs.map(getRawFinCats);
   const totPres  = raw.reduce((s, r) => s + r.pres, 0);
+  const totIngRecaud = raw.reduce((s, r) => s + r.ingRecaud, 0);
   const totIngP  = raw.reduce((s, r) => s + r.ingProp, 0);
   const totTrib  = raw.reduce((s, r) => s + r.tribut, 0);
   const totNoTr  = raw.reduce((s, r) => s + r.noTrib, 0);
@@ -201,7 +204,7 @@ function getAggFinCats(recs: any[]) {
     ingCapital:           Math.round(totCap / M),
     gastosFuncionamiento: Math.round(totGastF / M),
     gastosCapital:        Math.round(totGastC / M),
-    autonomiaPct:         totPres > 0 ? Math.round(totIngP / totPres * 1000) / 10 : 0,
+    autonomiaPct:         totIngRecaud > 0 ? Math.round(totIngP / totIngRecaud * 1000) / 10 : 0,
     ingTributarioPct:     totPres > 0 ? Math.round(totTrib / totPres * 1000) / 10 : 0,
     ingCapitalPct:        totPres > 0 ? Math.round(totCap / totPres * 1000) / 10 : 0,
     gastCapitalPct:       totPres > 0 ? Math.round(totGastC / totPres * 1000) / 10 : 0,

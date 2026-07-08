@@ -4,6 +4,7 @@ import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
 import { getDeptStatsMap, deptNameToId, getDepartamento, getMunicipiosByDept } from '../data/municipios';
+import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -58,6 +59,33 @@ export default function MapaInteractivo() {
 
   const deptStats = useMemo(() => getDeptStatsMap(), []);
 
+  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (Supabase, agregado por depto).
+  // Fórmula estándar del proyecto — misma que afSEFIN en MunicipioDETALLE.tsx.
+  const { municipalities: sbMunicipalities, loading: sbLoading } = useMunicipalitiesMultiYear([fiscalYear]);
+
+  const autonomiaByDept = useMemo(() => {
+    const agg = new Map<string, { propios: number; recaudados: number }>();
+    sbMunicipalities.forEach((m) => {
+      const key = normalizeName(m.department || '');
+      const cur = agg.get(key) || { propios: 0, recaudados: 0 };
+      cur.propios    += m.ingresos_propios    ?? 0;
+      cur.recaudados += m.ingresos_recaudados ?? 0;
+      agg.set(key, cur);
+    });
+    const out = new Map<string, number>();
+    deptStats.forEach((_: any, deptName: string) => {
+      const a = agg.get(normalizeName(deptName));
+      out.set(deptName, a && a.recaudados > 0 ? (a.propios / a.recaudados) * 100 : 0);
+    });
+    return out;
+  }, [sbMunicipalities, deptStats]);
+
+  const autonomiaNoData = indicator === 'autonomia' && !sbLoading && sbMunicipalities.length === 0;
+  const maxAutonomia = useMemo(
+    () => Math.max(1, ...Array.from(autonomiaByDept.values())),
+    [autonomiaByDept]
+  );
+
   const totals = { munis: 298, pop: 9145000, budget: 65600000000 };
 
   const catTotals = useMemo(() => {
@@ -89,13 +117,13 @@ export default function MapaInteractivo() {
   }, []);
 
   const getValue = useCallback((deptName: string) => {
+    if (indicator === 'autonomia') return autonomiaByDept.get(deptName) ?? 0;
     const stats = deptStats.get(deptName);
     if (!stats) return 0;
     if (indicator === 'presupuesto') return stats.budget;
     if (indicator === 'poblacion')   return stats.population;
-    if (indicator === 'autonomia')   return stats.autonomia;
     return 0;
-  }, [deptStats, indicator]);
+  }, [deptStats, indicator, autonomiaByDept]);
 
   useEffect(() => {
     if (!topoData || !svgRef.current) return;
@@ -115,12 +143,17 @@ export default function MapaInteractivo() {
 
     const maxVal = d3.max(features, (f: any) => {
       const topoName = f.properties?.name || '';
+      if (indicator === 'autonomia') {
+        let best = 0;
+        autonomiaByDept.forEach((v: number, k: string) => {
+          if (normalizeName(k) === normalizeName(topoName)) best = v;
+        });
+        return best;
+      }
       let best = 0;
       deptStats.forEach((v: any, k: string) => {
         if (normalizeName(k) === normalizeName(topoName)) {
-          best = indicator === 'presupuesto' ? v.budget
-               : indicator === 'poblacion'   ? v.population
-               : v.autonomia;
+          best = indicator === 'presupuesto' ? v.budget : v.population;
         }
       });
       return best;
@@ -192,13 +225,16 @@ export default function MapaInteractivo() {
             </div>
           `;
         } else {
+          const displayVal = indicator === 'autonomia'
+            ? `${(autonomiaByDept.get(deptKey) ?? 0).toFixed(1)}%`
+            : `L ${fmt.format(budget)}`;
           html = `
             <div style="font-weight:700;font-size:16px;color:#e8eef6;margin-bottom:6px;
                         font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em">
               ${topoName}
             </div>
             <div style="font-size:14px;color:#2dd4bf;font-family:'IBM Plex Mono',monospace;margin-bottom:4px">
-              L ${fmt.format(budget)}
+              ${displayVal}
             </div>
             <div style="font-size:12px;color:#7c8aa3;font-family:'IBM Plex Mono',monospace">
               ${stats?.muniCount ?? 0} municipios${capital ? ` · cap. ${capital}` : ''}
@@ -247,7 +283,7 @@ export default function MapaInteractivo() {
       .attr('pointer-events', 'none')
       .text((f: any) => (f.properties?.name || '').toUpperCase());
 
-  }, [topoData, deptStats, indicator, getValue, containerSize, navigate]);
+  }, [topoData, deptStats, indicator, getValue, autonomiaByDept, containerSize, navigate]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -283,7 +319,7 @@ export default function MapaInteractivo() {
         </div>
 
         {/* Legend — top-right (presupuesto / poblacion / autonomia) */}
-        {indicator !== 'categorias' && (
+        {indicator !== 'categorias' && !autonomiaNoData && (
           <div style={{
             position: 'absolute', top: 20, right: 24, zIndex: 10,
             background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(0,212,184,0.18)',
@@ -294,7 +330,7 @@ export default function MapaInteractivo() {
               fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
             }}>
-              presupuesto {fiscalYear}
+              {indicator === 'autonomia' ? `autonomía ${fiscalYear}` : `presupuesto ${fiscalYear}`}
             </div>
             <div style={{
               height: 8, borderRadius: 4,
@@ -306,8 +342,38 @@ export default function MapaInteractivo() {
               fontSize: 10, color: '#9ca3af',
               fontFamily: "'IBM Plex Mono', monospace",
             }}>
-              <span>L 575 M</span>
-              <span>L 12.7 mil M</span>
+              {indicator === 'autonomia' ? (
+                <>
+                  <span>0%</span>
+                  <span>{maxAutonomia.toFixed(0)}%</span>
+                </>
+              ) : (
+                <>
+                  <span>L 575 M</span>
+                  <span>L 12.7 mil M</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Sin datos — 2019/2020 no tienen filas en Supabase para autonomía */}
+        {autonomiaNoData && (
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            zIndex: 15, textAlign: 'center', pointerEvents: 'none',
+            background: 'rgba(8,12,24,0.9)', border: '1px solid rgba(245,158,11,0.4)',
+            borderRadius: 10, padding: '18px 28px', maxWidth: 320,
+          }}>
+            <div style={{
+              fontSize: 13, fontWeight: 700, color: '#f59e0b',
+              fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6,
+            }}>
+              ⚠ Sin datos disponibles
+            </div>
+            <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>
+              No hay datos de SEFIN en el sistema para el año fiscal {fiscalYear}.
+              Seleccioná un año entre 2021 y 2025.
             </div>
           </div>
         )}

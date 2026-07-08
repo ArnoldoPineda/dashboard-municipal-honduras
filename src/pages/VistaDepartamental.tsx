@@ -6,6 +6,7 @@ import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/municipios';
 import { useNavbar } from '../context/NavbarContext';
+import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -255,8 +256,26 @@ export default function VistaDepartamental() {
     const pres  = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearPresupuesto, 0);
     const ing   = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearIngresosPropios, 0);
     const trans = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearTransferencia, 0);
-    return { presupuesto: pres, ingresosPropios: ing, transferencia: trans, autonomia: pres > 0 ? (ing / pres * 100) : 0 };
+    return { presupuesto: pres, ingresosPropios: ing, transferencia: trans };
   }, [munisWithYearBudget]);
+
+  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (Supabase).
+  // Fórmula estándar del proyecto — misma que afSEFIN en MunicipioDETALLE.tsx.
+  const { municipalities: sbMunicipalities } = useMunicipalitiesMultiYear([fiscalYear]);
+  const autonomiaSb: number | null = useMemo(() => {
+    if (!dept) return null;
+    const key = normalizeName(dept.nombre);
+    let propios = 0, recaudados = 0, found = false;
+    sbMunicipalities.forEach((m) => {
+      if (normalizeName(m.department || '') === key) {
+        propios    += m.ingresos_propios    ?? 0;
+        recaudados += m.ingresos_recaudados ?? 0;
+        found = true;
+      }
+    });
+    if (!found) return null; // sin filas de Supabase para este año (2019/2020)
+    return recaudados > 0 ? (propios / recaudados) * 100 : 0;
+  }, [sbMunicipalities, dept]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -288,7 +307,7 @@ export default function VistaDepartamental() {
     { label: 'POBLACIÓN',      value: fmt.format(dept.poblacion) + ' hab.',           color: '#5eead4' },
     { label: 'PRESUPUESTO',    value: `L ${fmt.format(deptYear.presupuesto)}`,        color: '#f59e0b' },
     { label: 'ING. PROPIOS',   value: `L ${fmt.format(deptYear.ingresosPropios)}`,    color: '#f59e0b' },
-    { label: 'AUTONOMÍA PROM.', value: `${deptYear.autonomia.toFixed(1)}%`,           color: '#5eead4' },
+    { label: 'AUTONOMÍA PROM.', value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
     { label: 'TRANSFERENCIAS', value: `L ${fmt.format(deptYear.transferencia)}`,      color: '#f59e0b' },
   ];
 

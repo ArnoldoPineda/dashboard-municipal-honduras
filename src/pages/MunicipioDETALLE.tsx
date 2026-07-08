@@ -525,24 +525,43 @@ export default function MunicipioDETALLE() {
   })();
 
   // ── Top 5 ─────────────────────────────────────────────────────────────────
+  // Candidatos = solo campos hoja de Supabase, nunca totales G1-G4 — cada campo
+  // es exactamente uno de los sumandos de g1/g2/g3/g4 (líneas 318-342), una sola
+  // vez, para evitar doble conteo (ej. Transferencias Art.91 ya es todo G3).
 
   const top5 = !muni ? [] : (() => {
     const items = sb ? [
-      { label: 'G1 Tributarios',            value: g1, color: '#2dd4bf' },
-      { label: 'G2 No Tributarios Propios', value: g2, color: '#06b6d4' },
-      { label: 'G3 Transferencias',         value: g3, color: '#f59e0b' },
-      { label: 'G4 Capital y Financ.',      value: g4, color: '#a855f7' },
-      { label: 'Transferencias Art. 91',    value: sb.transferencias_art91 ?? 0,  color: '#f59e0b' },
-      { label: 'Imp. Bienes Inmuebles',     value: sb.impuesto_bi ?? 0,           color: '#2dd4bf' },
-      { label: 'Tasas por Servicios',       value: sb.tasas_servicios ?? 0,       color: '#06b6d4' },
-      { label: 'Imp. Ind./Com./Serv.',      value: (sb.impuesto_industria ?? 0) + (sb.impuesto_comercio ?? 0) + (sb.impuesto_servicios ?? 0), color: '#2dd4bf' },
+      // G1 — Tributarios
+      { label: 'Impuesto s/Bienes Inmuebles',       group: 'G1', value: sb.impuesto_bi ?? 0,                                  color: '#2dd4bf' },
+      { label: 'Impuesto Personal (Vecinal)',       group: 'G1', value: sb.impuesto_personal ?? 0,                            color: '#2dd4bf' },
+      { label: 'Impuesto s/Industria (ICS)',        group: 'G1', value: sb.impuesto_industria ?? 0,                           color: '#2dd4bf' },
+      { label: 'Impuesto s/Comercio (ICS)',         group: 'G1', value: sb.impuesto_comercio ?? 0,                            color: '#2dd4bf' },
+      { label: 'Impuesto s/Servicios (ICS)',        group: 'G1', value: sb.impuesto_servicios ?? 0,                           color: '#2dd4bf' },
+      { label: 'Impuesto Pecuario',                 group: 'G1', value: sb.impuesto_pecuario ?? 0,                            color: '#2dd4bf' },
+      { label: 'Impuesto s/Extracción',             group: 'G1', value: sb.impuesto_extraccion ?? 0,                          color: '#2dd4bf' },
+      { label: 'Impuesto Telecomunicaciones',       group: 'G1', value: sb.impuesto_telecomunicaciones ?? 0,                  color: '#2dd4bf' },
+      { label: 'Tasas por Servicios',               group: 'G1', value: sb.tasas_servicios ?? 0,                             color: '#2dd4bf' },
+      { label: 'Derechos',                          group: 'G1', value: sb.derechos ?? 0,                                    color: '#2dd4bf' },
+      // G2 — No Tributarios Propios (solo SAMI; en RGL este campo no es confiable, ver isSAMI)
+      { label: 'Otros (multas, mora, recargos)',    group: 'G2', value: isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0,       color: '#06b6d4' },
+      // G3 — Transferencias
+      { label: 'Transferencias',                    group: 'G3', value: sb.transferencias_art91 ?? 0,                        color: '#f59e0b' },
+      { label: 'Subsidios',                         group: 'G3', value: sb.subsidios ?? 0,                                    color: '#f59e0b' },
+      { label: 'Herencias, Leg. y Donac.',          group: 'G3', value: sb.herencias_legados ?? 0,                            color: '#f59e0b' },
+      // G4 — Recursos de Capital y Financiamiento
+      { label: 'Venta de Activos',                  group: 'G4', value: sb.venta_activos ?? 0,                                color: '#a855f7' },
+      { label: 'Contribución por Mejoras (Art.85)', group: 'G4', value: sb.contribuciones ?? 0,                               color: '#a855f7' },
+      { label: 'Préstamos',                         group: 'G4', value: sb.prestamos ?? 0,                                    color: '#a855f7' },
+      { label: 'Colocación en Bonos',               group: 'G4', value: sb.colocacion_bonos ?? 0,                             color: '#a855f7' },
+      { label: 'Otros Ingresos de Capital',         group: 'G4', value: sb.otros_ingresos_capital ?? 0,                       color: '#a855f7' },
+      { label: 'Recursos de Balance',               group: 'G4', value: sb.recursos_balance ?? 0,                             color: '#a855f7' },
     ] : [
-      { label: 'G1 Tributarios',    value: _tribut, color: '#2dd4bf' },
-      { label: 'G2 No Tributarios', value: _noTrib, color: '#06b6d4' },
-      { label: 'G3 Transferencias', value: _trans,  color: '#f59e0b' },
-      { label: 'G4 Capital',        value: _otros,  color: '#a855f7' },
+      { label: 'G1 Tributarios',    group: 'G1', value: _tribut, color: '#2dd4bf' },
+      { label: 'G2 No Tributarios', group: 'G2', value: _noTrib, color: '#06b6d4' },
+      { label: 'G3 Transferencias', group: 'G3', value: _trans,  color: '#f59e0b' },
+      { label: 'G4 Capital',        group: 'G4', value: _otros,  color: '#a855f7' },
     ];
-    const sorted = [...items].sort((a, b) => b.value - a.value).slice(0, 5);
+    const sorted = [...items].filter(i => i.value > 0).sort((a, b) => b.value - a.value).slice(0, 5);
     const max = sorted[0]?.value || 1;
     return sorted.map(i => ({ ...i, pct: Math.round(i.value / max * 100) }));
   })();
@@ -844,7 +863,15 @@ export default function MunicipioDETALLE() {
                       <span style={{
                         fontSize: 13, color: '#9ca3af',
                         fontFamily: "'IBM Plex Mono', monospace",
+                        display: 'flex', alignItems: 'center', gap: 6,
                       }}>
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, color: item.color,
+                          border: `1px solid ${item.color}`, borderRadius: 3,
+                          padding: '1px 4px', letterSpacing: '0.03em', flexShrink: 0,
+                        }}>
+                          {item.group}
+                        </span>
                         {item.label}
                       </span>
                       <span style={{

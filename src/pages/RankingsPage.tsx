@@ -74,11 +74,17 @@ export default function RankingsPage() {
   const [metric,     setMetric]     = useState<Metric>('presupuesto');
   const [page,       setPage]       = useState<number>(0);
 
-  // Fetch real data from Supabase for the selected year; fall back to mock if empty
-  const { municipalities: supabaseMunis } = useMunicipalitiesMultiYear([year]);
+  // Fetch real data from Supabase for the selected año.
+  // Autonomía depende de ingresos_recaudados (solo en Supabase): si no hay filas
+  // (ej. 2019/2020, sin datos SEFIN en Supabase), esa pestaña muestra "Sin datos
+  // disponibles" — mismo tratamiento que MapaInteractivo/VistaDepartamental.
+  // Las demás métricas caen a mock (MUNICIPIOS) y siguen funcionando con normalidad.
+  const { municipalities: supabaseMunis, loading: sbLoading } = useMunicipalitiesMultiYear([year]);
+
+  const yearRows = useMemo(() => supabaseMunis.filter(m => m.year === year), [supabaseMunis, year]);
+  const autonomiaNoData = metric === 'autonomia' && !sbLoading && yearRows.length === 0;
 
   const allMusArr = useMemo(() => {
-    const yearRows = supabaseMunis.filter(m => m.year === year);
     if (!yearRows.length) return MUNICIPIOS as any[];
     return yearRows.map(m => {
       const deptId  = (deptNameToId as any)(m.department ?? '') ?? (m.department ?? '').toLowerCase().replace(/\s+/g, '-');
@@ -98,7 +104,7 @@ export default function RankingsPage() {
         evolucion:     [],
       };
     });
-  }, [supabaseMunis, year]);
+  }, [yearRows]);
 
   // Dept average per departamentoId for the active metric
   const deptAvgMap = useMemo<Record<string, number>>(() => {
@@ -193,7 +199,7 @@ export default function RankingsPage() {
               Rankings
             </div>
             <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
-              {filtered.length} municipios ordenados · variación vs. año anterior
+              {autonomiaNoData ? 'Sin datos de autonomía para este año' : `${filtered.length} municipios ordenados · variación vs. año anterior`}
             </div>
           </div>
 
@@ -205,7 +211,7 @@ export default function RankingsPage() {
                 letterSpacing: '0.12em', textTransform: 'uppercase',
               }}>AÑO</span>
               <div style={{ display: 'flex', gap: 5 }}>
-                {[2021, 2022, 2023, 2024, 2025].map(y => (
+                {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(y => (
                   <button
                     key={y}
                     className={y === year ? 'rk-pill rk-pill--active' : 'rk-pill'}
@@ -245,6 +251,27 @@ export default function RankingsPage() {
         </div>
 
         {/* ── TABLE ── */}
+        {autonomiaNoData ? (
+          <div style={{
+            marginTop: 18,
+            background: '#0d1628',
+            border: '1px solid rgba(245,158,11,0.3)',
+            borderRadius: 14,
+            padding: '40px 24px',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              fontSize: 13, fontWeight: 700, color: '#f59e0b',
+              fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6,
+            }}>
+              ⚠ Sin datos disponibles
+            </div>
+            <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>
+              No hay datos de SEFIN en el sistema para Autonomía Financiera en el año fiscal {year}.
+              Seleccioná un año entre 2021 y 2025, u otra pestaña de métrica.
+            </div>
+          </div>
+        ) : (
         <div style={{
           marginTop: 18,
           background: '#0d1628',
@@ -420,6 +447,7 @@ export default function RankingsPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* ── PAGINATION ── */}
         {totalPages > 1 && (

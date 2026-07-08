@@ -124,6 +124,7 @@ interface AccordionSection {
   color: string;
   amount: number;
   rows: { label: string; value: string }[];
+  note?: string;
 }
 
 function AccordionItem({
@@ -185,6 +186,18 @@ function AccordionItem({
 
       {expanded && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {section.note && (
+            <div style={{
+              padding: '8px 16px',
+              fontSize: 11,
+              color: '#7c8aa3',
+              fontStyle: 'italic',
+              fontFamily: "'IBM Plex Mono', monospace",
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+            }}>
+              {section.note}
+            </div>
+          )}
           {section.rows.map((row, i) => (
             <div key={i} style={{
               display: 'flex',
@@ -412,13 +425,12 @@ export default function MunicipioDETALLE() {
       title: 'G2 — Ingresos No Tributarios Propios',
       color: '#f59e0b',
       amount: g2,
-      rows: sb ? ([
-        { label: 'Tasas por Servicios (→ G1)', value: fmZ(sb.tasas_servicios) },
-        { label: 'Derechos (→ G1)',             value: fmZ(sb.derechos)        },
-        ...(isSAMI ? [
-          { label: 'Otros (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios) },
-        ] : []),
-      ] as {label:string;value:string}[]) : [
+      note: 'Tasas por Servicios y Derechos se muestran aquí solo como referencia cruzada — ya están contabilizados en G1.',
+      rows: sb ? [
+        { label: 'Tasas por Servicios (→ G1)',     value: fmZ(sb.tasas_servicios) },
+        { label: 'Derechos (→ G1)',                 value: fmZ(sb.derechos)        },
+        { label: 'Otros (multas, mora, recargos)', value: fmZ(isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0) },
+      ] : [
         { label: 'Otros (multas, mora, recargos)', value: fm(_noTrib) },
       ],
     },

@@ -15413,18 +15413,6 @@ export function getDeptAvg(deptId) {
   };
 }
 
-export function getMunicipalitiesForMap() {
-  return MUNICIPIOS.map((m) => ({
-    name:                  m.nombre,
-    department:            m.departamento,
-    presupuesto_municipal: m.presupuesto,
-    ingresos_propios:      m.ingresosPropios,
-    autonomia_financiera:  m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto) * 100 : 0,
-    population:            m.poblacion,
-    transferencias_art91:  m.transferencia,
-  }));
-}
-
 export function getDeptStatsMap() {
   const map = new Map();
   DEPARTAMENTOS.forEach((d) => {

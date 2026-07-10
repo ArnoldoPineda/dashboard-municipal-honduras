@@ -36,6 +36,8 @@ function getMockForYear(year: number): any[] {
       population: m.poblacion,
       presupuesto_municipal: pres,
       ingresos_propios: ing,
+      // Mock no trae ingresos_recaudados — presupuesto es el único proxy
+      // disponible para el denominador. Mismo patrón que RankingsPage.tsx:42-44.
       autonomia_financiera: pres > 0 ? (ing / pres * 100) : 0,
     };
   });

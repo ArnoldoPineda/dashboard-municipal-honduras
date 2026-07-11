@@ -62,22 +62,6 @@ function fmtSigned(n: number | null | undefined): string {
   return n < 0 ? `−${label}` : label;
 }
 
-// Municipios que reportan bajo sistema RGL (NO SAMI).
-// Para estos, `INGRESOS_NO_TRIBUTARIOS` no es confiable y se excluye de G2.
-// Los 288 municipios restantes usan SAMI y sí incluyen ese campo en G2.
-const NO_SAMI_IDS = new Set([
-  'atlantida-la-ceiba',
-  'comayagua-comayagua',
-  'comayagua-siguatepeque',
-  'cortes-san-pedro-sula',
-  'cortes-puerto-cortes',
-  'cortes-villanueva',
-  'cortes-la-lima',
-  'francisco-morazan-distrito-central',
-  'francisco-morazan-el-porvenir',
-  'yoro-el-progreso',
-]);
-
 function getDeptMunis(code: string): { id: string; name: string }[] {
   if (!code) return [];
   return (getMunicipiosByDept(code) as any[])
@@ -324,9 +308,6 @@ export default function MunicipioDETALLE() {
     ? ALL_MUNIS_SORTED.findIndex((m: any) => m.id === muni.id) + 1
     : 0;
 
-  // ── Sistema fuente: SAMI (288 munis) vs RGL/NO-SAMI (10 munis grandes) ────
-  const isSAMI: boolean = muni ? !NO_SAMI_IDS.has(muni.id) : true;
-
   // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
   const g1 = sb
     ? (sb.impuesto_bi ?? 0) + (sb.impuesto_personal ?? 0)
@@ -338,7 +319,7 @@ export default function MunicipioDETALLE() {
 
   // G2: solo multas/mora/recargos. Tasas y derechos ya están en G1.
   const g2 = sb
-    ? (isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0)
+    ? (sb.ingresos_no_tributarios ?? 0)
     : _noTrib;
 
   // G3: TRANSFERENCIAS ya incluye Art.91 + otras (no desagregable en el Excel SEFIN).
@@ -429,7 +410,7 @@ export default function MunicipioDETALLE() {
       rows: sb ? [
         { label: 'Tasas por Servicios (→ G1)',     value: fmZ(sb.tasas_servicios) },
         { label: 'Derechos (→ G1)',                 value: fmZ(sb.derechos)        },
-        { label: 'Otros (multas, mora, recargos)', value: fmZ(isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0) },
+        { label: 'Otros (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios ?? 0) },
       ] : [
         { label: 'Otros (multas, mora, recargos)', value: fm(_noTrib) },
       ],
@@ -554,8 +535,8 @@ export default function MunicipioDETALLE() {
       { label: 'Impuesto Telecomunicaciones',       group: 'G1', value: sb.impuesto_telecomunicaciones ?? 0,                  color: '#2dd4bf' },
       { label: 'Tasas por Servicios',               group: 'G1', value: sb.tasas_servicios ?? 0,                             color: '#2dd4bf' },
       { label: 'Derechos',                          group: 'G1', value: sb.derechos ?? 0,                                    color: '#2dd4bf' },
-      // G2 — No Tributarios Propios (solo SAMI; en RGL este campo no es confiable, ver isSAMI)
-      { label: 'Otros (multas, mora, recargos)',    group: 'G2', value: isSAMI ? (sb.ingresos_no_tributarios ?? 0) : 0,       color: '#06b6d4' },
+      // G2 — No Tributarios Propios
+      { label: 'Otros (multas, mora, recargos)',    group: 'G2', value: sb.ingresos_no_tributarios ?? 0,                     color: '#06b6d4' },
       // G3 — Transferencias
       { label: 'Transferencias',                    group: 'G3', value: sb.transferencias_art91 ?? 0,                        color: '#f59e0b' },
       { label: 'Subsidios',                         group: 'G3', value: sb.subsidios ?? 0,                                    color: '#f59e0b' },

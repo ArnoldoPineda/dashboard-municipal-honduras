@@ -239,7 +239,7 @@ export default function MunicipioDETALLE() {
   const [muniId,   setMuniId]   = useState<string>('');
   const [openSections, setOpenSections] = useState<Set<string>>(
     new Set(['general', 'resumen', 'ing_tributarios', 'ing_no_tributarios',
-             'ing_transferencias', 'ing_capital', 'gast_funcionamiento', 'gast_capital',
+             'ing_capital', 'gast_funcionamiento', 'gast_capital',
              'resultado', 'notas'])
   );
 
@@ -322,18 +322,16 @@ export default function MunicipioDETALLE() {
     ? (sb.ingresos_no_tributarios ?? 0)
     : _noTrib;
 
-  // G3: TRANSFERENCIAS ya incluye Art.91 + otras (no desagregable en el Excel SEFIN).
-  //     OTRAS_TRANSFERENCIAS siempre = 0 en ambos sistemas, se omite.
-  const g3 = sb
-    ? (sb.transferencias_art91 ?? 0)
-      + (sb.subsidios ?? 0) + (sb.herencias_legados ?? 0)
-    : _trans;
-
+  // G4: los 10 campos de "INGRESOS DE CAPITAL" del Excel SEFIN (col. 29 = Σ col. 30-39).
+  //     Incluye Transferencias Art.91, Otras Transferencias, Subsidios y Herencias/Legados/
+  //     Donaciones — SEFIN no las trata como sección aparte, son sub-renglones de capital.
   const g4 = sb
     ? (sb.venta_activos ?? 0) + (sb.contribuciones ?? 0)
       + (sb.prestamos ?? 0) + (sb.colocacion_bonos ?? 0)
       + (sb.otros_ingresos_capital ?? 0) + (sb.recursos_balance ?? 0)
-    : _otros;
+      + (sb.transferencias_art91 ?? 0) + (sb.otras_transferencias ?? 0)
+      + (sb.subsidios ?? 0) + (sb.herencias_legados ?? 0)
+    : _otros + _trans;
 
   // AF SEFIN Oficial: usa campos directos para comparabilidad con reportes del gobierno
   const afSEFIN: number = sb && (sb.ingresos_recaudados ?? 0) > 0
@@ -416,30 +414,21 @@ export default function MunicipioDETALLE() {
       ],
     },
     {
-      key: 'ing_transferencias',
-      title: 'G3 — Transferencias',
-      color: '#ec4899',
-      amount: g3,
-      rows: sb ? [
-        { label: 'Transferencias',           value: fmZ(sb.transferencias_art91)  },
-        { label: 'Subsidios',                value: fmZ(sb.subsidios)             },
-        { label: 'Herencias, Leg. y Donac.', value: fmZ(sb.herencias_legados)     },
-      ] : [
-        { label: 'Transferencias', value: fm(_trans) },
-      ],
-    },
-    {
       key: 'ing_capital',
       title: 'G4 — Recursos de Capital y Financiamiento',
       color: '#a855f7',
       amount: g4,
       rows: sb ? [
-        { label: 'Venta de Activos',                  value: fmZ(sb.venta_activos)    },
-        { label: 'Contribución por Mejoras (Art.85)', value: fmZ(sb.contribuciones)   },
-        { label: 'Préstamos',                    value: fmZ(sb.prestamos)              },
-        { label: 'Colocación en Bonos',          value: fmZ(sb.colocacion_bonos)       },
-        { label: 'Otros Ingresos de Capital',    value: fmZ(sb.otros_ingresos_capital) },
-        { label: 'Recursos de Balance ★',        value: fmZ(sb.recursos_balance)       },
+        { label: 'Venta de Activos',                  value: fmZ(sb.venta_activos)         },
+        { label: 'Contribuciones',                    value: fmZ(sb.contribuciones)         },
+        { label: 'Préstamos',                         value: fmZ(sb.prestamos)              },
+        { label: 'Colocación en Bonos',                value: fmZ(sb.colocacion_bonos)       },
+        { label: 'Transferencias Art. 91',            value: fmZ(sb.transferencias_art91)   },
+        { label: 'Otras Transferencias',              value: fmZ(sb.otras_transferencias)   },
+        { label: 'Subsidios',                          value: fmZ(sb.subsidios)             },
+        { label: 'Herencias, Leg. y Donac.',           value: fmZ(sb.herencias_legados)      },
+        { label: 'Otros Ingresos de Capital',          value: fmZ(sb.otros_ingresos_capital) },
+        { label: 'Recursos de Balance ★',              value: fmZ(sb.recursos_balance)       },
       ] : [
         { label: 'Recursos de Capital',   value: fm(_otros * 0.60) },
         { label: 'Préstamos',             value: fm(_otros * 0.25) },
@@ -498,12 +487,11 @@ export default function MunicipioDETALLE() {
 
   const donutData = !muni ? [] : (() => {
     if (sb) {
-      const total = g1 + g2 + g3 + g4;
+      const total = g1 + g2 + g4;
       const pct   = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
       return [
         { name: 'G1 Tributarios',             value: g1, fill: '#2dd4bf', pct: pct(g1) },
         { name: 'G2 No Tributarios Propios',  value: g2, fill: '#06b6d4', pct: pct(g2) },
-        { name: 'G3 Transferencias',          value: g3, fill: '#f59e0b', pct: pct(g3) },
         { name: 'G4 Capital y Financ.',       value: g4, fill: '#a855f7', pct: pct(g4) },
       ].filter(d => d.value > 0);
     }
@@ -512,15 +500,14 @@ export default function MunicipioDETALLE() {
     return [
       { name: 'G1 Tributarios',    value: _tribut, fill: '#2dd4bf', pct: pct(_tribut) },
       { name: 'G2 No Tributarios', value: _noTrib, fill: '#06b6d4', pct: pct(_noTrib) },
-      { name: 'G3 Transferencias', value: _trans,  fill: '#f59e0b', pct: pct(_trans)  },
-      { name: 'G4 Capital',        value: _otros,  fill: '#a855f7', pct: pct(_otros)  },
+      { name: 'G4 Capital',        value: _otros + _trans, fill: '#a855f7', pct: pct(_otros + _trans) },
     ].filter(d => d.value > 0);
   })();
 
   // ── Top 5 ─────────────────────────────────────────────────────────────────
-  // Candidatos = solo campos hoja de Supabase, nunca totales G1-G4 — cada campo
-  // es exactamente uno de los sumandos de g1/g2/g3/g4 (líneas 318-342), una sola
-  // vez, para evitar doble conteo (ej. Transferencias Art.91 ya es todo G3).
+  // Candidatos = solo campos hoja de Supabase, nunca totales G1/G2/G4 — cada campo
+  // es exactamente uno de los sumandos de g1/g2/g4 (líneas 318-336), una sola
+  // vez, para evitar doble conteo (ej. Transferencias Art.91 ya es parte de G4).
 
   const top5 = !muni ? [] : (() => {
     const items = sb ? [
@@ -537,22 +524,21 @@ export default function MunicipioDETALLE() {
       { label: 'Derechos',                          group: 'G1', value: sb.derechos ?? 0,                                    color: '#2dd4bf' },
       // G2 — No Tributarios Propios
       { label: 'Otros (multas, mora, recargos)',    group: 'G2', value: sb.ingresos_no_tributarios ?? 0,                     color: '#06b6d4' },
-      // G3 — Transferencias
-      { label: 'Transferencias',                    group: 'G3', value: sb.transferencias_art91 ?? 0,                        color: '#f59e0b' },
-      { label: 'Subsidios',                         group: 'G3', value: sb.subsidios ?? 0,                                    color: '#f59e0b' },
-      { label: 'Herencias, Leg. y Donac.',          group: 'G3', value: sb.herencias_legados ?? 0,                            color: '#f59e0b' },
       // G4 — Recursos de Capital y Financiamiento
       { label: 'Venta de Activos',                  group: 'G4', value: sb.venta_activos ?? 0,                                color: '#a855f7' },
-      { label: 'Contribución por Mejoras (Art.85)', group: 'G4', value: sb.contribuciones ?? 0,                               color: '#a855f7' },
+      { label: 'Contribuciones',                    group: 'G4', value: sb.contribuciones ?? 0,                               color: '#a855f7' },
       { label: 'Préstamos',                         group: 'G4', value: sb.prestamos ?? 0,                                    color: '#a855f7' },
-      { label: 'Colocación en Bonos',               group: 'G4', value: sb.colocacion_bonos ?? 0,                             color: '#a855f7' },
+      { label: 'Colocación en Bonos',                group: 'G4', value: sb.colocacion_bonos ?? 0,                            color: '#a855f7' },
+      { label: 'Transferencias Art. 91',            group: 'G4', value: sb.transferencias_art91 ?? 0,                        color: '#a855f7' },
+      { label: 'Otras Transferencias',               group: 'G4', value: sb.otras_transferencias ?? 0,                       color: '#a855f7' },
+      { label: 'Subsidios',                         group: 'G4', value: sb.subsidios ?? 0,                                    color: '#a855f7' },
+      { label: 'Herencias, Leg. y Donac.',          group: 'G4', value: sb.herencias_legados ?? 0,                            color: '#a855f7' },
       { label: 'Otros Ingresos de Capital',         group: 'G4', value: sb.otros_ingresos_capital ?? 0,                       color: '#a855f7' },
       { label: 'Recursos de Balance',               group: 'G4', value: sb.recursos_balance ?? 0,                             color: '#a855f7' },
     ] : [
       { label: 'G1 Tributarios',    group: 'G1', value: _tribut, color: '#2dd4bf' },
       { label: 'G2 No Tributarios', group: 'G2', value: _noTrib, color: '#06b6d4' },
-      { label: 'G3 Transferencias', group: 'G3', value: _trans,  color: '#f59e0b' },
-      { label: 'G4 Capital',        group: 'G4', value: _otros,  color: '#a855f7' },
+      { label: 'G4 Capital',        group: 'G4', value: _otros + _trans, color: '#a855f7' },
     ];
     const sorted = [...items].filter(i => i.value > 0).sort((a, b) => b.value - a.value).slice(0, 5);
     const max = sorted[0]?.value || 1;
@@ -824,7 +810,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 18, fontWeight: 700, color: '#ffffff',
                     fontFamily: "'IBM Plex Mono', monospace",
                   }}>
-                    {L(g1 + g2 + g3 + g4)}
+                    {L(g1 + g2 + g4)}
                   </div>
                   <div style={{
                     fontSize: 9, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace",

@@ -16,3 +16,12 @@ query_dept.py
 *.xlsx
 municipalities.json
 Municipalities.csv
+
+# Build output — generado por Netlify en el pipeline, no debe trackearse
+build/
+
+# Grafo de conocimiento auto-generado (skill graphify), regenerable con `graphify update .`
+graphify-out/
+
+# Salida de test runs (Playwright/otros), no forma parte del código fuente
+test-results/

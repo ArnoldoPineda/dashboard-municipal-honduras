@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio, MUNICIPIOS } from '../data/municipios';
+import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio } from '../data/municipios';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 
@@ -40,17 +40,6 @@ const DEPT_CODES: Record<string, string> = {
   'la-paz': '12', 'lempira': '13', 'ocotepeque': '14', 'olancho': '15',
   'santa-barbara': '16', 'valle': '17', 'yoro': '18',
 };
-
-const DEPT_ORDER: Record<string, number> = Object.fromEntries(
-  Object.entries(DEPT_CODES).map(([k, v]) => [k, parseInt(v, 10)])
-);
-
-const ALL_MUNIS_SORTED: any[] = [...(MUNICIPIOS as any[])].sort((a, b) => {
-  const oa = DEPT_ORDER[a.departamentoId] ?? 99;
-  const ob = DEPT_ORDER[b.departamentoId] ?? 99;
-  if (oa !== ob) return oa - ob;
-  return a.nombre.localeCompare(b.nombre, 'es');
-});
 
 function fmtSigned(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—';
@@ -304,10 +293,6 @@ export default function MunicipioDETALLE() {
   const codMun = muni && muniId
     ? String(deptMunis.findIndex(m => m.id === muniId) + 1).padStart(2, '0')
     : '—';
-  const noMun  = muni
-    ? ALL_MUNIS_SORTED.findIndex((m: any) => m.id === muni.id) + 1
-    : 0;
-
   // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
   const g1 = sb
     ? (sb.impuesto_bi ?? 0) + (sb.impuesto_personal ?? 0)
@@ -344,7 +329,6 @@ export default function MunicipioDETALLE() {
     {
       key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
       rows: [
-        { label: 'No. Municipio',       value: noMun > 0 ? String(noMun).padStart(3, '0') : '—' },
         { label: 'Cód. Departamento',   value: codDep },
         { label: 'Cód. Municipio',      value: codMun },
         { label: 'Departamento',        value: muni.departamento },
@@ -428,11 +412,11 @@ export default function MunicipioDETALLE() {
         { label: 'Subsidios',                          value: fmZ(sb.subsidios)             },
         { label: 'Herencias, Leg. y Donac.',           value: fmZ(sb.herencias_legados)      },
         { label: 'Otros Ingresos de Capital',          value: fmZ(sb.otros_ingresos_capital) },
-        { label: 'Recursos de Balance ★',              value: fmZ(sb.recursos_balance)       },
+        { label: 'Recursos de Balance',              value: fmZ(sb.recursos_balance)       },
       ] : [
         { label: 'Recursos de Capital',   value: fm(_otros * 0.60) },
         { label: 'Préstamos',             value: fm(_otros * 0.25) },
-        { label: 'Recursos de Balance ★', value: fm(_otros * 0.15) },
+        { label: 'Recursos de Balance', value: fm(_otros * 0.15) },
       ],
     },
     {

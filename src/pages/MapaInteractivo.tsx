@@ -53,7 +53,8 @@ export default function MapaInteractivo() {
 
   // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
   // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (agregado por depto).
-  const { rows, message: noDataMsg } = useSefinYear(fiscalYear);
+  const { rows, loading, message: noDataMsg } = useSefinYear(fiscalYear);
+  const hideFigures = loading || !!noDataMsg; // mientras carga: '—', nunca 0
 
   // Agregados por departamento, con clave = nombre de la app (como antes deptStats).
   const { deptStats, deptRows } = useMemo(() => {
@@ -157,7 +158,7 @@ export default function MapaInteractivo() {
       .attr('d', path as any)
       .attr('fill', (f: any) => {
         const topoName = f.properties?.name || '';
-        if (noDataMsg) return '#142030';
+        if (hideFigures) return '#142030';
         if (indicator === 'categorias') {
           const { dominant } = deptCatData(deptRows.get(topoName) ?? []);
           return d3.color(CAT_COLORS[dominant])!.darker(0.4).formatHex();
@@ -188,14 +189,14 @@ export default function MapaInteractivo() {
         const muniCount = geoCountByDept.get(normalizeName(topoName)) ?? 0;
 
         let html = '';
-        if (noDataMsg) {
+        if (hideFigures) {
           html = `
             <div style="font-weight:700;font-size:16px;color:#e8eef6;margin-bottom:6px;
                         font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em">
               ${topoName}
             </div>
             <div style="font-size:12px;color:#f59e0b;font-family:'IBM Plex Mono',monospace">
-              ${noDataMsg}
+              ${noDataMsg ?? 'Cargando datos SEFIN…'}
             </div>
           `;
         } else if (indicator === 'categorias') {
@@ -275,7 +276,7 @@ export default function MapaInteractivo() {
       .attr('pointer-events', 'none')
       .text((f: any) => (f.properties?.name || '').toUpperCase());
 
-  }, [topoData, deptStats, deptRows, geoCountByDept, indicator, getValue, maxVal, fmtIndicator, noDataMsg, containerSize, navigate]);
+  }, [topoData, deptStats, deptRows, geoCountByDept, indicator, getValue, maxVal, fmtIndicator, noDataMsg, hideFigures, containerSize, navigate]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -311,7 +312,7 @@ export default function MapaInteractivo() {
         </div>
 
         {/* Legend — top-right (presupuesto / poblacion / autonomia) */}
-        {indicator !== 'categorias' && !noDataMsg && (
+        {indicator !== 'categorias' && !hideFigures && (
           <div style={{
             position: 'absolute', top: 20, right: 24, zIndex: 10,
             background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(0,212,184,0.18)',
@@ -439,7 +440,7 @@ export default function MapaInteractivo() {
               <div style={{
                 fontSize: 22, fontWeight: 700, color: CAT_COLORS[cat],
                 fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-              }}>{noDataMsg ? '—' : catTotals[cat]}</div>
+              }}>{hideFigures ? '—' : catTotals[cat]}</div>
               <div style={{
                 fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
               }}>municipios</div>
@@ -482,7 +483,7 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#e8eef6',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-            }}>{noDataMsg ? '—' : fmtInt.format(totals.poblacion)}</div>
+            }}>{hideFigures ? '—' : fmtInt.format(totals.poblacion)}</div>
             <div style={{
               fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
             }}>{`habitantes · SEFIN ${fiscalYear}`}</div>
@@ -499,7 +500,7 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#f59e0b',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-            }}>{noDataMsg ? '—' : `L ${fmt.format(totals.presupuesto)}`}</div>
+            }}>{hideFigures ? '—' : `L ${fmt.format(totals.presupuesto)}`}</div>
             <div style={{
               fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
             }}>suma de presupuestos municipales</div>

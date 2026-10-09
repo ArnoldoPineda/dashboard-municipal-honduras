@@ -328,7 +328,7 @@ export default function VistaDepartamental() {
     );
   }
 
-  const na = (v: string) => (noData ? '—' : v);
+  const na = (v: string) => (noData || !loaded ? '—' : v); // mientras carga: '—', nunca 0
   const kpis = [
     { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
     { label: 'POBLACIÓN',      value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },

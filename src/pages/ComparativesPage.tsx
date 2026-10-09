@@ -152,6 +152,21 @@ function getAggMetricValue(recs: any[], metric: MetricKey): number {
   return recs.reduce((s, m) => s + getMetricValue(m, metric), 0);
 }
 
+// Identidad de municipio = "DEPARTAMENTO|nombre": hay 24 nombres repetidos entre departamentos.
+const muniId = (m: any): string => `${m.department}|${m.name}`;
+const splitMuniId = (id: string): [string, string] => {
+  const i = id.indexOf('|');
+  return [id.slice(0, i), id.slice(i + 1)];
+};
+/** Etiqueta visible: el nombre, o "nombre (DEPTO)" si dos seleccionados se llaman igual. */
+function muniLabels(ids: string[]): Record<string, string> {
+  const names = ids.map(id => splitMuniId(id)[1]);
+  return Object.fromEntries(ids.map((id, i) => {
+    const [dept, name] = splitMuniId(id);
+    return [id, names.filter(n => n === names[i]).length > 1 ? `${name} (${dept})` : name];
+  }));
+}
+
 function getMetricLabel(metric: MetricKey): string {
   return METRICS.find(m => m.key === metric)?.label ?? metric;
 }
@@ -566,7 +581,7 @@ function FinancialChartsSection({
     const s = new Set<number>();
     municipalities.forEach(m => {
       const match = mode === 'muni'
-        ? selected.includes(m.name ?? '')
+        ? selected.includes(muniId(m))
         : selected.includes(m.department ?? '');
       if (match) s.add(m.year);
     });
@@ -579,13 +594,14 @@ function FinancialChartsSection({
 
   const barData = useMemo(() => {
     if (!selected.length) return [];
+    const labels = mode === 'muni' ? muniLabels(selected) : {};
     return selected.map(entity => {
       const recs = mode === 'muni'
-        ? municipalities.filter(m => m.name === entity && m.year === effectiveFinYear)
+        ? municipalities.filter(m => muniId(m) === entity && m.year === effectiveFinYear)
         : municipalities.filter(m => m.department === entity && m.year === effectiveFinYear);
       if (!recs.length) return null;
       const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
-      return { name: entity, ...fc };
+      return { name: mode === 'muni' ? labels[entity] : entity, ...fc };
     }).filter(Boolean) as any[];
   }, [selected, municipalities, effectiveFinYear, mode]);
 
@@ -649,7 +665,7 @@ function FinancialChartsSection({
           <RadarCard
             title="PERFIL FINANCIERO COMPARATIVO"
             radarData={radarData}
-            names={selected}
+            names={barData.map((d: any) => d.name)}
           />
         </>
       )}
@@ -662,7 +678,7 @@ function FinancialChartsSection({
 function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
   // deptSections: one entry per group (up to 2), value is the dept name or '' if unselected
   const [deptSections, setDeptSections] = useState<string[]>(['']);
-  const [selected, setSelected]         = useState<string[]>([]);
+  const [selected, setSelected]         = useState<string[]>([]); // ids "DEPARTAMENTO|nombre"
   const [years, setYears]               = useState<number[]>([2021, 2022, 2023, 2024]);
   const [metric, setMetric]             = useState<MetricKey>('presupuesto');
 
@@ -683,61 +699,49 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
     [deptSections, municipalities]
   );
 
-  // Helper used in event handlers (no hook)
-  const muniListForDept = (dept: string): string[] =>
-    dept
-      ? [...new Set(municipalities.filter(m => m.department === dept).map(m => m.name).filter(Boolean))]
-      : [];
-
   const handleDeptChange = (sectionIdx: number, newDept: string) => {
     const oldDept = deptSections[sectionIdx];
-    if (oldDept) {
-      const oldMunis = muniListForDept(oldDept);
-      setSelected(prev => prev.filter(n => !oldMunis.includes(n)));
-    }
+    if (oldDept) setSelected(prev => prev.filter(id => splitMuniId(id)[0] !== oldDept));
     setDeptSections(prev => prev.map((d, i) => i === sectionIdx ? newDept : d));
   };
 
   const removeSection = (sectionIdx: number) => {
     const deptToRemove = deptSections[sectionIdx];
-    if (deptToRemove) {
-      const munis = muniListForDept(deptToRemove);
-      setSelected(prev => prev.filter(n => !munis.includes(n)));
-    }
+    if (deptToRemove) setSelected(prev => prev.filter(id => splitMuniId(id)[0] !== deptToRemove));
     setDeptSections(prev => prev.filter((_, i) => i !== sectionIdx));
   };
 
-  const toggleMuni = (name: string) => {
+  const toggleMuni = (id: string) => {
     setSelected(prev =>
-      prev.includes(name) ? prev.filter(x => x !== name)
-        : prev.length < MAX_MUNIS ? [...prev, name] : prev
+      prev.includes(id) ? prev.filter(x => x !== id)
+        : prev.length < MAX_MUNIS ? [...prev, id] : prev
     );
   };
 
-  const getMuniDept = (name: string): string =>
-    municipalities.find(m => m.name === name)?.department || '';
+  const labels = useMemo(() => muniLabels(selected), [selected]);
 
   const chartData = useMemo(() => {
     if (!selected.length || !years.length) return [];
     const grouped: Record<number, any> = {};
     municipalities.forEach(m => {
-      if (!selected.includes(m.name) || !years.includes(m.year)) return;
+      const id = muniId(m);
+      if (!selected.includes(id) || !years.includes(m.year)) return;
       if (!grouped[m.year]) grouped[m.year] = { year: m.year };
-      grouped[m.year][m.name] = getMetricValue(m, metric);
+      grouped[m.year][labels[id]] = getMetricValue(m, metric);
     });
     return Object.values(grouped).sort((a: any, b: any) => a.year - b.year);
-  }, [municipalities, selected, years, metric]);
+  }, [municipalities, selected, labels, years, metric]);
 
   const tableRows = useMemo(() => {
-    return selected.map(name => {
-      const row: any = { label: name };
+    return selected.map(id => {
+      const row: any = { label: labels[id] };
       years.forEach(y => {
-        const rec = municipalities.find(m => m.name === name && m.year === y);
+        const rec = municipalities.find(m => muniId(m) === id && m.year === y);
         row[`y_${y}`] = rec ? formatValue(metric, getMetricValue(rec, metric)) : null;
       });
       return row;
     });
-  }, [municipalities, selected, years, metric]);
+  }, [municipalities, selected, labels, years, metric]);
 
   const hasDeptSelected = deptSections.some(d => d !== '');
 
@@ -752,7 +756,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
             const rgbColor   = sectionIdx === 0 ? '45,212,191' : '245,158,11';
             const usedDepts  = deptSections.filter((_, i) => i !== sectionIdx).filter(Boolean);
             const muniList   = muniListsPerSection[sectionIdx];
-            const sectionSel = selected.filter(n => muniList.includes(n));
+            const sectionSel = selected.filter(id => splitMuniId(id)[0] === dept);
 
             return (
               <div
@@ -829,7 +833,8 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
                       gap: 5,
                     }}>
                       {muniList.map(name => {
-                        const isSelected = selected.includes(name);
+                        const id         = `${dept}|${name}`;
+                        const isSelected = selected.includes(id);
                         const isDisabled = !isSelected && selected.length >= MAX_MUNIS;
                         return (
                           <label
@@ -851,7 +856,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
                               type="checkbox"
                               checked={isSelected}
                               disabled={isDisabled}
-                              onChange={() => toggleMuni(name)}
+                              onChange={() => toggleMuni(id)}
                               style={{
                                 accentColor: color,
                                 width: 12, height: 12,
@@ -912,16 +917,16 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
           <span style={{ ...FLABEL, marginBottom: 0 }}>
             MUNICIPIOS {selected.length}/{MAX_MUNIS}
           </span>
-          {selected.map((name, i) => {
-            const deptName = getMuniDept(name);
+          {selected.map((id, i) => {
+            const [deptName, name] = splitMuniId(id);
             const sIdx     = deptSections.indexOf(deptName);
             const color    = sIdx >= 0 ? SECTION_COLORS[sIdx] : PALETTE[i % PALETTE.length];
             return (
               <SelectedPill
-                key={name}
-                label={deptName ? `${name} · ${deptName}` : name}
+                key={id}
+                label={`${name} · ${deptName}`}
                 color={color}
-                onRemove={() => setSelected(p => p.filter(x => x !== name))}
+                onRemove={() => setSelected(p => p.filter(x => x !== id))}
               />
             );
           })}
@@ -947,7 +952,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
       <ChartCard
         title={`COMPARATIVA — ${getMetricLabel(metric).toUpperCase()}`}
         data={chartData}
-        keys={selected}
+        keys={selected.map(id => labels[id])}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
       <FinancialChartsSection selected={selected} municipalities={municipalities} mode="muni" />
@@ -1094,14 +1099,14 @@ function ModeHistorica({ municipalities }: { municipalities: any[] }) {
 
   const chartData = useMemo(() => {
     if (!muniName) return [];
-    const recs = municipalities.filter(m => m.name === muniName && YEARS.includes(m.year));
+    const recs = municipalities.filter(m => m.name === muniName && m.department === dept && YEARS.includes(m.year));
     return YEARS.map(y => {
       const rec = recs.find(m => m.year === y);
       const row: any = { year: y };
       if (rec) metrics.forEach(k => { row[k] = getMetricValue(rec, k); });
       return row;
     });
-  }, [municipalities, muniName, metrics]);
+  }, [municipalities, muniName, dept, metrics]);
 
   return (
     <>

@@ -114,15 +114,8 @@ export default function DashboardNacional() {
   const selectedYear = fiscalYear;
 
   const byYear = useMemo(() => {
-    // Filter: skip rows with null/empty/N/A department; patch null ingresos_propios from autonomia
-    return municipalities
-      .filter(m => m.year === selectedYear && isValidDept(m.department))
-      .map((m: any) => ({
-        ...m,
-        ingresos_propios: m.ingresos_propios != null
-          ? m.ingresos_propios
-          : Math.round((m.presupuesto_municipal || 0) * ((m.autonomia_financiera || 0) / 100)),
-      }));
+    // Filter: skip rows with null/empty/N/A department. Sin estimar ingresos_propios nulos.
+    return municipalities.filter(m => m.year === selectedYear && isValidDept(m.department));
   }, [municipalities, selectedYear]);
 
   const noData = !loading && byYear.length === 0;

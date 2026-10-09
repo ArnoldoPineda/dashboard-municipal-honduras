@@ -1,5 +1,6 @@
+import { describe, it, expect, jest } from '@jest/globals';
 // Evita cargar supabaseClient (red/env) al importar sefin.ts; solo se prueban funciones puras.
-jest.mock('../hooks/useMunicipalities', () => ({ useMunicipalitiesMultiYear: jest.fn() }));
+jest.mock('../hooks/useMunicipalities', () => ({ useMunicipalitiesMultiYear: () => undefined }));
 
 import type { Municipality } from '../hooks/useMunicipalities';
 import {

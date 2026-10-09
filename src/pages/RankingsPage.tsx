@@ -191,7 +191,7 @@ export default function RankingsPage() {
               Rankings
             </div>
             <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
-              {noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`}
+              {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`}
             </div>
           </div>
 
@@ -243,7 +243,11 @@ export default function RankingsPage() {
         </div>
 
         {/* ── TABLE ── */}
-        {noData ? (
+        {sbLoading ? (
+          <div style={{ marginTop: 18, padding: '40px 24px', textAlign: 'center', color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
+            Cargando datos SEFIN…
+          </div>
+        ) : noData ? (
           <div style={{
             marginTop: 18,
             background: '#0d1628',
@@ -442,7 +446,7 @@ export default function RankingsPage() {
         )}
 
         {/* ── PAGINATION ── */}
-        {!noData && totalPages > 1 && (
+        {!sbLoading && !noData && totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}

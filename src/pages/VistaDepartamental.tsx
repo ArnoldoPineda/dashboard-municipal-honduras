@@ -4,10 +4,11 @@ import React, {
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDepartamento } from '../data/municipios';
+import { getDepartamento } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
+import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -120,7 +121,7 @@ function DeptMuniMap({
         cell.attr('fill', NO_DATA_FILL)
           .on('mouseenter', (event) => {
             const [mx, my] = d3.pointer(event, svgRef.current);
-            setTooltip({ x: mx, y: my, name: f.properties.name, budget: null });
+            setTooltip({ x: mx, y: my, name: NOMBRES_OFICIALES[f.properties.key] ?? f.properties.name, budget: null });
           })
           .on('mousemove', moveTooltip)
           .on('mouseleave', () => setTooltip(null));
@@ -172,7 +173,7 @@ function DeptMuniMap({
       const [[x0], [x1]] = geoPath.bounds(f);
       const c = projection(d3.geoCentroid(f));
       if (x1 - x0 < 25 || !c) return;
-      const t = labelsG.append('text').attr('x', c[0]).attr('y', c[1]).text(f.properties.name);
+      const t = labelsG.append('text').attr('x', c[0]).attr('y', c[1]).text(NOMBRES_OFICIALES[f.properties.key] ?? f.properties.name);
       const half = (t.node()!.getComputedTextLength() + 3) / 2; // que no se corte en el borde del SVG
       t.attr('x', Math.max(half, Math.min(W - half, c[0])));
     });
@@ -246,7 +247,7 @@ export default function VistaDepartamental() {
   const topoData = useMunicipiosTopo();
   const [search,   setSearch]   = useState('');
 
-  // Mock: solo metadatos (nombre, ruta, ids de navegación). Ninguna cifra sale de aquí.
+  // Metadatos del departamento (data/departamentos.ts): nombre, ruta, capital.
   const dept = useMemo(() => getDepartamento(id || ''), [id]);
 
   // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
@@ -255,7 +256,7 @@ export default function VistaDepartamental() {
 
   const deptRows = useMemo(() => {
     if (!dept) return [];
-    const key = normalizeName(dept.topoNombre);
+    const key = normalizeName(dept.nombre);
     return yearRows.filter((m) => normalizeName(m.department || '') === key);
   }, [yearRows, dept]);
 
@@ -264,7 +265,7 @@ export default function VistaDepartamental() {
 
   const geoCount: number | null = useMemo(() => {
     if (!topoData || !dept) return null;
-    const key = normalizeName(dept.topoNombre);
+    const key = normalizeName(dept.nombre);
     return topoData.objects.municipios.geometries
       .filter((g: any) => normalizeName(g.properties?.department || '') === key).length;
   }, [topoData, dept]);
@@ -297,7 +298,7 @@ export default function VistaDepartamental() {
   }, [deptRows]);
 
   // Capital = municipio con code 1 (cabecera departamental)
-  const capital = munis.find((m) => m.code === 1)?.name ?? dept?.capital ?? '';
+  const capital = dept?.capital ?? '';
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -385,7 +386,7 @@ export default function VistaDepartamental() {
           <div style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
             <DeptMuniMap
               topoData={topoData}
-              deptName={dept.topoNombre}
+              deptName={dept.nombre}
               municipalities={munis}
               onSelectMuni={onSelectMuni}
               indicator={indicator}

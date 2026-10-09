@@ -1,6 +1,7 @@
 // src/hooks/useMunicipalities.ts
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient.ts';
+import { nombreOficial } from '../data/nombresOficiales';
 
 export type Municipality = {
   id: string;
@@ -69,7 +70,8 @@ async function fetchAllPages(yearsNum: number[]): Promise<Municipality[]> {
     const { data, error } = await q.range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
-    all.push(...(data as Municipality[]));
+    // Grafía oficial con tildes solo al mostrar (la tabla no se toca: se reimporta de SEFIN).
+    all.push(...(data as Municipality[]).map((m) => ({ ...m, name: nombreOficial(m.department, m.code, m.name) })));
     if (data.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
   }

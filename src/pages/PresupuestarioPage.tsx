@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
-import { DEPARTAMENTOS } from '../data/municipios';
+import { DEPARTAMENTOS } from '../data/departamentos';
 import { muniKey, categoryOf, autonomia } from '../utils/sefin';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';

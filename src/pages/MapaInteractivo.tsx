@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
 import { getDeptStatsMap, deptNameToId, getDepartamento, getMunicipiosByDept } from '../data/municipios';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ export default function MapaInteractivo() {
 
   const { indicator, fiscalYear } = useNavbar();
 
-  const [topoData,      setTopoData]      = useState<any>(null);
+  const topoData = useMunicipiosTopo();
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   const deptStats = useMemo(() => getDeptStatsMap(), []);
@@ -98,12 +99,6 @@ export default function MapaInteractivo() {
     return counts;
   }, [deptStats]);
 
-  useEffect(() => {
-    fetch('/data/honduras-topo.json')
-      .then((r) => r.json())
-      .then(setTopoData)
-      .catch(console.error);
-  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -135,7 +130,15 @@ export default function MapaInteractivo() {
     svg.attr('width', W).attr('height', H);
     svg.selectAll('*').remove();
 
-    const features = (topojson.feature(topoData, topoData.objects.hnd) as any).features;
+    // Solo la capa `departamentos` (18). La capa `municipios` nunca se pinta en la vista nacional.
+    // `department` viene en MAYÚSCULAS sin tildes → se expone como `name` con el nombre de la app.
+    const deptNames = Array.from(deptStats.keys()) as string[];
+    const features = (topojson.feature(topoData, topoData.objects.departamentos) as any).features
+      .map((f: any) => {
+        const dep = f.properties?.department || '';
+        const name = deptNames.find((k) => normalizeName(k) === normalizeName(dep)) ?? dep;
+        return { ...f, properties: { ...f.properties, name } };
+      });
     const projection = d3.geoMercator().fitExtent([[24, 24], [W - 24, H - 24]], {
       type: 'FeatureCollection', features,
     });
@@ -427,7 +430,7 @@ export default function MapaInteractivo() {
           fontFamily: "'IBM Plex Mono', monospace", pointerEvents: 'none',
         }}>
           <div style={{ fontSize: 10, color: '#4a5a73', letterSpacing: '0.06em' }}>
-            FUENTE: AMHON / SEFIN / INE
+            FUENTE: AMHON / SEFIN / INE · Límites: OCHA COD-AB / SINIT (CC BY-IGO)
           </div>
           <div style={{ fontSize: 10, color: '#4a5a73', letterSpacing: '0.06em', marginTop: 2 }}>
             EJERCICIO FISCAL {fiscalYear}

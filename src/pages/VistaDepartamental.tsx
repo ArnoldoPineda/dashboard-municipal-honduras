@@ -1,5 +1,5 @@
 import React, {
-  useEffect, useRef, useState, useMemo,
+  useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/municipios';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -26,31 +27,30 @@ const CAT_COLORS: Record<string, string> = {
   D: '#64748b',
 };
 
-function categoryOf(budget: number): string {
-  if (budget > 500_000_000) return 'A';
-  if (budget > 150_000_000) return 'B';
-  if (budget >  50_000_000) return 'C';
-  return 'D';
-}
+const NO_DATA_FILL = '#142030';
 
-// ── Voronoi choropleth map ────────────────────────────────────────────────────
+// ── Municipal choropleth map (límites oficiales OCHA COD-AB) ─────────────────
 
 interface MuniStat {
-  id:     string;
-  name:   string;
-  budget: number;
+  key:      string;        // "DEPARTAMENTO|code" — misma clave que la geometría
+  code:     number;
+  name:     string;
+  budget:   number;
+  category: string;
+  mockId:   string | null; // solo para navegar a /municipio/:id (página aún basada en mock)
 }
 
-interface TooltipState { x: number; y: number; name: string; budget: number }
+interface TooltipState { x: number; y: number; name: string; budget: number | null }
 
 function DeptMuniMap({
-  topoData, deptName, municipalities, onSelectMuni, indicator,
+  topoData, deptName, municipalities, onSelectMuni, indicator, message,
 }: {
   topoData: any;
   deptName: string;
   municipalities: MuniStat[];
   onSelectMuni: (id: string) => void;
   indicator: string;
+  message: string | null; // "Sin datos SEFIN…" o error de carga: mapa en gris neutro
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef  = useRef<SVGSVGElement>(null);
@@ -69,96 +69,79 @@ function DeptMuniMap({
   }, []);
 
   useEffect(() => {
-    if (!topoData || !svgRef.current || municipalities.length === 0 || size.w === 0) return;
-
-    const W = size.w;
-    const H = size.h || Math.round(W * 0.65);
+    if (!topoData || !svgRef.current || size.w === 0) return;
+    const noData = message !== null;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
+    if (!noData && municipalities.length === 0) return; // datos aún cargando
+
+    const W = size.w;
+    const H = size.h || Math.round(W * 0.65);
     svg.attr('width', W).attr('height', H);
 
-    const features = (topojson.feature(topoData, topoData.objects.hnd) as any).features;
-    const deptFeature = features.find((f: any) =>
-      normalizeName(f.properties?.name || '') === normalizeName(deptName)
+    const deptKey = normalizeName(deptName);
+    const geoms = topoData.objects.municipios.geometries.filter((g: any) =>
+      normalizeName(g.properties?.department || '') === deptKey
     );
-    if (!deptFeature) return;
+    if (geoms.length === 0) return;
+    const deptCollection: any = { type: 'GeometryCollection', geometries: geoms };
+    const features = (topojson.feature(topoData, deptCollection) as any).features;
+    const outline  = topojson.mesh(topoData, deptCollection, (a: any, b: any) => a === b);
 
     const PAD = 18;
     const projection = d3.geoMercator().fitExtent([[PAD, PAD], [W - PAD, H - PAD]], {
-      type: 'FeatureCollection', features: [deptFeature],
+      type: 'FeatureCollection', features,
     });
     const geoPath = d3.geoPath().projection(projection);
 
-    const [[bx0, by0], [bx1, by1]] = geoPath.bounds(deptFeature);
-    const bW = bx1 - bx0, bH = by1 - by0;
-
-    const n       = municipalities.length;
-    const area    = bW * bH;
-    const spacing = Math.sqrt(area / n) * 0.9;
-    const hH      = spacing * 0.866;
-
-    const allSeeds: [number, number][] = [];
-    let row = 0;
-    while (by0 + row * hH < by1 + hH) {
-      let col = 0;
-      while (bx0 + col * spacing + (row % 2) * spacing * 0.5 < bx1 + spacing) {
-        allSeeds.push([bx0 + col * spacing + (row % 2) * spacing * 0.5, by0 + row * hH]);
-        col++;
-      }
-      row++;
-    }
-
-    const [cx, cy] = geoPath.centroid(deptFeature);
-    allSeeds.sort((a, b) =>
-      Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy)
-    );
-
-    const sorted = [...municipalities].sort((a, b) => b.budget - a.budget);
-    const seeds  = sorted.map((m, i) => ({
-      ...m,
-      x: (allSeeds[i] ?? allSeeds[0])[0],
-      y: (allSeeds[i] ?? allSeeds[0])[1],
-    }));
+    const byKey = new Map(municipalities.map((m) => [m.key, m]));
 
     const maxBudget = d3.max(municipalities, (m) => m.budget) || 1;
     const colorScale = d3.scaleSequentialSqrt(d3.interpolate('#0c1830', '#00b89e'))
       .domain([0, maxBudget]);
 
-    const clipId = `muni-clip-${normalizeName(deptName).replace(/\s+/g, '-')}`;
+    const clipId = `muni-clip-${deptKey.replace(/\s+/g, '-')}`;
     const defs   = svg.append('defs');
-    defs.append('clipPath').attr('id', clipId)
-      .append('path').attr('d', geoPath(deptFeature) ?? '');
+    const cellsG = svg.append('g');
 
-    svg.append('path').datum(deptFeature)
-      .attr('d', geoPath as any).attr('fill', '#0c1830').attr('stroke', 'none');
+    const moveTooltip = (event: any) => {
+      const [mx, my] = d3.pointer(event, svgRef.current);
+      setTooltip((prev) => prev ? { ...prev, x: mx, y: my } : null);
+    };
 
-    const delaunay = d3.Delaunay.from(seeds, (d) => d.x, (d) => d.y);
-    const voronoi  = delaunay.voronoi([bx0 - 2, by0 - 2, bx1 + 2, by1 + 2]);
+    features.forEach((f: any) => {
+      const muni = noData ? undefined : byKey.get(f.properties.key);
+      const cell = cellsG.append('path')
+        .attr('d', geoPath(f) ?? '')
+        .attr('stroke', 'rgba(0,212,184,0.22)')
+        .attr('stroke-width', 0.8);
 
-    const cellsG = svg.append('g').attr('clip-path', `url(#${clipId})`);
-
-    seeds.forEach((muni, i) => {
-      const cell = voronoi.renderCell(i);
-      if (!cell) return;
+      if (!muni) {
+        cell.attr('fill', NO_DATA_FILL)
+          .on('mouseenter', (event) => {
+            const [mx, my] = d3.pointer(event, svgRef.current);
+            setTooltip({ x: mx, y: my, name: f.properties.name, budget: null });
+          })
+          .on('mousemove', moveTooltip)
+          .on('mouseleave', () => setTooltip(null));
+        return;
+      }
 
       let baseFill: string;
       let hoverFill: string;
       if (indicator === 'categorias') {
-        const cat  = categoryOf(muni.budget);
-        baseFill   = d3.color(CAT_COLORS[cat])!.darker(0.35).formatHex();
-        hoverFill  = CAT_COLORS[cat];
+        const catColor = CAT_COLORS[muni.category] ?? CAT_COLORS.D;
+        baseFill   = d3.color(catColor)!.darker(0.35).formatHex();
+        hoverFill  = catColor;
       } else {
         baseFill   = colorScale(muni.budget);
         hoverFill  = d3.color(baseFill)?.brighter(0.55)?.formatHex() ?? '#00d4b8';
       }
 
-      cellsG.append('path')
-        .attr('d', cell)
+      cell
         .attr('fill', baseFill)
-        .attr('stroke', 'rgba(0,212,184,0.22)')
-        .attr('stroke-width', 0.8)
-        .style('cursor', 'pointer')
+        .style('cursor', muni.mockId ? 'pointer' : 'default')
         .on('mouseenter', function (event) {
           d3.select(this).raise()
             .attr('fill', hoverFill)
@@ -167,22 +150,20 @@ function DeptMuniMap({
           const [mx, my] = d3.pointer(event, svgRef.current);
           setTooltip({ x: mx, y: my, name: muni.name, budget: muni.budget });
         })
-        .on('mousemove', function (event) {
-          const [mx, my] = d3.pointer(event, svgRef.current);
-          setTooltip((prev) => prev ? { ...prev, x: mx, y: my } : null);
-        })
+        .on('mousemove', moveTooltip)
         .on('mouseleave', function () {
           d3.select(this).attr('fill', baseFill).attr('stroke', 'rgba(0,212,184,0.22)').attr('stroke-width', 0.8);
           setTooltip(null);
         })
-        .on('click', () => onSelectMuni(muni.id));
+        .on('click', () => { if (muni.mockId) onSelectMuni(muni.mockId); });
     });
 
-    svg.append('path').datum(deptFeature)
+    svg.append('path').datum(outline)
       .attr('d', geoPath as any).attr('fill', 'none')
-      .attr('stroke', 'rgba(0,212,184,0.75)').attr('stroke-width', 1.6);
+      .attr('stroke', 'rgba(0,212,184,0.75)').attr('stroke-width', 1.6)
+      .attr('pointer-events', 'none');
 
-    if (indicator !== 'categorias') {
+    if (indicator !== 'categorias' && !noData) {
       // Gradient legend
       const lgW = 90, lgH = 8, lgX = W - lgW - 10, lgY = H - 22;
       const lgDef = defs.append('linearGradient').attr('id', `${clipId}-lg`);
@@ -192,11 +173,22 @@ function DeptMuniMap({
       svg.append('text').attr('x', lgX).attr('y', lgY - 4).attr('fill', '#4a5a73').attr('font-size', 8).attr('font-family', "'IBM Plex Mono', monospace").text('PRESUPUESTO');
     }
 
-  }, [topoData, deptName, municipalities, onSelectMuni, indicator, size]);
+  }, [topoData, deptName, municipalities, onSelectMuni, indicator, size, message]);
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <svg ref={svgRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      {message && (
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          zIndex: 15, textAlign: 'center', pointerEvents: 'none',
+          background: 'rgba(8,12,24,0.9)', border: '1px solid rgba(245,158,11,0.4)',
+          borderRadius: 10, padding: '14px 22px',
+          fontSize: 13, fontWeight: 700, color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace",
+        }}>
+          {message}
+        </div>
+      )}
       {tooltip && (
         <div style={{
           position: 'absolute',
@@ -215,7 +207,7 @@ function DeptMuniMap({
           <div style={{ fontSize: 11, color: '#7c8aa3' }}>
             Presupuesto:{' '}
             <span style={{ color: '#00d4b8', fontFamily: "'IBM Plex Mono', monospace" }}>
-              {fmtFull.format(tooltip.budget)}
+              {tooltip.budget === null ? 'sin datos' : fmtFull.format(tooltip.budget)}
             </span>
           </div>
         </div>
@@ -226,72 +218,111 @@ function DeptMuniMap({
 
 // ── VistaDepartamental ────────────────────────────────────────────────────────
 
-function muniYearBudget(m: any, year: number): number {
-  const evo = (m.evolucion || []).find((e: any) => e.year === year);
-  return evo?.presupuesto ?? m.presupuesto;
-}
+const sum = (rows: any[], field: string): number => rows.reduce((s, m) => s + (m[field] ?? 0), 0);
 
 export default function VistaDepartamental() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { fiscalYear, indicator } = useNavbar();
-  const [topoData, setTopoData] = useState<any>(null);
+  const topoData = useMunicipiosTopo();
   const [search,   setSearch]   = useState('');
 
-  const dept  = useMemo(() => getDepartamento(id || ''), [id]);
-  const munis = useMemo(() => dept?.municipios || [], [dept]);
+  // Mock: solo metadatos (nombre, ruta, ids de navegación). Ninguna cifra sale de aquí.
+  const dept = useMemo(() => getDepartamento(id || ''), [id]);
 
-  // Year-specific budget per municipality
-  const munisWithYearBudget = useMemo(() =>
-    munis.map((m: any) => {
-      const yp    = muniYearBudget(m, fiscalYear);
-      const ratio = m.presupuesto > 0 ? yp / m.presupuesto : 1;
-      return { ...m, yearPresupuesto: yp, yearIngresosPropios: Math.round(m.ingresosPropios * ratio), yearTransferencia: Math.round(m.transferencia * ratio) };
-    }),
-    [munis, fiscalYear]
+  // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
+  const { municipalities: sbMunicipalities, loading: sbLoading, error: sbError } = useMunicipalitiesMultiYear([fiscalYear]);
+
+  // El hook arranca con loading=false y conserva las filas del año anterior: solo se da por
+  // cargado un año cuando se vio su ciclo loading true → false. Evita mostrar "sin datos"
+  // antes de la consulta o cifras de otro año durante el cambio.
+  const [settledYear, setSettledYear] = useState<number | null>(null);
+  const sawLoading = useRef(false);
+  useEffect(() => {
+    if (sbLoading) sawLoading.current = true;
+    else if (sawLoading.current) { sawLoading.current = false; setSettledYear(fiscalYear); }
+  }, [sbLoading, fiscalYear]);
+  const loaded = settledYear === fiscalYear && !sbLoading;
+
+  const yearRows = useMemo(
+    () => sbMunicipalities.filter((m) => m.year === fiscalYear),
+    [sbMunicipalities, fiscalYear]
   );
 
-  // Department aggregates for selected year
-  const deptYear = useMemo(() => {
-    const pres  = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearPresupuesto, 0);
-    const ing   = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearIngresosPropios, 0);
-    const trans = munisWithYearBudget.reduce((s: number, m: any) => s + m.yearTransferencia, 0);
-    return { presupuesto: pres, ingresosPropios: ing, transferencia: trans };
-  }, [munisWithYearBudget]);
+  const deptRows = useMemo(() => {
+    if (!dept) return [];
+    const key = normalizeName(dept.topoNombre);
+    return yearRows.filter((m) => normalizeName(m.department || '') === key);
+  }, [yearRows, dept]);
+
+  const noData = loaded && deptRows.length === 0; // 2019/2020: sin filas SEFIN (o error de carga)
+  const mapMessage = !noData ? null
+    : sbError ? 'Error al cargar datos SEFIN' : 'Sin datos SEFIN para este año';
+
+  const geoCount: number | null = useMemo(() => {
+    if (!topoData || !dept) return null;
+    const key = normalizeName(dept.topoNombre);
+    return topoData.objects.municipios.geometries
+      .filter((g: any) => normalizeName(g.properties?.department || '') === key).length;
+  }, [topoData, dept]);
+
+  // ponytail: ids del mock solo para el clic hacia /municipio/:id (DetalleMunicipio sigue en mock).
+  // Municipios cuyo nombre no existe en el mock quedan sin clic; se resuelve en la fase 2.
+  const mockIdByName = useMemo(() =>
+    new Map<string, string>((dept?.municipios || []).map((m: any) => [normalizeName(m.nombre), m.id])),
+    [dept]
+  );
+
+  const munis: MuniStat[] = useMemo(() =>
+    deptRows.map((m) => ({
+      key:      `${m.department}|${m.code}`,
+      code:     m.code ?? 0,
+      name:     m.name ?? '',
+      budget:   m.presupuesto_municipal ?? 0,
+      category: (m as any).category ?? 'D',
+      mockId:   mockIdByName.get(normalizeName(m.name || '')) ?? null,
+    })),
+    [deptRows, mockIdByName]
+  );
+
+  // Department aggregates for selected year (Supabase)
+  const deptYear = useMemo(() => ({
+    presupuesto:     sum(deptRows, 'presupuesto_municipal'),
+    ingresosPropios: sum(deptRows, 'ingresos_propios'),
+    transferencia:   sum(deptRows, 'transferencias_art91'),
+    poblacion:       sum(deptRows, 'population'),
+  }), [deptRows]);
 
   // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (Supabase).
   // Fórmula estándar del proyecto — misma que afSEFIN en MunicipioDETALLE.tsx.
-  const { municipalities: sbMunicipalities } = useMunicipalitiesMultiYear([fiscalYear]);
   const autonomiaSb: number | null = useMemo(() => {
-    if (!dept) return null;
-    const key = normalizeName(dept.nombre);
-    let propios = 0, recaudados = 0, found = false;
-    sbMunicipalities.forEach((m) => {
-      if (normalizeName(m.department || '') === key) {
-        propios    += m.ingresos_propios    ?? 0;
-        recaudados += m.ingresos_recaudados ?? 0;
-        found = true;
-      }
-    });
-    if (!found) return null; // sin filas de Supabase para este año (2019/2020)
-    return recaudados > 0 ? (propios / recaudados) * 100 : 0;
-  }, [sbMunicipalities, dept]);
+    if (deptRows.length === 0) return null; // sin filas de Supabase para este año (2019/2020)
+    const recaudados = sum(deptRows, 'ingresos_recaudados');
+    return recaudados > 0 ? (sum(deptRows, 'ingresos_propios') / recaudados) * 100 : 0;
+  }, [deptRows]);
+
+  // Capital = municipio con code 1 (cabecera departamental)
+  const capital = munis.find((m) => m.code === 1)?.name ?? dept?.capital ?? '';
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return [...munisWithYearBudget]
-      .sort((a: any, b: any) => b.yearPresupuesto - a.yearPresupuesto)
-      .filter((m: any) => !q || m.nombre.toLowerCase().includes(q));
-  }, [munisWithYearBudget, search]);
+    return [...munis]
+      .sort((a, b) => b.budget - a.budget)
+      .filter((m) => !q || m.name.toLowerCase().includes(q));
+  }, [munis, search]);
 
-  const mapMunis: MuniStat[] = useMemo(() =>
-    munisWithYearBudget.map((m: any) => ({ id: m.id, name: m.nombre, budget: m.yearPresupuesto })),
-    [munisWithYearBudget]
-  );
-
+  // Verificación temporal (solo desarrollo): Supabase ↔ geometría por department|code, todo el país.
   useEffect(() => {
-    fetch('/data/honduras-topo.json').then((r) => r.json()).then(setTopoData).catch(console.error);
-  }, []);
+    if (process.env.NODE_ENV !== 'development' || !topoData || !loaded || yearRows.length === 0) return;
+    const geoKeys = new Set<string>(topoData.objects.municipios.geometries.map((g: any) => g.properties.key));
+    const sbKeys  = new Set(yearRows.map((m) => `${m.department}|${m.code}`));
+    const sbSinGeo = Array.from(sbKeys).filter((k) => !geoKeys.has(k));
+    const geoSinSb = Array.from(geoKeys).filter((k) => !sbKeys.has(k));
+    console.warn(`[SIMHO ${fiscalYear}] Supabase sin geometría: ${sbSinGeo.length}`, sbSinGeo,
+                 `| Geometrías sin Supabase: ${geoSinSb.length}`, geoSinSb);
+  }, [topoData, yearRows, loaded, fiscalYear]);
+
+  const onSelectMuni = useCallback((muniId: string) => navigate(`/municipio/${muniId}`), [navigate]);
 
   if (!dept) {
     return (
@@ -302,13 +333,14 @@ export default function VistaDepartamental() {
     );
   }
 
+  const na = (v: string) => (noData ? '—' : v);
   const kpis = [
-    { label: 'MUNICIPIOS',     value: String(dept.muniCount),                         color: '#00d4b8' },
-    { label: 'POBLACIÓN',      value: fmt.format(dept.poblacion) + ' hab.',           color: '#5eead4' },
-    { label: 'PRESUPUESTO',    value: `L ${fmt.format(deptYear.presupuesto)}`,        color: '#f59e0b' },
-    { label: 'ING. PROPIOS',   value: `L ${fmt.format(deptYear.ingresosPropios)}`,    color: '#f59e0b' },
+    { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
+    { label: 'POBLACIÓN',      value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
+    { label: 'PRESUPUESTO',    value: na(`L ${fmt.format(deptYear.presupuesto)}`),     color: '#f59e0b' },
+    { label: 'ING. PROPIOS',   value: na(`L ${fmt.format(deptYear.ingresosPropios)}`), color: '#f59e0b' },
     { label: 'AUTONOMÍA PROM.', value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
-    { label: 'TRANSFERENCIAS', value: `L ${fmt.format(deptYear.transferencia)}`,      color: '#f59e0b' },
+    { label: 'TRANSFERENCIAS', value: na(`L ${fmt.format(deptYear.transferencia)}`),   color: '#f59e0b' },
   ];
 
   return (
@@ -338,16 +370,16 @@ export default function VistaDepartamental() {
             {dept.nombre}
           </div>
           <div style={{ fontSize: 11, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3 }}>
-            Capital: <span style={{ color: '#5eead4' }}>{dept.capital}</span>
+            Capital: <span style={{ color: '#5eead4' }}>{capital}</span>
             <span style={{ margin: '0 8px', opacity: 0.35 }}>·</span>
-            <span>{dept.muniCount} municipios</span>
+            <span>{geoCount ?? '—'} municipios</span>
           </div>
         </div>
       </div>
 
       {/* Main: left = choropleth, right = KPIs + list */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* LEFT: Voronoi choropleth */}
+        {/* LEFT: municipal choropleth */}
         <div style={{
           flex: '0 0 60%', borderRight: '1px solid rgba(0,212,184,0.10)',
           padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden',
@@ -359,10 +391,14 @@ export default function VistaDepartamental() {
             <DeptMuniMap
               topoData={topoData}
               deptName={dept.topoNombre}
-              municipalities={mapMunis}
-              onSelectMuni={(muniId) => navigate(`/municipio/${muniId}`)}
+              municipalities={munis}
+              onSelectMuni={onSelectMuni}
               indicator={indicator}
+              message={mapMessage}
             />
+          </div>
+          <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', flexShrink: 0 }}>
+            FUENTE: SEFIN · Límites: OCHA COD-AB / SINIT (CC BY-IGO)
           </div>
         </div>
 
@@ -393,7 +429,7 @@ export default function VistaDepartamental() {
           <div style={{ height: 1, background: 'rgba(0,212,184,0.1)', flexShrink: 0 }} />
 
           <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
-            MUNICIPIOS ({dept.muniCount})
+            MUNICIPIOS ({geoCount ?? '—'})
           </div>
 
           <input
@@ -407,13 +443,13 @@ export default function VistaDepartamental() {
 
           <div className="simho-scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {filtered.map((m) => {
-              const cat = categoryOf(m.yearPresupuesto ?? m.presupuesto ?? 0);
+              const cat = CAT_COLORS[m.category] ? m.category : 'D';
               return (
                 <div
-                  key={m.id}
-                  onClick={() => navigate(`/municipio/${m.id}`)}
+                  key={m.key}
+                  onClick={() => { if (m.mockId) navigate(`/municipio/${m.mockId}`); }}
                   style={{
-                    padding: '10px 10px', borderRadius: 7, cursor: 'pointer',
+                    padding: '10px 10px', borderRadius: 7, cursor: m.mockId ? 'pointer' : 'default',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     border: '1px solid transparent', transition: 'background 0.12s',
                   }}
@@ -427,8 +463,8 @@ export default function VistaDepartamental() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 15, color: '#e8eef6', fontWeight: 500 }}>{m.nombre}</span>
-                    {m.isCapital && (
+                    <span style={{ fontSize: 15, color: '#e8eef6', fontWeight: 500 }}>{m.name}</span>
+                    {m.code === 1 && (
                       <span style={{
                         fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
                         color: '#f59e0b', background: 'rgba(245,158,11,0.12)',
@@ -448,7 +484,7 @@ export default function VistaDepartamental() {
                     )}
                   </div>
                   <span style={{ fontSize: 15, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
-                    L {fmt.format(m.yearPresupuesto ?? m.presupuesto)}
+                    L {fmt.format(m.budget)}
                   </span>
                 </div>
               );
@@ -456,6 +492,11 @@ export default function VistaDepartamental() {
             {filtered.length === 0 && search && (
               <div style={{ fontSize: 12, color: '#4a5a73', padding: '12px 6px' }}>
                 Sin resultados para "{search}"
+              </div>
+            )}
+            {mapMessage && (
+              <div style={{ fontSize: 12, color: '#f59e0b', padding: '12px 6px', fontFamily: "'IBM Plex Mono', monospace" }}>
+                {mapMessage}
               </div>
             )}
           </div>

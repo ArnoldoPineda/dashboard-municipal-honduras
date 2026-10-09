@@ -1,0 +1,25 @@
+# Mantiene activo el proyecto Supabase (plan free se pausa tras 7 días sin actividad).
+# Consulta mínima de solo lectura con la key publishable; falla si no responde 200.
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: '0 14 * * 1,4'   # lunes y jueves, 14:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET municipalities (1 fila)
+        env:
+          KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            'https://cqpkirolbxwpgjxeqqjy.supabase.co/rest/v1/municipalities?select=code&limit=1')
+          echo "HTTP $status"
+          [ "$status" = "200" ] || exit 1

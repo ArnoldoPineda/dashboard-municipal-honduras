@@ -25,3 +25,6 @@ graphify-out/
 
 # Salida de test runs (Playwright/otros), no forma parte del código fuente
 test-results/
+
+# Respaldos de variables de entorno (p.ej. .env.local.bak_pre_rotacion)
+.env.*

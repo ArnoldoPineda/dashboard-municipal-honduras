@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { DEPARTAMENTOS, deptNameToId } from '../data/municipios';
+import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG, muniKey } from '../utils/sefin';
 

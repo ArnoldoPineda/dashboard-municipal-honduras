@@ -4,14 +4,14 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer, ReferenceLine, Legend, Cell,
 } from 'recharts';
-import { DEPARTAMENTOS } from '../data/municipios';
+import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const ALL_YEARS = [2021, 2022, 2023, 2024, 2025];
 
-// Mock: solo la lista de departamentos (id + nombre). Los municipios salen de Supabase.
+// Lista de departamentos (data/departamentos.ts). Los municipios salen de Supabase.
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
   .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));

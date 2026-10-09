@@ -1,5 +1,5 @@
 // Agregados y utilidades sobre las filas SEFIN de Supabase (`municipalities`).
-// Fuente única de cifras para todas las páginas: nada numérico sale del mock.
+// Fuente única de cifras para todas las páginas: el mock de municipios se eliminó.
 import { useMemo } from 'react';
 import { Municipality, useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 

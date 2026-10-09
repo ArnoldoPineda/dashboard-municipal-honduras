@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { DEPARTAMENTOS } from '../data/municipios';
+import { DEPARTAMENTOS } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { muniKey, deptSlug, categoryOf, NO_DATA_MSG } from '../utils/sefin';
@@ -11,7 +11,7 @@ import { muniKey, deptSlug, categoryOf, NO_DATA_MSG } from '../utils/sefin';
 
 const SEFIN_YEARS = [2021, 2022, 2023, 2024, 2025];
 
-// Mock: solo la lista de departamentos (id + nombre).
+// Lista de departamentos (data/departamentos.ts).
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));

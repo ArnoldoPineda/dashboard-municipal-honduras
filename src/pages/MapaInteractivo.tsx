@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
-import { DEPARTAMENTOS, deptNameToId, getDepartamento } from '../data/municipios';
+import { DEPARTAMENTOS, deptNameToId, getDepartamento } from '../data/departamentos';
 import { Municipality } from '../hooks/useMunicipalities';
 import { useSefinYear, normName, aggregate, groupByDept, categoryOf, SefinAgg } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
@@ -14,7 +14,7 @@ const fmt    = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFrac
 const fmtInt = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
 const normalizeName = normName;
 
-// Mock: solo nombres de departamento (metadatos). Ninguna cifra sale de aquí.
+// Nombres de departamento (data/departamentos.ts); las cifras salen de Supabase.
 const DEPT_NAMES: string[] = (DEPARTAMENTOS as any[]).map((d) => d.nombre);
 
 // ── Category helpers ─────────────────────────────────────────────────────────

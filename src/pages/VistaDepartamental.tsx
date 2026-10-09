@@ -4,7 +4,7 @@ import React, {
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDepartamento } from '../data/municipios';
+import { getDepartamento } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
@@ -246,7 +246,7 @@ export default function VistaDepartamental() {
   const topoData = useMunicipiosTopo();
   const [search,   setSearch]   = useState('');
 
-  // Mock: solo metadatos (nombre, ruta, ids de navegación). Ninguna cifra sale de aquí.
+  // Metadatos del departamento (data/departamentos.ts): nombre, ruta, capital.
   const dept = useMemo(() => getDepartamento(id || ''), [id]);
 
   // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
@@ -255,7 +255,7 @@ export default function VistaDepartamental() {
 
   const deptRows = useMemo(() => {
     if (!dept) return [];
-    const key = normalizeName(dept.topoNombre);
+    const key = normalizeName(dept.nombre);
     return yearRows.filter((m) => normalizeName(m.department || '') === key);
   }, [yearRows, dept]);
 
@@ -264,7 +264,7 @@ export default function VistaDepartamental() {
 
   const geoCount: number | null = useMemo(() => {
     if (!topoData || !dept) return null;
-    const key = normalizeName(dept.topoNombre);
+    const key = normalizeName(dept.nombre);
     return topoData.objects.municipios.geometries
       .filter((g: any) => normalizeName(g.properties?.department || '') === key).length;
   }, [topoData, dept]);
@@ -297,7 +297,7 @@ export default function VistaDepartamental() {
   }, [deptRows]);
 
   // Capital = municipio con code 1 (cabecera departamental)
-  const capital = munis.find((m) => m.code === 1)?.name ?? dept?.capital ?? '';
+  const capital = dept?.capital ?? '';
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -385,7 +385,7 @@ export default function VistaDepartamental() {
           <div style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
             <DeptMuniMap
               topoData={topoData}
-              deptName={dept.topoNombre}
+              deptName={dept.nombre}
               municipalities={munis}
               onSelectMuni={onSelectMuni}
               indicator={indicator}

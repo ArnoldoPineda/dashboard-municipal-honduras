@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDepartamento } from '../data/municipios';
+import { getDepartamento } from '../data/departamentos';
 import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
@@ -69,7 +69,7 @@ export default function DetalleMunicipio() {
     );
   }
 
-  // Mock: solo el nombre del departamento con tildes (metadato).
+  // Nombre del departamento con tildes (data/departamentos.ts).
   const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? header.department ?? '';
   const af = row ? autonomia(row.ingresos_propios ?? 0, row.ingresos_recaudados ?? 0) : null;
 

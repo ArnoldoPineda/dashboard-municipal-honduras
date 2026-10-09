@@ -96,15 +96,19 @@ export const useMunicipalitiesMultiYear = (
 
     const yearsNum = yearsKey.split(',').map(Number);
 
+    let alive = true; // descarta respuestas de años ya abandonados (cambios rápidos de año)
     fetchAllPages(yearsNum)
       .then(all => {
+        if (!alive) return;
         setMunicipalities(all);
         setLoading(false);
       })
       .catch((err: any) => {
+        if (!alive) return;
         setError(err.message ?? 'Error al cargar municipios');
         setLoading(false);
       });
+    return () => { alive = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearsKey]);
 

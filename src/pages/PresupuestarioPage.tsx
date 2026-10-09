@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout.tsx';
-import { DEPARTAMENTOS, getMunicipiosByDept, getMunicipio, MUNICIPIOS } from '../data/municipios';
+import { DEPARTAMENTOS } from '../data/municipios';
+import { muniKey, categoryOf, autonomia } from '../utils/sefin';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -112,13 +113,13 @@ const formatCurrency = (num: number | string | null | undefined): string => {
 const PresupuestarioPage = () => {
   const { isMobile, isTablet } = useMediaQuery();
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
+  // Clave "DEPARTAMENTO|code": hay 24 nombres repetidos entre departamentos.
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>('');
   const [selectedYears, setSelectedYears] = useState<number[]>([2024]);
   const [activeTab, setActiveTab] = useState('general');
   const [muniSearch, setMuniSearch] = useState<string>('');
   const [selectedCategoria, setSelectedCategoria] = useState<string>('');
   const [presupuestoMin, setPresupuestoMin] = useState<number>(0);
-  const [selectedMuniId, setSelectedMuniId] = useState<string>('');
 
   // 👇 Estado para evitar parpadeo de Recharts
   const [chartsReady, setChartsReady] = useState(false);
@@ -133,22 +134,14 @@ const PresupuestarioPage = () => {
   const selectedMunicipalityData = useMemo(() => {
     if (!selectedMunicipality) return [];
     return municipalities
-      .filter((m) => m.name === selectedMunicipality && selectedYears.includes(m.year))
+      .filter((m) => muniKey(m) === selectedMunicipality && selectedYears.includes(m.year))
       .sort((a, b) => b.year - a.year);
   }, [selectedMunicipality, selectedYears, municipalities]);
 
-  const selectedMockMuni: any = useMemo(() => {
-    if (!selectedMuniId) return null;
-    return getMunicipio(selectedMuniId) || null;
-  }, [selectedMuniId]);
-
-  const categoriaByName = useMemo(() => {
-    const map = new Map<string, string>();
-    (MUNICIPIOS as any[]).forEach((m: any) => {
-      map.set(normalize(m.nombre), m.categoria || '');
-    });
-    return map;
-  }, []);
+  const yearRowCount = useMemo(
+    () => municipalities.filter(m => m.year === (selectedYears[0] ?? 2024)).length,
+    [municipalities, selectedYears]
+  );
 
   const sefinTableData = useMemo(() => {
     const year = selectedYears[0] ?? 2024;
@@ -158,13 +151,12 @@ const PresupuestarioPage = () => {
         if (m.year !== year) return false;
         if (deptNorm && normalize(m.department || '') !== deptNorm) return false;
         if (muniSearch.trim() && !normalize(m.name || '').includes(normalize(muniSearch))) return false;
-        const cat = categoriaByName.get(normalize(m.name || '')) || '';
-        if (selectedCategoria && cat !== selectedCategoria) return false;
+        if (selectedCategoria && categoryOf(m.presupuesto_municipal ?? 0) !== selectedCategoria) return false;
         if (presupuestoMin > 0 && (m.presupuesto_municipal || 0) < presupuestoMin) return false;
         return true;
       })
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
-  }, [municipalities, selectedYears, selectedDeptId, muniSearch, selectedCategoria, presupuestoMin, categoriaByName]);
+  }, [municipalities, selectedYears, selectedDeptId, muniSearch, selectedCategoria, presupuestoMin]);
 
   if (loading) {
     return (
@@ -186,11 +178,17 @@ const PresupuestarioPage = () => {
     );
   }
 
-  // Municipios del departamento seleccionado, filtrados por búsqueda
-  const muniOptions: any[] = selectedDeptId
-    ? (getMunicipiosByDept(selectedDeptId) as any[])
-        .filter((m: any) => !muniSearch.trim() || m.nombre.toLowerCase().includes(muniSearch.toLowerCase()))
-        .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
+  // Municipios reales (SEFIN) del departamento seleccionado, filtrados por búsqueda
+  const deptNormSel = selectedDeptId ? normalize(selectedDeptId.replace(/-/g, ' ')) : '';
+  const muniOptions: { key: string; nombre: string }[] = selectedDeptId
+    ? Array.from(new Map(
+        municipalities
+          .filter(m => normalize(m.department || '') === deptNormSel)
+          .map(m => [muniKey(m), m.name || ''] as [string, string])
+      ))
+        .map(([key, nombre]) => ({ key, nombre }))
+        .filter(m => !muniSearch.trim() || normalize(m.nombre).includes(normalize(muniSearch)))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
     : [];
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658'];
@@ -746,7 +744,7 @@ const PresupuestarioPage = () => {
               Datos Financieros
             </div>
             <div style={{ fontSize: 13, color: '#7c8aa3', marginTop: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
-              298 registros · ejercicio 2024
+              {yearRowCount} registros SEFIN · ejercicio {selectedYears[0] ?? 2024}
             </div>
           </div>
         </div>
@@ -779,7 +777,7 @@ const PresupuestarioPage = () => {
               <select
                 className="simho-select"
                 value={selectedDeptId}
-                onChange={e => { setSelectedDeptId(e.target.value); setSelectedMuniId(''); setSelectedMunicipality(''); }}
+                onChange={e => { setSelectedDeptId(e.target.value); setSelectedMunicipality(''); }}
               >
                 <option value="">Todos los Departamentos</option>
                 {MOCK_DEPTS.map((d: any) => (
@@ -820,17 +818,12 @@ const PresupuestarioPage = () => {
               </span>
               <select
                 className="simho-select"
-                value={selectedMuniId}
-                onChange={e => {
-                  const id = e.target.value;
-                  setSelectedMuniId(id);
-                  const m = getMunicipio(id);
-                  setSelectedMunicipality(m?.nombre || '');
-                }}
+                value={selectedMunicipality}
+                onChange={e => setSelectedMunicipality(e.target.value)}
               >
                 <option value="">— Seleccionar municipio —</option>
-                {muniOptions.map((m: any) => (
-                  <option key={m.id} value={m.id}>{m.nombre}</option>
+                {muniOptions.map(m => (
+                  <option key={m.key} value={m.key}>{m.nombre}</option>
                 ))}
               </select>
             </div>
@@ -873,10 +866,10 @@ const PresupuestarioPage = () => {
           </div>
         </div>
 
-        {/* KPI CARDS — mock data (always available) */}
-        {selectedMockMuni && (() => {
-          const m = selectedMockMuni;
-          const autonomia = m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto * 100) : 0;
+        {/* KPI CARDS — fila SEFIN del año más reciente seleccionado (IDH eliminado: no existe en Supabase) */}
+        {selectedMunicipalityData.length > 0 && (() => {
+          const m = selectedMunicipalityData[0];
+          const af = autonomia(m.ingresos_propios ?? 0, m.ingresos_recaudados ?? 0);
           const fmtM = (n: number) => n >= 1_000_000_000
             ? `L ${(n / 1_000_000_000).toFixed(1)} mil M`
             : n >= 1_000_000
@@ -884,12 +877,11 @@ const PresupuestarioPage = () => {
               : n > 0 ? `L ${n.toLocaleString('es-HN')}` : '—';
           const fmtPop = new Intl.NumberFormat('es-HN');
           const kpis = [
-            { title: 'Presupuesto',      value: fmtM(m.presupuesto),                   color: '#2dd4bf' },
-            { title: 'Ingresos Propios', value: fmtM(m.ingresosPropios),               color: '#2dd4bf' },
-            { title: 'Transferencias',   value: fmtM(m.transferencia),                  color: '#f59e0b' },
-            { title: 'Autonomía',        value: `${autonomia.toFixed(1)}%`,              color: '#8b5cf6' },
-            { title: 'Población',        value: fmtPop.format(m.poblacion) + ' hab.',   color: '#e8eef6' },
-            { title: 'IDH',              value: m.idh > 0 ? m.idh.toFixed(3) : '—',    color: '#f59e0b' },
+            { title: 'Presupuesto',      value: fmtM(m.presupuesto_municipal ?? 0),             color: '#2dd4bf' },
+            { title: 'Ingresos Propios', value: fmtM(m.ingresos_propios ?? 0),                  color: '#2dd4bf' },
+            { title: 'Transferencias',   value: fmtM(m.transferencias_art91 ?? 0),              color: '#f59e0b' },
+            { title: 'Autonomía',        value: af === null ? '—' : `${af.toFixed(1)}%`,        color: '#8b5cf6' },
+            { title: 'Población',        value: fmtPop.format(m.population ?? 0) + ' hab.',     color: '#e8eef6' },
           ];
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -902,16 +894,16 @@ const PresupuestarioPage = () => {
                   fontSize: 28, fontWeight: 700, color: '#e8eef6',
                   fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
                 }}>
-                  {m.nombre}
+                  {m.name}
                 </span>
                 <span style={{
                   fontSize: 10, color: '#5eead4', background: 'rgba(94,234,212,0.1)',
                   border: '1px solid rgba(94,234,212,0.3)', borderRadius: 4,
                   padding: '2px 8px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
                 }}>
-                  {m.departamento.toUpperCase()}
+                  {(m.department || '').toUpperCase()} · {m.year}
                 </span>
-                {m.isCapital && (
+                {m.code === 1 && (
                   <span style={{
                     fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,0.12)',
                     border: '1px solid rgba(245,158,11,0.4)', borderRadius: 4,
@@ -922,7 +914,7 @@ const PresupuestarioPage = () => {
                 )}
               </div>
               {/* KPI grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                 {kpis.map(k => (
                   <div key={k.title} style={{
                     background: '#111827', border: '1px solid #1f2937',
@@ -982,7 +974,7 @@ const PresupuestarioPage = () => {
         )}
 
         {/* TABLA SEFIN — visible cuando no hay municipio seleccionado */}
-        {!selectedMockMuni && !selectedMunicipality && (
+        {!selectedMunicipality && (
           <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{
               padding: '12px 20px', borderBottom: '1px solid #1f2937',
@@ -1011,8 +1003,7 @@ const PresupuestarioPage = () => {
                 </thead>
                 <tbody>
                   {sefinTableData.map((m, i) => {
-                    const catKey = normalize(m.name || '');
-                    const cat = categoriaByName.get(catKey) || '';
+                    const cat = categoryOf(m.presupuesto_municipal ?? 0);
                     const codDep = COD_DEP_MAP[normalize(m.department || '')] || '';
                     const catColor: Record<string, string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
                     const row: Record<string, any> = {
@@ -1072,7 +1063,7 @@ const PresupuestarioPage = () => {
                     };
                     return (
                       <tr key={`${m.id}-${m.year}`}
-                        onClick={() => setSelectedMunicipality(m.name || '')}
+                        onClick={() => setSelectedMunicipality(muniKey(m))}
                         style={{ borderBottom: '1px solid #1a2232', cursor: 'pointer', transition: 'background 0.15s' }}
                         onMouseEnter={e => (e.currentTarget.style.background = '#0d1628')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}

@@ -29,7 +29,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index                        element={<MapaInteractivo />}    />
               <Route path="departamento/:id"      element={<VistaDepartamental />} />
-              <Route path="municipio/:id"         element={<DetalleMunicipio />}   />
+              <Route path="municipio/:deptId/:code" element={<DetalleMunicipio />} />
               <Route path="dashboard"             element={<DashboardNacional />}  />
               <Route path="muni-detalle"          element={<MunicipioDETALLE />}   />
               <Route path="financiero"            element={<PresupuestarioPage />} />

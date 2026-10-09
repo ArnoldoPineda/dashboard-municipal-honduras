@@ -6,7 +6,7 @@ import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/municipios';
 import { useNavbar } from '../context/NavbarContext';
-import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf } from '../utils/sefin';
+import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ interface MuniStat {
   name:     string;
   budget:   number;
   category: string;
-  mockId:   string | null; // solo para navegar a /municipio/:id (página aún basada en mock)
+  path:     string;        // ruta del detalle: /municipio/<depto>/<code>
 }
 
 interface TooltipState { x: number; y: number; name: string; budget: number | null }
@@ -140,7 +140,7 @@ function DeptMuniMap({
 
       cell
         .attr('fill', baseFill)
-        .style('cursor', muni.mockId ? 'pointer' : 'default')
+        .style('cursor', 'pointer')
         .on('mouseenter', function (event) {
           d3.select(this).raise()
             .attr('fill', hoverFill)
@@ -154,7 +154,7 @@ function DeptMuniMap({
           d3.select(this).attr('fill', baseFill).attr('stroke', BORDER).attr('stroke-width', 1.2);
           setTooltip(null);
         })
-        .on('click', () => { if (muni.mockId) onSelectMuni(muni.mockId); });
+        .on('click', () => onSelectMuni(muni.path));
     });
 
     svg.append('path').datum(outline)
@@ -269,13 +269,6 @@ export default function VistaDepartamental() {
       .filter((g: any) => normalizeName(g.properties?.department || '') === key).length;
   }, [topoData, dept]);
 
-  // ponytail: ids del mock solo para el clic hacia /municipio/:id (DetalleMunicipio sigue en mock).
-  // Municipios cuyo nombre no existe en el mock quedan sin clic; se resuelve en la fase 2.
-  const mockIdByName = useMemo(() =>
-    new Map<string, string>((dept?.municipios || []).map((m: any) => [normalizeName(m.nombre), m.id])),
-    [dept]
-  );
-
   const munis: MuniStat[] = useMemo(() =>
     deptRows.map((m) => ({
       key:      muniKey(m),
@@ -283,9 +276,9 @@ export default function VistaDepartamental() {
       name:     m.name ?? '',
       budget:   m.presupuesto_municipal ?? 0,
       category: categoryOf(m.presupuesto_municipal ?? 0), // Supabase no trae categoría
-      mockId:   mockIdByName.get(normalizeName(m.name || '')) ?? null,
+      path:     muniPath(m),
     })),
-    [deptRows, mockIdByName]
+    [deptRows]
   );
 
   // Department aggregates for selected year (Supabase)
@@ -324,7 +317,7 @@ export default function VistaDepartamental() {
                  `| Geometrías sin Supabase: ${geoSinSb.length}`, geoSinSb);
   }, [topoData, yearRows, loaded, fiscalYear]);
 
-  const onSelectMuni = useCallback((muniId: string) => navigate(`/municipio/${muniId}`), [navigate]);
+  const onSelectMuni = useCallback((path: string) => navigate(path), [navigate]);
 
   if (!dept) {
     return (
@@ -449,9 +442,9 @@ export default function VistaDepartamental() {
               return (
                 <div
                   key={m.key}
-                  onClick={() => { if (m.mockId) navigate(`/municipio/${m.mockId}`); }}
+                  onClick={() => navigate(m.path)}
                   style={{
-                    padding: '10px 10px', borderRadius: 7, cursor: m.mockId ? 'pointer' : 'default',
+                    padding: '10px 10px', borderRadius: 7, cursor: 'pointer',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     border: '1px solid transparent', transition: 'background 0.12s',
                   }}

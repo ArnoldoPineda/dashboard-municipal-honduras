@@ -13,7 +13,13 @@ export function normName(name: string | null | undefined): string {
 /** Clave estable de municipio, igual a la de la geometría OCHA: "DEPARTAMENTO|code". */
 export const muniKey = (m: Pick<Municipality, 'department' | 'code'>) => `${m.department}|${m.code}`;
 
-export const sumField = (rows: Municipality[], field: keyof Municipality): number =>
+/** "FRANCISCO MORAZAN" → "francisco-morazan" (mismo formato que los id de departamento de la app). */
+export const deptSlug = (department: string | null | undefined) => normName(department).replace(/\s+/g, '-');
+
+/** Ruta del detalle municipal: /municipio/<depto>/<code>. */
+export const muniPath = (m: Pick<Municipality, 'department' | 'code'>) => `/municipio/${deptSlug(m.department)}/${m.code}`;
+
+export const sumField =(rows: Municipality[], field: keyof Municipality): number =>
   rows.reduce((s, m) => s + (Number(m[field]) || 0), 0);
 
 /** Fórmula validada del proyecto: ingresos_propios / ingresos_recaudados × 100. */

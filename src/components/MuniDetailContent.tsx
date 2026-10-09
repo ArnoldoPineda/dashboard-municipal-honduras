@@ -4,6 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
   BarChart, Bar, LabelList,
 } from 'recharts';
+import { Municipality } from '../hooks/useMunicipalities';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -96,21 +97,23 @@ function KPICard({ label, value, color }: { label: string; value: string; color:
   );
 }
 
-function DonutChart({ muni }: { muni: any }) {
-  const total = muni.ingresosPropios + muni.transferencia + muni.otros;
+interface MuniFigures { presupuesto: number; ingresosPropios: number; transferencia: number }
+
+// "Otros" (presupuesto − propios − transferencias) eliminado: era un residuo calculado, no un dato SEFIN.
+function DonutChart({ muni }: { muni: MuniFigures }) {
+  const total = muni.ingresosPropios + muni.transferencia;
   const pct   = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
 
   const data = [
     { name: 'Transferencias', value: muni.transferencia,   fill: '#f59e0b', pct: pct(muni.transferencia)   },
     { name: 'Ing. Propios',   value: muni.ingresosPropios, fill: '#2dd4bf', pct: pct(muni.ingresosPropios) },
-    { name: 'Otros',          value: muni.otros,           fill: '#1a2d48', pct: pct(muni.otros)           },
   ].filter((d) => d.value > 0);
 
   const dominant = data.reduce((a, b) => a.value > b.value ? a : b, data[0]) || data[0];
 
   return (
     <div style={CHART_STYLE}>
-      <div style={TITLE_STYLE}>Composición Presupuestaria</div>
+      <div style={TITLE_STYLE}>Ing. Propios vs Transferencias</div>
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -171,7 +174,7 @@ function DonutChart({ muni }: { muni: any }) {
   );
 }
 
-function EvoLineChart({ evolucion }: { evolucion: any[] }) {
+function EvoLineChart({ evolucion }: { evolucion: { year: number; presupuesto: number }[] }) {
   const data       = evolucion.map((e) => ({ year: String(e.year), presupuesto: e.presupuesto }));
   const dataLength = data.length;
   const startYear  = data[0]?.year || '';
@@ -224,7 +227,7 @@ function EvoLineChart({ evolucion }: { evolucion: any[] }) {
   );
 }
 
-function CompBarChart({ muni, deptAvg }: { muni: any; deptAvg: any }) {
+function CompBarChart({ muni, deptAvg }: { muni: MuniFigures; deptAvg: MuniFigures }) {
   const data = [
     { name: 'PRESUPUESTO',   municipio: muni.presupuesto,     promedio: deptAvg.presupuesto    },
     { name: 'ING. PROPIOS',  municipio: muni.ingresosPropios, promedio: deptAvg.ingresosPropios },
@@ -278,45 +281,30 @@ function CompBarChart({ muni, deptAvg }: { muni: any; deptAvg: any }) {
   );
 }
 
-// ── Year-specific data helper ─────────────────────────────────────────────────
+// ── Exported shared content component ────────────────────────────────────────
 
-function getYearSnapshot(muni: any, year: number) {
-  const evo  = (muni.evolucion || []).find((e: any) => e.year === year);
-  const pres = evo?.presupuesto ?? muni.presupuesto;
-  const ratio = muni.presupuesto > 0 ? pres / muni.presupuesto : 1;
+/** Fila SEFIN → cifras del detalle (transferencias = Art. 91). */
+export function toFigures(m: Municipality): MuniFigures {
   return {
-    presupuesto:     pres,
-    ingresosPropios: Math.round(muni.ingresosPropios * ratio),
-    transferencia:   Math.round(muni.transferencia   * ratio),
-    otros:           Math.max(0, pres - Math.round(muni.ingresosPropios * ratio) - Math.round(muni.transferencia * ratio)),
-    ratio,
+    presupuesto:     m.presupuesto_municipal ?? 0,
+    ingresosPropios: m.ingresos_propios ?? 0,
+    transferencia:   m.transferencias_art91 ?? 0,
   };
 }
 
-// ── Exported shared content component ────────────────────────────────────────
-
-export function MuniDetailContent({ muni, deptAvg, year = 2024 }: { muni: any; deptAvg: any | null; year?: number }) {
-  // Year-specific snapshot
-  const snap  = getYearSnapshot(muni, year);
-  const muniY = { ...muni, presupuesto: snap.presupuesto, ingresosPropios: snap.ingresosPropios, transferencia: snap.transferencia, otros: snap.otros };
-
-  // Scale dept avg by same ratio (approximation for mock data)
-  const deptAvgY = deptAvg ? {
-    presupuesto:     Math.round(deptAvg.presupuesto     * snap.ratio),
-    ingresosPropios: Math.round(deptAvg.ingresosPropios * snap.ratio),
-    transferencia:   Math.round(deptAvg.transferencia   * snap.ratio),
-  } : null;
-
-  // Evolution filtered up to selected year
-  const evoFiltered = (muni.evolucion || []).filter((e: any) => e.year <= year);
+// Área e IDH eliminados: no existen en Supabase.
+export function MuniDetailContent({ row, deptAvg, evolucion }: {
+  row: Municipality;                                   // fila SEFIN del año seleccionado
+  deptAvg: MuniFigures | null;                         // promedio del departamento, mismo año
+  evolucion: { year: number; presupuesto: number }[];  // filas SEFIN hasta el año seleccionado
+}) {
+  const muniY = toFigures(row);
 
   const kpis = [
-    { label: 'POBLACIÓN',        value: fmtPop.format(muni.poblacion) + ' hab.',             color: '#e8eef6' },
-    { label: 'ÁREA',             value: muni.area > 0 ? `${muni.area.toFixed(1)} km²` : '—', color: '#e8eef6' },
-    { label: 'PRESUPUESTO',      value: L(snap.presupuesto),                                  color: '#2dd4bf' },
-    { label: 'INGRESOS PROPIOS', value: L(snap.ingresosPropios),                              color: '#2dd4bf' },
-    { label: 'TRANSFERENCIA',    value: L(snap.transferencia),                                color: '#2dd4bf' },
-    { label: 'IDH',              value: muni.idh > 0 ? muni.idh.toFixed(3) : '—',            color: '#f59e0b' },
+    { label: 'POBLACIÓN',        value: fmtPop.format(row.population ?? 0) + ' hab.', color: '#e8eef6' },
+    { label: 'PRESUPUESTO',      value: L(muniY.presupuesto),                         color: '#2dd4bf' },
+    { label: 'INGRESOS PROPIOS', value: L(muniY.ingresosPropios),                     color: '#2dd4bf' },
+    { label: 'TRANSFERENCIA',    value: L(muniY.transferencia),                       color: '#2dd4bf' },
   ];
 
   return (
@@ -324,7 +312,7 @@ export function MuniDetailContent({ muni, deptAvg, year = 2024 }: { muni: any; d
 
       {/* KPI row */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6,
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
         padding: '10px 22px',
         borderBottom: '1px solid rgba(0,212,184,0.10)',
         flexShrink: 0,
@@ -338,15 +326,15 @@ export function MuniDetailContent({ muni, deptAvg, year = 2024 }: { muni: any; d
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10,
         padding: '10px 22px 12px',
       }}>
-        {deptAvgY
-          ? <CompBarChart muni={muniY} deptAvg={deptAvgY} />
+        {deptAvg
+          ? <CompBarChart muni={muniY} deptAvg={deptAvg} />
           : <div style={CHART_STYLE}><div style={TITLE_STYLE}>Sin datos departamentales</div></div>
         }
 
         <DonutChart muni={muniY} />
 
-        {evoFiltered.length >= 2
-          ? <EvoLineChart evolucion={evoFiltered} />
+        {evolucion.length >= 2
+          ? <EvoLineChart evolucion={evolucion} />
           : <div style={CHART_STYLE}><div style={TITLE_STYLE}>Sin datos de evolución</div></div>
         }
       </div>

@@ -12,6 +12,7 @@ import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 // ── Formatters ───────────────────────────────────────────────────────────────
 
 const fmt     = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
+const fmtLegend = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 2 });
 const fmtFull = new Intl.NumberFormat('es-HN', { style: 'currency', currency: 'HNL', maximumFractionDigits: 0 });
 
 function normalizeName(name: string): string {
@@ -28,6 +29,8 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 const NO_DATA_FILL = '#142030';
+const BORDER       = '#0a0f1e'; // fondo oscuro: separa municipios sobre cualquier relleno
+const QUANT_COLORS = d3.quantize(d3.interpolate('#0f3a44', '#00d4b8'), 5);
 
 // ── Municipal choropleth map (límites oficiales OCHA COD-AB) ─────────────────
 
@@ -97,12 +100,11 @@ function DeptMuniMap({
 
     const byKey = new Map(municipalities.map((m) => [m.key, m]));
 
-    const maxBudget = d3.max(municipalities, (m) => m.budget) || 1;
-    const colorScale = d3.scaleSequentialSqrt(d3.interpolate('#0c1830', '#00b89e'))
-      .domain([0, maxBudget]);
+    // `municipalities` ya viene filtrado al departamento: dominio y cuantiles son locales.
+    const colorScale = d3.scaleQuantile<string>()
+      .domain(municipalities.map((m) => m.budget))
+      .range(QUANT_COLORS);
 
-    const clipId = `muni-clip-${deptKey.replace(/\s+/g, '-')}`;
-    const defs   = svg.append('defs');
     const cellsG = svg.append('g');
 
     const moveTooltip = (event: any) => {
@@ -114,8 +116,9 @@ function DeptMuniMap({
       const muni = noData ? undefined : byKey.get(f.properties.key);
       const cell = cellsG.append('path')
         .attr('d', geoPath(f) ?? '')
-        .attr('stroke', 'rgba(0,212,184,0.22)')
-        .attr('stroke-width', 0.8);
+        .attr('stroke', BORDER)
+        .attr('stroke-width', 1.2)
+        .attr('vector-effect', 'non-scaling-stroke');
 
       if (!muni) {
         cell.attr('fill', NO_DATA_FILL)
@@ -152,7 +155,7 @@ function DeptMuniMap({
         })
         .on('mousemove', moveTooltip)
         .on('mouseleave', function () {
-          d3.select(this).attr('fill', baseFill).attr('stroke', 'rgba(0,212,184,0.22)').attr('stroke-width', 0.8);
+          d3.select(this).attr('fill', baseFill).attr('stroke', BORDER).attr('stroke-width', 1.2);
           setTooltip(null);
         })
         .on('click', () => { if (muni.mockId) onSelectMuni(muni.mockId); });
@@ -163,14 +166,36 @@ function DeptMuniMap({
       .attr('stroke', 'rgba(0,212,184,0.75)').attr('stroke-width', 1.6)
       .attr('pointer-events', 'none');
 
+    // Nombres en el centroide; si el municipio mide < 25 px de ancho, solo queda en el tooltip.
+    const labelsG = svg.append('g').attr('pointer-events', 'none')
+      .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 10)
+      .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+      .attr('fill', '#c8d6e5').attr('stroke', BORDER).attr('stroke-width', 3)
+      .attr('stroke-linejoin', 'round').style('paint-order', 'stroke');
+    features.forEach((f: any) => {
+      const [[x0], [x1]] = geoPath.bounds(f);
+      const c = projection(d3.geoCentroid(f));
+      if (x1 - x0 < 25 || !c) return;
+      const t = labelsG.append('text').attr('x', c[0]).attr('y', c[1]).text(f.properties.name);
+      const half = (t.node()!.getComputedTextLength() + 3) / 2; // que no se corte en el borde del SVG
+      t.attr('x', Math.max(half, Math.min(W - half, c[0])));
+    });
+
     if (indicator !== 'categorias' && !noData) {
-      // Gradient legend
-      const lgW = 90, lgH = 8, lgX = W - lgW - 10, lgY = H - 22;
-      const lgDef = defs.append('linearGradient').attr('id', `${clipId}-lg`);
-      lgDef.append('stop').attr('offset', '0%').attr('stop-color', '#0c1830');
-      lgDef.append('stop').attr('offset', '100%').attr('stop-color', '#00b89e');
-      svg.append('rect').attr('x', lgX).attr('y', lgY).attr('width', lgW).attr('height', lgH).attr('rx', 3).attr('fill', `url(#${clipId}-lg)`);
-      svg.append('text').attr('x', lgX).attr('y', lgY - 4).attr('fill', '#4a5a73').attr('font-size', 8).attr('font-family', "'IBM Plex Mono', monospace").text('PRESUPUESTO');
+      // Leyenda por cuantiles: 5 clases con sus rangos (L)
+      const [lo, hi] = d3.extent(municipalities, (m) => m.budget) as [number, number];
+      const cuts = [lo, ...colorScale.quantiles(), hi];
+      const rowH = 13, lgX = W - 128, lgY = H - 10 - rowH * 5;
+      const lg = svg.append('g').attr('pointer-events', 'none')
+        .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 8);
+      lg.append('text').attr('x', lgX).attr('y', lgY - 5).attr('fill', '#4a5a73').text('PRESUPUESTO (L)');
+      QUANT_COLORS.forEach((col, i) => {
+        const y = lgY + i * rowH;
+        lg.append('rect').attr('x', lgX).attr('y', y).attr('width', 12).attr('height', 9).attr('rx', 2)
+          .attr('fill', col).attr('stroke', BORDER);
+        lg.append('text').attr('x', lgX + 17).attr('y', y + 8).attr('fill', '#7c8aa3')
+          .text(`${fmtLegend.format(cuts[i])} – ${fmtLegend.format(cuts[i + 1])}`);
+      });
     }
 
   }, [topoData, deptName, municipalities, onSelectMuni, indicator, size, message]);

@@ -8,6 +8,7 @@ import { getDepartamento } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
+import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -120,7 +121,7 @@ function DeptMuniMap({
         cell.attr('fill', NO_DATA_FILL)
           .on('mouseenter', (event) => {
             const [mx, my] = d3.pointer(event, svgRef.current);
-            setTooltip({ x: mx, y: my, name: f.properties.name, budget: null });
+            setTooltip({ x: mx, y: my, name: NOMBRES_OFICIALES[f.properties.key] ?? f.properties.name, budget: null });
           })
           .on('mousemove', moveTooltip)
           .on('mouseleave', () => setTooltip(null));
@@ -172,7 +173,7 @@ function DeptMuniMap({
       const [[x0], [x1]] = geoPath.bounds(f);
       const c = projection(d3.geoCentroid(f));
       if (x1 - x0 < 25 || !c) return;
-      const t = labelsG.append('text').attr('x', c[0]).attr('y', c[1]).text(f.properties.name);
+      const t = labelsG.append('text').attr('x', c[0]).attr('y', c[1]).text(NOMBRES_OFICIALES[f.properties.key] ?? f.properties.name);
       const half = (t.node()!.getComputedTextLength() + 3) / 2; // que no se corte en el borde del SVG
       t.attr('x', Math.max(half, Math.min(W - half, c[0])));
     });

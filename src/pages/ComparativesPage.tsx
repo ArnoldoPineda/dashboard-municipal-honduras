@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { getMunicipio } from '../data/municipios';
+import { NO_DATA_MSG, autonomia } from '../utils/sefin';
 import {
   LineChart,
   Line,
@@ -118,29 +118,17 @@ function getMetricValue(m: any, metric: MetricKey): number {
       return m.population || 0;
     case 'transferencias':
       return m.otras_transferencias ? Math.round(m.otras_transferencias / 1_000_000) : 0;
-    case 'ing_tributarios': {
-      const v = m.ingresos_tributarios || Math.round((m.ingresos_propios || 0) * 0.58);
-      return Math.round(v / 1_000_000);
-    }
-    case 'ing_no_tributarios': {
-      const t = m.ingresos_tributarios || Math.round((m.ingresos_propios || 0) * 0.58);
-      const v = m.ingresos_no_tributarios || Math.max(0, (m.ingresos_propios || 0) - t);
-      return Math.round(v / 1_000_000);
-    }
-    case 'ing_capital': {
-      const v = m.ingresos_capital || Math.max(0,
-        (m.presupuesto_municipal || 0) - (m.ingresos_propios || 0) - (m.otras_transferencias || 0));
-      return Math.round(v / 1_000_000);
-    }
-    case 'gasto_funcionamiento': {
-      const v = m.gastos_funcionamiento || Math.round((m.presupuesto_municipal || 0) * 0.63);
-      return Math.round(v / 1_000_000);
-    }
-    case 'gasto_capital': {
-      const gastF = m.gastos_funcionamiento || Math.round((m.presupuesto_municipal || 0) * 0.63);
-      const v = m.gastos_capital_deuda || Math.max(0, (m.presupuesto_municipal || 0) - gastF);
-      return Math.round(v / 1_000_000);
-    }
+    // Columnas SEFIN tal cual: sin proporciones supuestas (antes 58 % / 63 % si el campo valía 0).
+    case 'ing_tributarios':
+      return Math.round((m.ingresos_tributarios || 0) / 1_000_000);
+    case 'ing_no_tributarios':
+      return Math.round((m.ingresos_no_tributarios || 0) / 1_000_000);
+    case 'ing_capital':
+      return Math.round((m.ingresos_capital || 0) / 1_000_000);
+    case 'gasto_funcionamiento':
+      return Math.round((m.gastos_funcionamiento || 0) / 1_000_000);
+    case 'gasto_capital':
+      return Math.round((m.gastos_capital_deuda || 0) / 1_000_000);
     default:
       return 0;
   }
@@ -150,6 +138,18 @@ function formatValue(metric: MetricKey, value: number): string {
   if (metric === 'autonomia') return `${value.toFixed(1)}%`;
   if (metric === 'poblacion') return new Intl.NumberFormat('es-HN').format(Math.round(value));
   return `L ${value.toFixed(1)}M`;
+}
+
+/** Valor agregado de varias filas: suma, salvo autonomía (fórmula validada sobre los totales). */
+function getAggMetricValue(recs: any[], metric: MetricKey): number {
+  if (metric === 'autonomia') {
+    const a = autonomia(
+      recs.reduce((s, m) => s + (m.ingresos_propios || 0), 0),
+      recs.reduce((s, m) => s + (m.ingresos_recaudados || 0), 0),
+    );
+    return a === null ? 0 : Math.round(a * 10) / 10;
+  }
+  return recs.reduce((s, m) => s + getMetricValue(m, metric), 0);
 }
 
 function getMetricLabel(metric: MetricKey): string {
@@ -162,12 +162,11 @@ function getRawFinCats(m: any) {
   const pres     = m.presupuesto_municipal || 0;
   const ingRecaud = m.ingresos_recaudados || 0;
   const ingProp  = m.ingresos_propios || 0;
-  const ingTrans = m.otras_transferencias || 0;
-  const tribut   = m.ingresos_tributarios || Math.round(ingProp * 0.58);
-  const noTrib   = m.ingresos_no_tributarios || Math.max(0, ingProp - tribut);
-  const capital  = m.ingresos_capital || Math.max(0, pres - ingProp - ingTrans);
-  const gastF    = m.gastos_funcionamiento || Math.round(pres * 0.63);
-  const gastC    = m.gastos_capital_deuda  || Math.max(0, pres - gastF);
+  const tribut   = m.ingresos_tributarios    || 0;
+  const noTrib   = m.ingresos_no_tributarios || 0;
+  const capital  = m.ingresos_capital        || 0;
+  const gastF    = m.gastos_funcionamiento   || 0;
+  const gastC    = m.gastos_capital_deuda    || 0;
   return { pres, ingRecaud, ingProp, tribut, noTrib, capital, gastF, gastC };
 }
 
@@ -494,7 +493,8 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
   );
 }
 
-const RADAR_AXES = ['Autonomía', 'Ing. Tributarios %', 'Ing. Capital %', 'Gasto Capital %', 'IDH'];
+// IDH eliminado: no existe en Supabase (antes salía del mock y en la práctica siempre valía 0).
+const RADAR_AXES = ['Autonomía', 'Ing. Tributarios %', 'Ing. Capital %', 'Gasto Capital %'];
 
 function RadarCard({
   title, radarData, names,
@@ -573,12 +573,9 @@ function FinancialChartsSection({
     return s;
   }, [selected, municipalities, mode]);
 
-  // Use finYear if it has data, otherwise fall back to most recent year with data
-  const effectiveFinYear = useMemo(() => {
-    if (yearsWithData.has(finYear)) return finYear;
-    const sorted = [...yearsWithData].sort((a, b) => b - a);
-    return sorted[0] ?? finYear;
-  }, [finYear, yearsWithData]);
+  // Año sin filas SEFIN (2019/2020) → aviso, sin saltar a otro año.
+  const effectiveFinYear = finYear;
+  const finNoData = !yearsWithData.has(finYear);
 
   const barData = useMemo(() => {
     if (!selected.length) return [];
@@ -601,19 +598,10 @@ function FinancialChartsSection({
         if (subject === 'Ing. Tributarios %')  row[d.name] = d.ingTributarioPct || 0;
         if (subject === 'Ing. Capital %')      row[d.name] = d.ingCapitalPct   || 0;
         if (subject === 'Gasto Capital %')     row[d.name] = d.gastCapitalPct  || 0;
-        if (subject === 'IDH') {
-          if (mode === 'muni') {
-            const rec = municipalities.find(m => m.name === d.name && m.year === finYear);
-            const staticMuni = rec ? getMunicipio(rec.id) as any : null;
-            row[d.name] = staticMuni?.idh ? Math.round(staticMuni.idh * 100) : 0;
-          } else {
-            row[d.name] = 0;
-          }
-        }
       });
       return row;
     });
-  }, [selected, barData, municipalities, finYear, mode]);
+  }, [selected, barData]);
 
   if (!selected.length) return null;
 
@@ -622,9 +610,9 @@ function FinancialChartsSection({
       <div style={{ ...CARD, marginTop: 20 }}>
         <span style={FLABEL}>
           AÑO PARA ANÁLISIS FINANCIERO
-          {effectiveFinYear !== finYear && (
+          {finNoData && (
             <span style={{ color: '#f59e0b', marginLeft: 8, fontWeight: 400, textTransform: 'none' }}>
-              (sin datos en {finYear}, mostrando {effectiveFinYear})
+              ({NO_DATA_MSG})
             </span>
           )}
         </span>
@@ -640,23 +628,31 @@ function FinancialChartsSection({
         </div>
       </div>
 
-      <ComposicionFinancieraCard
-        title={`COMPOSICIÓN FINANCIERA · ${effectiveFinYear}`}
-        data={barData}
-      />
-      <IncomeBarCard
-        title={`COMPOSICIÓN DE INGRESOS · ${effectiveFinYear}`}
-        data={barData}
-      />
-      <GastosBarCard
-        title={`ESTRUCTURA DE GASTOS · ${effectiveFinYear}`}
-        data={barData}
-      />
-      <RadarCard
-        title="PERFIL FINANCIERO COMPARATIVO"
-        radarData={radarData}
-        names={selected}
-      />
+      {finNoData ? (
+        <div style={{ ...CARD, marginTop: 20, textAlign: 'center', color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700 }}>
+          ⚠ {NO_DATA_MSG} ({finYear})
+        </div>
+      ) : (
+        <>
+          <ComposicionFinancieraCard
+            title={`COMPOSICIÓN FINANCIERA · ${effectiveFinYear}`}
+            data={barData}
+          />
+          <IncomeBarCard
+            title={`COMPOSICIÓN DE INGRESOS · ${effectiveFinYear}`}
+            data={barData}
+          />
+          <GastosBarCard
+            title={`ESTRUCTURA DE GASTOS · ${effectiveFinYear}`}
+            data={barData}
+          />
+          <RadarCard
+            title="PERFIL FINANCIERO COMPARATIVO"
+            radarData={radarData}
+            names={selected}
+          />
+        </>
+      )}
     </>
   );
 }
@@ -980,14 +976,17 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
 
   const chartData = useMemo(() => {
     if (!selectedDepts.length || !years.length) return [];
-    const grouped: Record<number, any> = {};
-    municipalities.forEach(m => {
-      if (!selectedDepts.includes(m.department) || !years.includes(m.year)) return;
-      if (!grouped[m.year]) grouped[m.year] = { year: m.year };
-      if (grouped[m.year][m.department] === undefined) grouped[m.year][m.department] = 0;
-      grouped[m.year][m.department] += getMetricValue(m, metric);
-    });
-    return Object.values(grouped).sort((a: any, b: any) => a.year - b.year);
+    return years
+      .map(y => {
+        const row: any = { year: y };
+        selectedDepts.forEach(d => {
+          const recs = municipalities.filter(m => m.department === d && m.year === y);
+          if (recs.length) row[d] = getAggMetricValue(recs, metric);
+        });
+        return Object.keys(row).length > 1 ? row : null;
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.year - b.year);
   }, [municipalities, selectedDepts, years, metric]);
 
   const tableRows = useMemo(() => {
@@ -996,8 +995,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
       years.forEach(y => {
         const recs = municipalities.filter(m => m.department === dept && m.year === y);
         if (!recs.length) return;
-        const sum = recs.reduce((acc, m) => acc + getMetricValue(m, metric), 0);
-        row[`y_${y}`] = formatValue(metric, sum);
+        row[`y_${y}`] = formatValue(metric, getAggMetricValue(recs, metric));
       });
       return row;
     });

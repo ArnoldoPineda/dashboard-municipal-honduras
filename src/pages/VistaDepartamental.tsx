@@ -6,7 +6,7 @@ import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/municipios';
 import { useNavbar } from '../context/NavbarContext';
-import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
@@ -14,10 +14,6 @@ import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 const fmt     = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
 const fmtLegend = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 2 });
 const fmtFull = new Intl.NumberFormat('es-HN', { style: 'currency', currency: 'HNL', maximumFractionDigits: 0 });
-
-function normalizeName(name: string): string {
-  return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-}
 
 // ── Category helpers ─────────────────────────────────────────────────────────
 
@@ -40,7 +36,7 @@ interface MuniStat {
   name:     string;
   budget:   number;
   category: string;
-  mockId:   string | null; // solo para navegar a /municipio/:id (página aún basada en mock)
+  path:     string;        // ruta del detalle: /municipio/<depto>/<code>
 }
 
 interface TooltipState { x: number; y: number; name: string; budget: number | null }
@@ -144,7 +140,7 @@ function DeptMuniMap({
 
       cell
         .attr('fill', baseFill)
-        .style('cursor', muni.mockId ? 'pointer' : 'default')
+        .style('cursor', 'pointer')
         .on('mouseenter', function (event) {
           d3.select(this).raise()
             .attr('fill', hoverFill)
@@ -158,7 +154,7 @@ function DeptMuniMap({
           d3.select(this).attr('fill', baseFill).attr('stroke', BORDER).attr('stroke-width', 1.2);
           setTooltip(null);
         })
-        .on('click', () => { if (muni.mockId) onSelectMuni(muni.mockId); });
+        .on('click', () => onSelectMuni(muni.path));
     });
 
     svg.append('path').datum(outline)
@@ -243,8 +239,6 @@ function DeptMuniMap({
 
 // ── VistaDepartamental ────────────────────────────────────────────────────────
 
-const sum = (rows: any[], field: string): number => rows.reduce((s, m) => s + (m[field] ?? 0), 0);
-
 export default function VistaDepartamental() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -256,23 +250,8 @@ export default function VistaDepartamental() {
   const dept = useMemo(() => getDepartamento(id || ''), [id]);
 
   // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
-  const { municipalities: sbMunicipalities, loading: sbLoading, error: sbError } = useMunicipalitiesMultiYear([fiscalYear]);
-
-  // El hook arranca con loading=false y conserva las filas del año anterior: solo se da por
-  // cargado un año cuando se vio su ciclo loading true → false. Evita mostrar "sin datos"
-  // antes de la consulta o cifras de otro año durante el cambio.
-  const [settledYear, setSettledYear] = useState<number | null>(null);
-  const sawLoading = useRef(false);
-  useEffect(() => {
-    if (sbLoading) sawLoading.current = true;
-    else if (sawLoading.current) { sawLoading.current = false; setSettledYear(fiscalYear); }
-  }, [sbLoading, fiscalYear]);
-  const loaded = settledYear === fiscalYear && !sbLoading;
-
-  const yearRows = useMemo(
-    () => sbMunicipalities.filter((m) => m.year === fiscalYear),
-    [sbMunicipalities, fiscalYear]
-  );
+  const { rows: yearRows, loading: sbLoading, message: yearMessage } = useSefinYear(fiscalYear);
+  const loaded = !sbLoading;
 
   const deptRows = useMemo(() => {
     if (!dept) return [];
@@ -281,8 +260,7 @@ export default function VistaDepartamental() {
   }, [yearRows, dept]);
 
   const noData = loaded && deptRows.length === 0; // 2019/2020: sin filas SEFIN (o error de carga)
-  const mapMessage = !noData ? null
-    : sbError ? 'Error al cargar datos SEFIN' : 'Sin datos SEFIN para este año';
+  const mapMessage = !noData ? null : (yearMessage ?? 'Sin datos SEFIN para este año');
 
   const geoCount: number | null = useMemo(() => {
     if (!topoData || !dept) return null;
@@ -291,23 +269,16 @@ export default function VistaDepartamental() {
       .filter((g: any) => normalizeName(g.properties?.department || '') === key).length;
   }, [topoData, dept]);
 
-  // ponytail: ids del mock solo para el clic hacia /municipio/:id (DetalleMunicipio sigue en mock).
-  // Municipios cuyo nombre no existe en el mock quedan sin clic; se resuelve en la fase 2.
-  const mockIdByName = useMemo(() =>
-    new Map<string, string>((dept?.municipios || []).map((m: any) => [normalizeName(m.nombre), m.id])),
-    [dept]
-  );
-
   const munis: MuniStat[] = useMemo(() =>
     deptRows.map((m) => ({
-      key:      `${m.department}|${m.code}`,
+      key:      muniKey(m),
       code:     m.code ?? 0,
       name:     m.name ?? '',
       budget:   m.presupuesto_municipal ?? 0,
-      category: (m as any).category ?? 'D',
-      mockId:   mockIdByName.get(normalizeName(m.name || '')) ?? null,
+      category: categoryOf(m.presupuesto_municipal ?? 0), // Supabase no trae categoría
+      path:     muniPath(m),
     })),
-    [deptRows, mockIdByName]
+    [deptRows]
   );
 
   // Department aggregates for selected year (Supabase)
@@ -322,8 +293,7 @@ export default function VistaDepartamental() {
   // Fórmula estándar del proyecto — misma que afSEFIN en MunicipioDETALLE.tsx.
   const autonomiaSb: number | null = useMemo(() => {
     if (deptRows.length === 0) return null; // sin filas de Supabase para este año (2019/2020)
-    const recaudados = sum(deptRows, 'ingresos_recaudados');
-    return recaudados > 0 ? (sum(deptRows, 'ingresos_propios') / recaudados) * 100 : 0;
+    return autonomia(sum(deptRows, 'ingresos_propios'), sum(deptRows, 'ingresos_recaudados')) ?? 0;
   }, [deptRows]);
 
   // Capital = municipio con code 1 (cabecera departamental)
@@ -340,14 +310,14 @@ export default function VistaDepartamental() {
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development' || !topoData || !loaded || yearRows.length === 0) return;
     const geoKeys = new Set<string>(topoData.objects.municipios.geometries.map((g: any) => g.properties.key));
-    const sbKeys  = new Set(yearRows.map((m) => `${m.department}|${m.code}`));
+    const sbKeys  = new Set(yearRows.map(muniKey));
     const sbSinGeo = Array.from(sbKeys).filter((k) => !geoKeys.has(k));
     const geoSinSb = Array.from(geoKeys).filter((k) => !sbKeys.has(k));
     console.warn(`[SIMHO ${fiscalYear}] Supabase sin geometría: ${sbSinGeo.length}`, sbSinGeo,
                  `| Geometrías sin Supabase: ${geoSinSb.length}`, geoSinSb);
   }, [topoData, yearRows, loaded, fiscalYear]);
 
-  const onSelectMuni = useCallback((muniId: string) => navigate(`/municipio/${muniId}`), [navigate]);
+  const onSelectMuni = useCallback((path: string) => navigate(path), [navigate]);
 
   if (!dept) {
     return (
@@ -358,7 +328,7 @@ export default function VistaDepartamental() {
     );
   }
 
-  const na = (v: string) => (noData ? '—' : v);
+  const na = (v: string) => (noData || !loaded ? '—' : v); // mientras carga: '—', nunca 0
   const kpis = [
     { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
     { label: 'POBLACIÓN',      value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
@@ -472,9 +442,9 @@ export default function VistaDepartamental() {
               return (
                 <div
                   key={m.key}
-                  onClick={() => { if (m.mockId) navigate(`/municipio/${m.mockId}`); }}
+                  onClick={() => navigate(m.path)}
                   style={{
-                    padding: '10px 10px', borderRadius: 7, cursor: m.mockId ? 'pointer' : 'default',
+                    padding: '10px 10px', borderRadius: 7, cursor: 'pointer',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     border: '1px solid transparent', transition: 'background 0.12s',
                   }}

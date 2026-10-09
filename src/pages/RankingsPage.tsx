@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { MUNICIPIOS, DEPARTAMENTOS, deptNameToId } from '../data/municipios';
-import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { DEPARTAMENTOS, deptNameToId } from '../data/municipios';
+import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
+import { NO_DATA_MSG, muniKey } from '../utils/sefin';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,14 +41,31 @@ function getMetricValue(m: any, metric: Metric): number {
     case 'ingresosPropios':return m.ingresosPropios || 0;
     case 'autonomia':
       // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (fórmula estándar, afSEFIN).
-      // Fallback a presupuesto solo si la fila viene del mock (sin ingresos_recaudados, ej. Supabase caído).
-      return m.ingresosRecaudados > 0
-        ? (m.ingresosPropios / m.ingresosRecaudados) * 100
-        : (m.presupuesto > 0 ? (m.ingresosPropios / m.presupuesto) * 100 : 0);
+      return m.ingresosRecaudados > 0 ? (m.ingresosPropios / m.ingresosRecaudados) * 100 : 0;
     case 'gastosCapital':  return m.otros || 0;
-    case 'superavit':      return (m.ingresosPropios + m.transferencia + m.otros) - m.presupuesto;
+    // SEFIN superavit_deficit = ingresos_recaudados − total_egresos
+    case 'superavit':      return m.superavit || 0;
     default:               return 0;
   }
+}
+
+/** Fila SEFIN → forma usada por el ranking. */
+function toRow(m: Municipality) {
+  const deptId  = (deptNameToId as any)(m.department ?? '') ?? (m.department ?? '').toLowerCase().replace(/\s+/g, '-');
+  const dept    = (DEPARTAMENTOS as any[]).find((d: any) => d.id === deptId);
+  return {
+    id:            muniKey(m), // estable entre años (el id de Supabase cambia por año)
+    nombre:        m.name ?? '',
+    departamento:  dept ? dept.nombre : (m.department ?? ''),
+    departamentoId: deptId,
+    poblacion:     m.population ?? 0,
+    presupuesto:   m.presupuesto_municipal ?? 0,
+    ingresosPropios: m.ingresos_propios ?? 0,
+    ingresosRecaudados: m.ingresos_recaudados ?? 0,
+    otros:         m.gastos_capital_deuda ?? 0,
+    superavit:     m.superavit_deficit ?? 0,
+    isCapital:     m.code === 1, // cabecera departamental
+  };
 }
 
 // ── Sorted departments list ───────────────────────────────────────────────────
@@ -74,37 +92,16 @@ export default function RankingsPage() {
   const [metric,     setMetric]     = useState<Metric>('presupuesto');
   const [page,       setPage]       = useState<number>(0);
 
-  // Fetch real data from Supabase for the selected año.
-  // Autonomía depende de ingresos_recaudados (solo en Supabase): si no hay filas
-  // (ej. 2019/2020, sin datos SEFIN en Supabase), esa pestaña muestra "Sin datos
-  // disponibles" — mismo tratamiento que MapaInteractivo/VistaDepartamental.
-  // Las demás métricas caen a mock (MUNICIPIOS) y siguen funcionando con normalidad.
-  const { municipalities: supabaseMunis, loading: sbLoading } = useMunicipalitiesMultiYear([year]);
+  // Filas SEFIN del año y del anterior (para el movimiento en el ranking).
+  // 2019/2020 no tienen filas: "Sin datos SEFIN para este año" en todas las métricas, nunca el mock.
+  const { municipalities: supabaseMunis, loading: sbLoading } = useMunicipalitiesMultiYear([year - 1, year]);
 
   const yearRows = useMemo(() => supabaseMunis.filter(m => m.year === year), [supabaseMunis, year]);
-  const autonomiaNoData = metric === 'autonomia' && !sbLoading && yearRows.length === 0;
+  const prevRows = useMemo(() => supabaseMunis.filter(m => m.year === year - 1), [supabaseMunis, year]);
+  const noData = !sbLoading && yearRows.length === 0;
 
-  const allMusArr = useMemo(() => {
-    if (!yearRows.length) return MUNICIPIOS as any[];
-    return yearRows.map(m => {
-      const deptId  = (deptNameToId as any)(m.department ?? '') ?? (m.department ?? '').toLowerCase().replace(/\s+/g, '-');
-      const dept    = (DEPARTAMENTOS as any[]).find((d: any) => d.id === deptId);
-      return {
-        id:            m.id,
-        nombre:        m.name ?? '',
-        departamento:  dept ? dept.nombre : (m.department ?? ''),
-        departamentoId: deptId,
-        poblacion:     m.population ?? 0,
-        presupuesto:   m.presupuesto_municipal ?? 0,
-        ingresosPropios: m.ingresos_propios ?? 0,
-        ingresosRecaudados: m.ingresos_recaudados ?? 0,
-        transferencia: m.otras_transferencias ?? 0,
-        otros:         m.gastos_capital_deuda ?? 0,
-        isCapital:     false,
-        evolucion:     [],
-      };
-    });
-  }, [yearRows]);
+  const allMusArr = useMemo(() => yearRows.map(toRow), [yearRows]);
+  const prevMusArr = useMemo(() => prevRows.map(toRow), [prevRows]);
 
   // Dept average per departamentoId for the active metric
   const deptAvgMap = useMemo<Record<string, number>>(() => {
@@ -126,27 +123,22 @@ export default function RankingsPage() {
       .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
   }, [metric, allMusArr]);
 
-  // Previous-year rank map — uses evolucion from mock data when available; no-op for Supabase rows
-  const prevRankMap = useMemo<Record<string, number>>(() => {
-    const sorted = [...allMusArr].sort((a, b) => {
-      const getEvo = (m: any) => {
-        const evo = m.evolucion?.find((e: any) => e.year === year - 1);
-        return evo?.presupuesto || 0;
-      };
-      if (metric === 'presupuesto') return getEvo(b) - getEvo(a);
-      return getMetricValue(b, metric) - getMetricValue(a, metric);
-    });
-    const map: Record<string, number> = {};
-    sorted.forEach((m, i) => { map[m.id] = i + 1; });
-    return map;
-  }, [metric, year, allMusArr]);
-
   // Filtered + paginated rows
   const filtered = useMemo(() => {
     return deptFilter === 'all'
       ? rankedAll
       : rankedAll.filter((m: any) => m.departamentoId === deptFilter);
   }, [rankedAll, deptFilter]);
+
+  // Puesto del año anterior con la misma métrica y el mismo filtro (vacío si ese año no tiene datos).
+  const prevRankMap = useMemo<Record<string, number>>(() => {
+    const sorted = prevMusArr
+      .filter((m: any) => deptFilter === 'all' || m.departamentoId === deptFilter)
+      .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
+    const map: Record<string, number> = {};
+    sorted.forEach((m, i) => { map[m.id] = i + 1; });
+    return map;
+  }, [metric, deptFilter, prevMusArr]);
 
   const maxValue = useMemo(() => {
     const vs = filtered.map((m: any) => Math.abs(getMetricValue(m, metric)));
@@ -199,7 +191,7 @@ export default function RankingsPage() {
               Rankings
             </div>
             <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
-              {autonomiaNoData ? 'Sin datos de autonomía para este año' : `${filtered.length} municipios ordenados · variación vs. año anterior`}
+              {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`}
             </div>
           </div>
 
@@ -251,7 +243,11 @@ export default function RankingsPage() {
         </div>
 
         {/* ── TABLE ── */}
-        {autonomiaNoData ? (
+        {sbLoading ? (
+          <div style={{ marginTop: 18, padding: '40px 24px', textAlign: 'center', color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
+            Cargando datos SEFIN…
+          </div>
+        ) : noData ? (
           <div style={{
             marginTop: 18,
             background: '#0d1628',
@@ -264,11 +260,11 @@ export default function RankingsPage() {
               fontSize: 13, fontWeight: 700, color: '#f59e0b',
               fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6,
             }}>
-              ⚠ Sin datos disponibles
+              ⚠ {NO_DATA_MSG}
             </div>
             <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>
-              No hay datos de SEFIN en el sistema para Autonomía Financiera en el año fiscal {year}.
-              Seleccioná un año entre 2021 y 2025, u otra pestaña de métrica.
+              No hay datos de SEFIN en el sistema para el año fiscal {year}.
+              Seleccioná un año entre 2021 y 2025.
             </div>
           </div>
         ) : (
@@ -296,8 +292,8 @@ export default function RankingsPage() {
             const avg        = deptAvgMap[muni.departamentoId] || 0;
             const vsPct      = avg !== 0 ? ((value - avg) / Math.abs(avg)) * 100 : 0;
             const barPct     = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
-            const prevRank   = prevRankMap[muni.id] || globalRank;
-            const movement   = prevRank - globalRank;
+            const prevRank   = prevRankMap[muni.id];
+            const movement   = prevRank ? prevRank - globalRank : null;
             const cat        = getCategory(muni.presupuesto);
 
             const rowBg = globalRank === 1
@@ -429,12 +425,12 @@ export default function RankingsPage() {
                   <span style={{
                     fontSize: 10,
                     fontFamily: "'IBM Plex Mono', monospace",
-                    color: movement > 0 ? '#1f9d57' : movement < 0 ? '#ef5a5a' : '#4a5a73',
+                    color: movement && movement > 0 ? '#1f9d57' : movement && movement < 0 ? '#ef5a5a' : '#4a5a73',
                     whiteSpace: 'nowrap',
                     minWidth: 36,
                     textAlign: 'right',
                   }}>
-                    {movement > 0 ? `▲ ${movement}` : movement < 0 ? `▼ ${Math.abs(movement)}` : '— 0'}
+                    {movement === null ? '—' : movement > 0 ? `▲ ${movement}` : movement < 0 ? `▼ ${Math.abs(movement)}` : '— 0'}
                   </span>
                 </div>
               </div>
@@ -450,7 +446,7 @@ export default function RankingsPage() {
         )}
 
         {/* ── PAGINATION ── */}
-        {totalPages > 1 && (
+        {!sbLoading && !noData && totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}

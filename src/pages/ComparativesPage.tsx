@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { getMunicipio } from '../data/municipios';
+import { NO_DATA_MSG, autonomia } from '../utils/sefin';
 import {
   LineChart,
   Line,
@@ -118,29 +118,17 @@ function getMetricValue(m: any, metric: MetricKey): number {
       return m.population || 0;
     case 'transferencias':
       return m.otras_transferencias ? Math.round(m.otras_transferencias / 1_000_000) : 0;
-    case 'ing_tributarios': {
-      const v = m.ingresos_tributarios || Math.round((m.ingresos_propios || 0) * 0.58);
-      return Math.round(v / 1_000_000);
-    }
-    case 'ing_no_tributarios': {
-      const t = m.ingresos_tributarios || Math.round((m.ingresos_propios || 0) * 0.58);
-      const v = m.ingresos_no_tributarios || Math.max(0, (m.ingresos_propios || 0) - t);
-      return Math.round(v / 1_000_000);
-    }
-    case 'ing_capital': {
-      const v = m.ingresos_capital || Math.max(0,
-        (m.presupuesto_municipal || 0) - (m.ingresos_propios || 0) - (m.otras_transferencias || 0));
-      return Math.round(v / 1_000_000);
-    }
-    case 'gasto_funcionamiento': {
-      const v = m.gastos_funcionamiento || Math.round((m.presupuesto_municipal || 0) * 0.63);
-      return Math.round(v / 1_000_000);
-    }
-    case 'gasto_capital': {
-      const gastF = m.gastos_funcionamiento || Math.round((m.presupuesto_municipal || 0) * 0.63);
-      const v = m.gastos_capital_deuda || Math.max(0, (m.presupuesto_municipal || 0) - gastF);
-      return Math.round(v / 1_000_000);
-    }
+    // Columnas SEFIN tal cual: sin proporciones supuestas (antes 58 % / 63 % si el campo valía 0).
+    case 'ing_tributarios':
+      return Math.round((m.ingresos_tributarios || 0) / 1_000_000);
+    case 'ing_no_tributarios':
+      return Math.round((m.ingresos_no_tributarios || 0) / 1_000_000);
+    case 'ing_capital':
+      return Math.round((m.ingresos_capital || 0) / 1_000_000);
+    case 'gasto_funcionamiento':
+      return Math.round((m.gastos_funcionamiento || 0) / 1_000_000);
+    case 'gasto_capital':
+      return Math.round((m.gastos_capital_deuda || 0) / 1_000_000);
     default:
       return 0;
   }
@@ -150,6 +138,33 @@ function formatValue(metric: MetricKey, value: number): string {
   if (metric === 'autonomia') return `${value.toFixed(1)}%`;
   if (metric === 'poblacion') return new Intl.NumberFormat('es-HN').format(Math.round(value));
   return `L ${value.toFixed(1)}M`;
+}
+
+/** Valor agregado de varias filas: suma, salvo autonomía (fórmula validada sobre los totales). */
+function getAggMetricValue(recs: any[], metric: MetricKey): number {
+  if (metric === 'autonomia') {
+    const a = autonomia(
+      recs.reduce((s, m) => s + (m.ingresos_propios || 0), 0),
+      recs.reduce((s, m) => s + (m.ingresos_recaudados || 0), 0),
+    );
+    return a === null ? 0 : Math.round(a * 10) / 10;
+  }
+  return recs.reduce((s, m) => s + getMetricValue(m, metric), 0);
+}
+
+// Identidad de municipio = "DEPARTAMENTO|nombre": hay 24 nombres repetidos entre departamentos.
+const muniId = (m: any): string => `${m.department}|${m.name}`;
+const splitMuniId = (id: string): [string, string] => {
+  const i = id.indexOf('|');
+  return [id.slice(0, i), id.slice(i + 1)];
+};
+/** Etiqueta visible: el nombre, o "nombre (DEPTO)" si dos seleccionados se llaman igual. */
+function muniLabels(ids: string[]): Record<string, string> {
+  const names = ids.map(id => splitMuniId(id)[1]);
+  return Object.fromEntries(ids.map((id, i) => {
+    const [dept, name] = splitMuniId(id);
+    return [id, names.filter(n => n === names[i]).length > 1 ? `${name} (${dept})` : name];
+  }));
 }
 
 function getMetricLabel(metric: MetricKey): string {
@@ -162,12 +177,11 @@ function getRawFinCats(m: any) {
   const pres     = m.presupuesto_municipal || 0;
   const ingRecaud = m.ingresos_recaudados || 0;
   const ingProp  = m.ingresos_propios || 0;
-  const ingTrans = m.otras_transferencias || 0;
-  const tribut   = m.ingresos_tributarios || Math.round(ingProp * 0.58);
-  const noTrib   = m.ingresos_no_tributarios || Math.max(0, ingProp - tribut);
-  const capital  = m.ingresos_capital || Math.max(0, pres - ingProp - ingTrans);
-  const gastF    = m.gastos_funcionamiento || Math.round(pres * 0.63);
-  const gastC    = m.gastos_capital_deuda  || Math.max(0, pres - gastF);
+  const tribut   = m.ingresos_tributarios    || 0;
+  const noTrib   = m.ingresos_no_tributarios || 0;
+  const capital  = m.ingresos_capital        || 0;
+  const gastF    = m.gastos_funcionamiento   || 0;
+  const gastC    = m.gastos_capital_deuda    || 0;
   return { pres, ingRecaud, ingProp, tribut, noTrib, capital, gastF, gastC };
 }
 
@@ -494,7 +508,8 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
   );
 }
 
-const RADAR_AXES = ['Autonomía', 'Ing. Tributarios %', 'Ing. Capital %', 'Gasto Capital %', 'IDH'];
+// IDH eliminado: no existe en Supabase (antes salía del mock y en la práctica siempre valía 0).
+const RADAR_AXES = ['Autonomía', 'Ing. Tributarios %', 'Ing. Capital %', 'Gasto Capital %'];
 
 function RadarCard({
   title, radarData, names,
@@ -566,29 +581,27 @@ function FinancialChartsSection({
     const s = new Set<number>();
     municipalities.forEach(m => {
       const match = mode === 'muni'
-        ? selected.includes(m.name ?? '')
+        ? selected.includes(muniId(m))
         : selected.includes(m.department ?? '');
       if (match) s.add(m.year);
     });
     return s;
   }, [selected, municipalities, mode]);
 
-  // Use finYear if it has data, otherwise fall back to most recent year with data
-  const effectiveFinYear = useMemo(() => {
-    if (yearsWithData.has(finYear)) return finYear;
-    const sorted = [...yearsWithData].sort((a, b) => b - a);
-    return sorted[0] ?? finYear;
-  }, [finYear, yearsWithData]);
+  // Año sin filas SEFIN (2019/2020) → aviso, sin saltar a otro año.
+  const effectiveFinYear = finYear;
+  const finNoData = !yearsWithData.has(finYear);
 
   const barData = useMemo(() => {
     if (!selected.length) return [];
+    const labels = mode === 'muni' ? muniLabels(selected) : {};
     return selected.map(entity => {
       const recs = mode === 'muni'
-        ? municipalities.filter(m => m.name === entity && m.year === effectiveFinYear)
+        ? municipalities.filter(m => muniId(m) === entity && m.year === effectiveFinYear)
         : municipalities.filter(m => m.department === entity && m.year === effectiveFinYear);
       if (!recs.length) return null;
       const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
-      return { name: entity, ...fc };
+      return { name: mode === 'muni' ? labels[entity] : entity, ...fc };
     }).filter(Boolean) as any[];
   }, [selected, municipalities, effectiveFinYear, mode]);
 
@@ -601,19 +614,10 @@ function FinancialChartsSection({
         if (subject === 'Ing. Tributarios %')  row[d.name] = d.ingTributarioPct || 0;
         if (subject === 'Ing. Capital %')      row[d.name] = d.ingCapitalPct   || 0;
         if (subject === 'Gasto Capital %')     row[d.name] = d.gastCapitalPct  || 0;
-        if (subject === 'IDH') {
-          if (mode === 'muni') {
-            const rec = municipalities.find(m => m.name === d.name && m.year === finYear);
-            const staticMuni = rec ? getMunicipio(rec.id) as any : null;
-            row[d.name] = staticMuni?.idh ? Math.round(staticMuni.idh * 100) : 0;
-          } else {
-            row[d.name] = 0;
-          }
-        }
       });
       return row;
     });
-  }, [selected, barData, municipalities, finYear, mode]);
+  }, [selected, barData]);
 
   if (!selected.length) return null;
 
@@ -622,9 +626,9 @@ function FinancialChartsSection({
       <div style={{ ...CARD, marginTop: 20 }}>
         <span style={FLABEL}>
           AÑO PARA ANÁLISIS FINANCIERO
-          {effectiveFinYear !== finYear && (
+          {finNoData && (
             <span style={{ color: '#f59e0b', marginLeft: 8, fontWeight: 400, textTransform: 'none' }}>
-              (sin datos en {finYear}, mostrando {effectiveFinYear})
+              ({NO_DATA_MSG})
             </span>
           )}
         </span>
@@ -640,23 +644,31 @@ function FinancialChartsSection({
         </div>
       </div>
 
-      <ComposicionFinancieraCard
-        title={`COMPOSICIÓN FINANCIERA · ${effectiveFinYear}`}
-        data={barData}
-      />
-      <IncomeBarCard
-        title={`COMPOSICIÓN DE INGRESOS · ${effectiveFinYear}`}
-        data={barData}
-      />
-      <GastosBarCard
-        title={`ESTRUCTURA DE GASTOS · ${effectiveFinYear}`}
-        data={barData}
-      />
-      <RadarCard
-        title="PERFIL FINANCIERO COMPARATIVO"
-        radarData={radarData}
-        names={selected}
-      />
+      {finNoData ? (
+        <div style={{ ...CARD, marginTop: 20, textAlign: 'center', color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700 }}>
+          ⚠ {NO_DATA_MSG} ({finYear})
+        </div>
+      ) : (
+        <>
+          <ComposicionFinancieraCard
+            title={`COMPOSICIÓN FINANCIERA · ${effectiveFinYear}`}
+            data={barData}
+          />
+          <IncomeBarCard
+            title={`COMPOSICIÓN DE INGRESOS · ${effectiveFinYear}`}
+            data={barData}
+          />
+          <GastosBarCard
+            title={`ESTRUCTURA DE GASTOS · ${effectiveFinYear}`}
+            data={barData}
+          />
+          <RadarCard
+            title="PERFIL FINANCIERO COMPARATIVO"
+            radarData={radarData}
+            names={barData.map((d: any) => d.name)}
+          />
+        </>
+      )}
     </>
   );
 }
@@ -666,7 +678,7 @@ function FinancialChartsSection({
 function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
   // deptSections: one entry per group (up to 2), value is the dept name or '' if unselected
   const [deptSections, setDeptSections] = useState<string[]>(['']);
-  const [selected, setSelected]         = useState<string[]>([]);
+  const [selected, setSelected]         = useState<string[]>([]); // ids "DEPARTAMENTO|nombre"
   const [years, setYears]               = useState<number[]>([2021, 2022, 2023, 2024]);
   const [metric, setMetric]             = useState<MetricKey>('presupuesto');
 
@@ -687,61 +699,49 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
     [deptSections, municipalities]
   );
 
-  // Helper used in event handlers (no hook)
-  const muniListForDept = (dept: string): string[] =>
-    dept
-      ? [...new Set(municipalities.filter(m => m.department === dept).map(m => m.name).filter(Boolean))]
-      : [];
-
   const handleDeptChange = (sectionIdx: number, newDept: string) => {
     const oldDept = deptSections[sectionIdx];
-    if (oldDept) {
-      const oldMunis = muniListForDept(oldDept);
-      setSelected(prev => prev.filter(n => !oldMunis.includes(n)));
-    }
+    if (oldDept) setSelected(prev => prev.filter(id => splitMuniId(id)[0] !== oldDept));
     setDeptSections(prev => prev.map((d, i) => i === sectionIdx ? newDept : d));
   };
 
   const removeSection = (sectionIdx: number) => {
     const deptToRemove = deptSections[sectionIdx];
-    if (deptToRemove) {
-      const munis = muniListForDept(deptToRemove);
-      setSelected(prev => prev.filter(n => !munis.includes(n)));
-    }
+    if (deptToRemove) setSelected(prev => prev.filter(id => splitMuniId(id)[0] !== deptToRemove));
     setDeptSections(prev => prev.filter((_, i) => i !== sectionIdx));
   };
 
-  const toggleMuni = (name: string) => {
+  const toggleMuni = (id: string) => {
     setSelected(prev =>
-      prev.includes(name) ? prev.filter(x => x !== name)
-        : prev.length < MAX_MUNIS ? [...prev, name] : prev
+      prev.includes(id) ? prev.filter(x => x !== id)
+        : prev.length < MAX_MUNIS ? [...prev, id] : prev
     );
   };
 
-  const getMuniDept = (name: string): string =>
-    municipalities.find(m => m.name === name)?.department || '';
+  const labels = useMemo(() => muniLabels(selected), [selected]);
 
   const chartData = useMemo(() => {
     if (!selected.length || !years.length) return [];
     const grouped: Record<number, any> = {};
     municipalities.forEach(m => {
-      if (!selected.includes(m.name) || !years.includes(m.year)) return;
+      const id = muniId(m);
+      if (!selected.includes(id) || !years.includes(m.year)) return;
       if (!grouped[m.year]) grouped[m.year] = { year: m.year };
-      grouped[m.year][m.name] = getMetricValue(m, metric);
+      grouped[m.year][labels[id]] = getMetricValue(m, metric);
     });
     return Object.values(grouped).sort((a: any, b: any) => a.year - b.year);
-  }, [municipalities, selected, years, metric]);
+  }, [municipalities, selected, labels, years, metric]);
 
   const tableRows = useMemo(() => {
-    return selected.map(name => {
-      const row: any = { label: name };
+    return selected.map(id => {
+      const row: any = { label: labels[id] };
       years.forEach(y => {
-        const rec = municipalities.find(m => m.name === name && m.year === y);
+        const rec = municipalities.find(m => muniId(m) === id && m.year === y);
         row[`y_${y}`] = rec ? formatValue(metric, getMetricValue(rec, metric)) : null;
       });
       return row;
     });
-  }, [municipalities, selected, years, metric]);
+  }, [municipalities, selected, labels, years, metric]);
 
   const hasDeptSelected = deptSections.some(d => d !== '');
 
@@ -756,7 +756,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
             const rgbColor   = sectionIdx === 0 ? '45,212,191' : '245,158,11';
             const usedDepts  = deptSections.filter((_, i) => i !== sectionIdx).filter(Boolean);
             const muniList   = muniListsPerSection[sectionIdx];
-            const sectionSel = selected.filter(n => muniList.includes(n));
+            const sectionSel = selected.filter(id => splitMuniId(id)[0] === dept);
 
             return (
               <div
@@ -833,7 +833,8 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
                       gap: 5,
                     }}>
                       {muniList.map(name => {
-                        const isSelected = selected.includes(name);
+                        const id         = `${dept}|${name}`;
+                        const isSelected = selected.includes(id);
                         const isDisabled = !isSelected && selected.length >= MAX_MUNIS;
                         return (
                           <label
@@ -855,7 +856,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
                               type="checkbox"
                               checked={isSelected}
                               disabled={isDisabled}
-                              onChange={() => toggleMuni(name)}
+                              onChange={() => toggleMuni(id)}
                               style={{
                                 accentColor: color,
                                 width: 12, height: 12,
@@ -916,16 +917,16 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
           <span style={{ ...FLABEL, marginBottom: 0 }}>
             MUNICIPIOS {selected.length}/{MAX_MUNIS}
           </span>
-          {selected.map((name, i) => {
-            const deptName = getMuniDept(name);
+          {selected.map((id, i) => {
+            const [deptName, name] = splitMuniId(id);
             const sIdx     = deptSections.indexOf(deptName);
             const color    = sIdx >= 0 ? SECTION_COLORS[sIdx] : PALETTE[i % PALETTE.length];
             return (
               <SelectedPill
-                key={name}
-                label={deptName ? `${name} · ${deptName}` : name}
+                key={id}
+                label={`${name} · ${deptName}`}
                 color={color}
-                onRemove={() => setSelected(p => p.filter(x => x !== name))}
+                onRemove={() => setSelected(p => p.filter(x => x !== id))}
               />
             );
           })}
@@ -951,7 +952,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
       <ChartCard
         title={`COMPARATIVA — ${getMetricLabel(metric).toUpperCase()}`}
         data={chartData}
-        keys={selected}
+        keys={selected.map(id => labels[id])}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
       <FinancialChartsSection selected={selected} municipalities={municipalities} mode="muni" />
@@ -980,14 +981,17 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
 
   const chartData = useMemo(() => {
     if (!selectedDepts.length || !years.length) return [];
-    const grouped: Record<number, any> = {};
-    municipalities.forEach(m => {
-      if (!selectedDepts.includes(m.department) || !years.includes(m.year)) return;
-      if (!grouped[m.year]) grouped[m.year] = { year: m.year };
-      if (grouped[m.year][m.department] === undefined) grouped[m.year][m.department] = 0;
-      grouped[m.year][m.department] += getMetricValue(m, metric);
-    });
-    return Object.values(grouped).sort((a: any, b: any) => a.year - b.year);
+    return years
+      .map(y => {
+        const row: any = { year: y };
+        selectedDepts.forEach(d => {
+          const recs = municipalities.filter(m => m.department === d && m.year === y);
+          if (recs.length) row[d] = getAggMetricValue(recs, metric);
+        });
+        return Object.keys(row).length > 1 ? row : null;
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.year - b.year);
   }, [municipalities, selectedDepts, years, metric]);
 
   const tableRows = useMemo(() => {
@@ -996,8 +1000,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
       years.forEach(y => {
         const recs = municipalities.filter(m => m.department === dept && m.year === y);
         if (!recs.length) return;
-        const sum = recs.reduce((acc, m) => acc + getMetricValue(m, metric), 0);
-        row[`y_${y}`] = formatValue(metric, sum);
+        row[`y_${y}`] = formatValue(metric, getAggMetricValue(recs, metric));
       });
       return row;
     });
@@ -1096,14 +1099,14 @@ function ModeHistorica({ municipalities }: { municipalities: any[] }) {
 
   const chartData = useMemo(() => {
     if (!muniName) return [];
-    const recs = municipalities.filter(m => m.name === muniName && YEARS.includes(m.year));
+    const recs = municipalities.filter(m => m.name === muniName && m.department === dept && YEARS.includes(m.year));
     return YEARS.map(y => {
       const rec = recs.find(m => m.year === y);
       const row: any = { year: y };
       if (rec) metrics.forEach(k => { row[k] = getMetricValue(rec, k); });
       return row;
     });
-  }, [municipalities, muniName, metrics]);
+  }, [municipalities, muniName, dept, metrics]);
 
   return (
     <>

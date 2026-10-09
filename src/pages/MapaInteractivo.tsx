@@ -3,17 +3,19 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
-import { getDeptStatsMap, deptNameToId, getDepartamento, getMunicipiosByDept } from '../data/municipios';
-import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { DEPARTAMENTOS, deptNameToId, getDepartamento } from '../data/municipios';
+import { Municipality } from '../hooks/useMunicipalities';
+import { useSefinYear, normName, aggregate, groupByDept, categoryOf, SefinAgg } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
-const fmt = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
+const fmt    = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
+const fmtInt = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
+const normalizeName = normName;
 
-function normalizeName(name: string): string {
-  return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-}
+// Mock: solo nombres de departamento (metadatos). Ninguna cifra sale de aquí.
+const DEPT_NAMES: string[] = (DEPARTAMENTOS as any[]).map((d) => d.nombre);
 
 // ── Category helpers ─────────────────────────────────────────────────────────
 
@@ -24,23 +26,14 @@ const CAT_COLORS: Record<string, string> = {
   D: '#64748b',
 };
 
-function categoryOf(budget: number): string {
-  if (budget > 500_000_000) return 'A';
-  if (budget > 150_000_000) return 'B';
-  if (budget >  50_000_000) return 'C';
-  return 'D';
-}
-
-function deptCatData(topoName: string): { dominant: string; counts: Record<string, number> } {
-  const id    = deptNameToId(topoName);
-  const munis = id ? (getMunicipiosByDept(id) as any[]) : [];
+function deptCatData(munis: Municipality[]): { dominant: string; counts: Record<string, number> } {
   const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-  munis.forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
+  munis.forEach((m) => { counts[categoryOf(m.presupuesto_municipal ?? 0)]++; });
   // Use capital city's category as the dept color — freq-dominant always returns D
-  // because most municipalities are small towns (< 50M)
-  const capital = munis.find((m: any) => m.isCapital);
+  // because most municipalities are small towns (< 50M). Capital = code 1 (cabecera).
+  const capital = munis.find((m) => m.code === 1);
   const dominant = capital
-    ? categoryOf(capital.presupuesto || 0)
+    ? categoryOf(capital.presupuesto_municipal ?? 0)
     : (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'D');
   return { dominant, counts };
 }
@@ -58,46 +51,38 @@ export default function MapaInteractivo() {
   const topoData = useMunicipiosTopo();
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
-  const deptStats = useMemo(() => getDeptStatsMap(), []);
+  // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
+  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (agregado por depto).
+  const { rows, loading, message: noDataMsg } = useSefinYear(fiscalYear);
+  const hideFigures = loading || !!noDataMsg; // mientras carga: '—', nunca 0
 
-  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (Supabase, agregado por depto).
-  // Fórmula estándar del proyecto — misma que afSEFIN en MunicipioDETALLE.tsx.
-  const { municipalities: sbMunicipalities, loading: sbLoading } = useMunicipalitiesMultiYear([fiscalYear]);
-
-  const autonomiaByDept = useMemo(() => {
-    const agg = new Map<string, { propios: number; recaudados: number }>();
-    sbMunicipalities.forEach((m) => {
-      const key = normalizeName(m.department || '');
-      const cur = agg.get(key) || { propios: 0, recaudados: 0 };
-      cur.propios    += m.ingresos_propios    ?? 0;
-      cur.recaudados += m.ingresos_recaudados ?? 0;
-      agg.set(key, cur);
+  // Agregados por departamento, con clave = nombre de la app (como antes deptStats).
+  const { deptStats, deptRows } = useMemo(() => {
+    const byNorm = groupByDept(rows);
+    const stats = new Map<string, SefinAgg>();
+    const deptRowsMap = new Map<string, Municipality[]>();
+    DEPT_NAMES.forEach((name) => {
+      const list = byNorm.get(normalizeName(name)) ?? [];
+      stats.set(name, aggregate(list));
+      deptRowsMap.set(name, list);
     });
+    return { deptStats: stats, deptRows: deptRowsMap };
+  }, [rows]);
+
+  // Nº de municipios por departamento desde la geometría (existe aunque el año no tenga datos).
+  const geoCountByDept = useMemo(() => {
     const out = new Map<string, number>();
-    deptStats.forEach((_: any, deptName: string) => {
-      const a = agg.get(normalizeName(deptName));
-      out.set(deptName, a && a.recaudados > 0 ? (a.propios / a.recaudados) * 100 : 0);
+    (topoData?.objects.municipios.geometries ?? []).forEach((g: any) => {
+      const k = normalizeName(g.properties?.department);
+      out.set(k, (out.get(k) ?? 0) + 1);
     });
     return out;
-  }, [sbMunicipalities, deptStats]);
+  }, [topoData]);
+  const geoTotal = Array.from(geoCountByDept.values()).reduce((a, b) => a + b, 0);
 
-  const autonomiaNoData = indicator === 'autonomia' && !sbLoading && sbMunicipalities.length === 0;
-  const maxAutonomia = useMemo(
-    () => Math.max(1, ...Array.from(autonomiaByDept.values())),
-    [autonomiaByDept]
-  );
+  const totals = useMemo(() => aggregate(rows), [rows]);
 
-  const totals = { munis: 298, pop: 9145000, budget: 65600000000 };
-
-  const catTotals = useMemo(() => {
-    const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-    deptStats.forEach((_: any, deptName: string) => {
-      const id    = deptNameToId(deptName);
-      const munis = id ? getMunicipiosByDept(id) : [];
-      (munis as any[]).forEach((m: any) => { counts[categoryOf(m.presupuesto || 0)]++; });
-    });
-    return counts;
-  }, [deptStats]);
+  const catTotals = useMemo(() => deptCatData(rows).counts, [rows]);
 
 
   useEffect(() => {
@@ -112,13 +97,25 @@ export default function MapaInteractivo() {
   }, []);
 
   const getValue = useCallback((deptName: string) => {
-    if (indicator === 'autonomia') return autonomiaByDept.get(deptName) ?? 0;
     const stats = deptStats.get(deptName);
     if (!stats) return 0;
-    if (indicator === 'presupuesto') return stats.budget;
-    if (indicator === 'poblacion')   return stats.population;
+    if (indicator === 'autonomia')   return stats.autonomia ?? 0;
+    if (indicator === 'presupuesto') return stats.presupuesto;
+    if (indicator === 'poblacion')   return stats.poblacion;
     return 0;
-  }, [deptStats, indicator, autonomiaByDept]);
+  }, [deptStats, indicator]);
+
+  // Rango real de la coropleta (para la leyenda): mínimo y máximo por departamento.
+  const [minVal, maxVal] = useMemo(() => {
+    const vals = DEPT_NAMES.map(getValue).filter((v) => v > 0);
+    return vals.length ? [Math.min(...vals), Math.max(...vals)] : [0, 0];
+  }, [getValue]);
+
+  const fmtIndicator = useCallback((v: number) => {
+    if (indicator === 'autonomia') return `${v.toFixed(1)}%`;
+    if (indicator === 'poblacion') return `${fmt.format(v)} hab.`;
+    return `L ${fmt.format(v)}`;
+  }, [indicator]);
 
   useEffect(() => {
     if (!topoData || !svgRef.current) return;
@@ -144,26 +141,8 @@ export default function MapaInteractivo() {
     });
     const path = d3.geoPath().projection(projection);
 
-    const maxVal = d3.max(features, (f: any) => {
-      const topoName = f.properties?.name || '';
-      if (indicator === 'autonomia') {
-        let best = 0;
-        autonomiaByDept.forEach((v: number, k: string) => {
-          if (normalizeName(k) === normalizeName(topoName)) best = v;
-        });
-        return best;
-      }
-      let best = 0;
-      deptStats.forEach((v: any, k: string) => {
-        if (normalizeName(k) === normalizeName(topoName)) {
-          best = indicator === 'presupuesto' ? v.budget : v.population;
-        }
-      });
-      return best;
-    }) || 1;
-
     const colorScale = d3.scaleSequentialSqrt(d3.interpolate('#112035', '#00d4b8'))
-      .domain([0, maxVal]);
+      .domain([0, maxVal || 1]);
 
     const defs = svg.append('defs');
     const glowFilter = defs.append('filter').attr('id', 'deptGlow');
@@ -179,8 +158,9 @@ export default function MapaInteractivo() {
       .attr('d', path as any)
       .attr('fill', (f: any) => {
         const topoName = f.properties?.name || '';
+        if (hideFigures) return '#142030';
         if (indicator === 'categorias') {
-          const { dominant } = deptCatData(topoName);
+          const { dominant } = deptCatData(deptRows.get(topoName) ?? []);
           return d3.color(CAT_COLORS[dominant])!.darker(0.4).formatHex();
         }
         let val = 0;
@@ -203,15 +183,24 @@ export default function MapaInteractivo() {
           .attr('stroke-width', 1.8)
           .style('filter', 'url(#deptGlow)');
 
-        const stats    = deptStats.get(deptKey);
-        const deptId   = deptNameToId(topoName);
-        const deptData = deptId ? getDepartamento(deptId) : null;
-        const capital  = deptData?.capital || '';
-        const budget   = stats?.budget || 0;
+        const deptId    = deptNameToId(topoName);
+        const deptData  = deptId ? getDepartamento(deptId) : null;
+        const capital   = deptData?.capital || '';
+        const muniCount = geoCountByDept.get(normalizeName(topoName)) ?? 0;
 
         let html = '';
-        if (indicator === 'categorias') {
-          const { dominant, counts } = deptCatData(topoName);
+        if (hideFigures) {
+          html = `
+            <div style="font-weight:700;font-size:16px;color:#e8eef6;margin-bottom:6px;
+                        font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em">
+              ${topoName}
+            </div>
+            <div style="font-size:12px;color:#f59e0b;font-family:'IBM Plex Mono',monospace">
+              ${noDataMsg ?? 'Cargando datos SEFIN…'}
+            </div>
+          `;
+        } else if (indicator === 'categorias') {
+          const { dominant, counts } = deptCatData(deptRows.get(deptKey) ?? []);
           html = `
             <div style="font-weight:700;font-size:16px;color:#e8eef6;margin-bottom:6px;
                         font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em">
@@ -228,9 +217,10 @@ export default function MapaInteractivo() {
             </div>
           `;
         } else {
-          const displayVal = indicator === 'autonomia'
-            ? `${(autonomiaByDept.get(deptKey) ?? 0).toFixed(1)}%`
-            : `L ${fmt.format(budget)}`;
+          const stats = deptStats.get(deptKey);
+          const displayVal = indicator === 'autonomia' && stats?.autonomia == null
+            ? 'sin datos'
+            : fmtIndicator(getValue(deptKey));
           html = `
             <div style="font-weight:700;font-size:16px;color:#e8eef6;margin-bottom:6px;
                         font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em">
@@ -240,7 +230,7 @@ export default function MapaInteractivo() {
               ${displayVal}
             </div>
             <div style="font-size:12px;color:#7c8aa3;font-family:'IBM Plex Mono',monospace">
-              ${stats?.muniCount ?? 0} municipios${capital ? ` · cap. ${capital}` : ''}
+              ${muniCount} municipios${capital ? ` · cap. ${capital}` : ''}
             </div>
           `;
         }
@@ -286,7 +276,7 @@ export default function MapaInteractivo() {
       .attr('pointer-events', 'none')
       .text((f: any) => (f.properties?.name || '').toUpperCase());
 
-  }, [topoData, deptStats, indicator, getValue, autonomiaByDept, containerSize, navigate]);
+  }, [topoData, deptStats, deptRows, geoCountByDept, indicator, getValue, maxVal, fmtIndicator, noDataMsg, hideFigures, containerSize, navigate]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -322,7 +312,7 @@ export default function MapaInteractivo() {
         </div>
 
         {/* Legend — top-right (presupuesto / poblacion / autonomia) */}
-        {indicator !== 'categorias' && !autonomiaNoData && (
+        {indicator !== 'categorias' && !hideFigures && (
           <div style={{
             position: 'absolute', top: 20, right: 24, zIndex: 10,
             background: 'rgba(8,12,24,0.85)', border: '1px solid rgba(0,212,184,0.18)',
@@ -333,7 +323,7 @@ export default function MapaInteractivo() {
               fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
             }}>
-              {indicator === 'autonomia' ? `autonomía ${fiscalYear}` : `presupuesto ${fiscalYear}`}
+              {`${indicator === 'autonomia' ? 'autonomía' : indicator === 'poblacion' ? 'población' : 'presupuesto'} ${fiscalYear}`}
             </div>
             <div style={{
               height: 8, borderRadius: 4,
@@ -345,23 +335,14 @@ export default function MapaInteractivo() {
               fontSize: 10, color: '#9ca3af',
               fontFamily: "'IBM Plex Mono', monospace",
             }}>
-              {indicator === 'autonomia' ? (
-                <>
-                  <span>0%</span>
-                  <span>{maxAutonomia.toFixed(0)}%</span>
-                </>
-              ) : (
-                <>
-                  <span>L 575 M</span>
-                  <span>L 12.7 mil M</span>
-                </>
-              )}
+              <span>{fmtIndicator(minVal)}</span>
+              <span>{fmtIndicator(maxVal)}</span>
             </div>
           </div>
         )}
 
-        {/* Sin datos — 2019/2020 no tienen filas en Supabase para autonomía */}
-        {autonomiaNoData && (
+        {/* Sin datos — 2019/2020 no tienen filas SEFIN en Supabase (ningún indicador) */}
+        {noDataMsg && (
           <div style={{
             position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             zIndex: 15, textAlign: 'center', pointerEvents: 'none',
@@ -372,7 +353,7 @@ export default function MapaInteractivo() {
               fontSize: 13, fontWeight: 700, color: '#f59e0b',
               fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6,
             }}>
-              ⚠ Sin datos disponibles
+              ⚠ {noDataMsg}
             </div>
             <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>
               No hay datos de SEFIN en el sistema para el año fiscal {fiscalYear}.
@@ -459,7 +440,7 @@ export default function MapaInteractivo() {
               <div style={{
                 fontSize: 22, fontWeight: 700, color: CAT_COLORS[cat],
                 fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-              }}>{catTotals[cat]}</div>
+              }}>{hideFigures ? '—' : catTotals[cat]}</div>
               <div style={{
                 fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
               }}>municipios</div>
@@ -485,7 +466,7 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#e8eef6',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-            }}>{totals.munis}</div>
+            }}>{geoTotal || '—'}</div>
             <div style={{
               fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
             }}>en 18 departamentos</div>
@@ -502,10 +483,10 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#e8eef6',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-            }}>9,145,000</div>
+            }}>{hideFigures ? '—' : fmtInt.format(totals.poblacion)}</div>
             <div style={{
               fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
-            }}>{`habitantes · proyección ${fiscalYear}`}</div>
+            }}>{`habitantes · SEFIN ${fiscalYear}`}</div>
           </div>
 
           <div style={{
@@ -519,10 +500,10 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#f59e0b',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-            }}>L 65.6 mil M</div>
+            }}>{hideFigures ? '—' : `L ${fmt.format(totals.presupuesto)}`}</div>
             <div style={{
               fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
-            }}>transferencias + ingresos propios</div>
+            }}>suma de presupuestos municipales</div>
           </div>
         </div>
       )}

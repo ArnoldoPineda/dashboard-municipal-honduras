@@ -4,23 +4,17 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer, ReferenceLine, Legend, Cell,
 } from 'recharts';
-import { DEPARTAMENTOS, getMunicipiosByDept } from '../data/municipios';
+import { DEPARTAMENTOS } from '../data/municipios';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const ALL_YEARS = [2021, 2022, 2023, 2024, 2025];
 
+// Mock: solo la lista de departamentos (id + nombre). Los municipios salen de Supabase.
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
   .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));
-
-function getDeptMunis(code: string): { id: string; name: string }[] {
-  if (!code) return [];
-  return (getMunicipiosByDept(code) as any[])
-    .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
-    .map((m: any) => ({ id: m.id, name: m.nombre }));
-}
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -220,8 +214,15 @@ export default function AnalyticsPage() {
   const activeYears = selectedYears.length > 0 ? selectedYears : ALL_YEARS;
   const { municipalities, loading } = useMunicipalitiesMultiYear(activeYears);
 
-  const deptMunis = useMemo(() => getDeptMunis(deptCode), [deptCode]);
   const deptName  = useMemo(() => ALL_DEPTS.find(d => d.code === deptCode)?.name ?? '', [deptCode]);
+  // Municipios reales del departamento según SEFIN (id = nombre, único dentro del departamento).
+  const deptMunis = useMemo(() => {
+    if (!deptName) return [];
+    const names = new Set(municipalities
+      .filter(m => m.department && m.name && norm(m.department) === norm(deptName))
+      .map(m => m.name as string));
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'es')).map(n => ({ id: n, name: n }));
+  }, [municipalities, deptName]);
   const muniName  = useMemo(() => deptMunis.find(m => m.id === muniId)?.name ?? '', [deptMunis, muniId]);
 
   const yearDataMap = useMemo(() => {

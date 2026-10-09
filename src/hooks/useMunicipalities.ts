@@ -82,7 +82,7 @@ export const useMunicipalitiesMultiYear = (
   selectedYears: number[] = [2024]
 ) => {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Dep como string primitivo: React compara por valor, no por referencia de array
@@ -91,7 +91,6 @@ export const useMunicipalitiesMultiYear = (
   useEffect(() => {
     if (!yearsKey) return;
 
-    setLoading(true);
     setError(null);
 
     const yearsNum = yearsKey.split(',').map(Number);
@@ -101,16 +100,20 @@ export const useMunicipalitiesMultiYear = (
       .then(all => {
         if (!alive) return;
         setMunicipalities(all);
-        setLoading(false);
+        setLoadedKey(yearsKey);
       })
       .catch((err: any) => {
         if (!alive) return;
         setError(err.message ?? 'Error al cargar municipios');
-        setLoading(false);
+        setLoadedKey(yearsKey);
       });
     return () => { alive = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearsKey]);
+
+  // Derivado, no estado: es true desde el primer render hasta que llega la respuesta
+  // de estos años (evita el "sin datos" momentáneo antes de consultar).
+  const loading = !!yearsKey && loadedKey !== yearsKey;
 
   return { municipalities, loading, error };
 };

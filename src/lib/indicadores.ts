@@ -2,6 +2,7 @@
 // Por municipio y año. Agregados (departamento, nación): suma de numeradores y denominadores.
 import type { Municipality } from '../hooks/useMunicipalities';
 import { fmtL } from './formato';
+import { codigoINE } from '../data/departamentos';
 
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
 export const ROTULO_POBLACION = 'Población: proyección (provisional)';
@@ -456,4 +457,87 @@ export function clasesQuintil(valores: (number | null | undefined)[], direccion:
   const porBruta = [0, 1, 2, 3, 4].map((k) => ({ desde: limites[k], hasta: limites[k + 1] }));
   const rangos = [0, 1, 2, 3, 4].map((c) => ({ clase: c, ...porBruta[direccion === 'mayor' ? c : 4 - c] }));
   return { cortes, clase, rangos };
+}
+
+// ── Fase 5: Análisis multianual y Base de Datos ───────────────────────────────
+
+/** Monto por habitante; null si la población es ≤ 0 o falta el monto. */
+export const porCapita = (monto: number | null | undefined, poblacion: number | null | undefined) =>
+  monto == null || !poblacion || poblacion <= 0 ? null : fin(monto / poblacion);
+
+/** Serie anual del IPC (índice, cualquier base). Años sin dato: null. */
+export type SerieIPC = Record<number, number | null | undefined>;
+
+/** Lempiras del año `anio` a precios de `anioBase`: monto × IPC[base] ÷ IPC[año]. null si falta algún IPC. */
+export function deflactar(monto: number | null | undefined, anio: number, anioBase: number, ipc: SerieIPC): number | null {
+  const a = ipc[anio], b = ipc[anioBase];
+  if (monto == null || a == null || b == null || !(a > 0) || !(b > 0)) return null;
+  return fin((monto * b) / a);
+}
+
+/** Variación % entre dos años: (actual − anterior) ÷ |anterior| × 100. null si falta un año o el anterior es 0. */
+export function variacionPct(anterior: number | null | undefined, actual: number | null | undefined): number | null {
+  if (anterior == null || actual == null || anterior === 0) return null;
+  return fin(((actual - anterior) / Math.abs(anterior)) * 100);
+}
+
+/** Tasa de crecimiento anual compuesta, en %: ((último ÷ primero)^(1/años) − 1) × 100. null con extremos ≤ 0. */
+export function tcac(primero: number | null | undefined, ultimo: number | null | undefined, anios: number): number | null {
+  if (primero == null || ultimo == null || !(primero > 0) || !(ultimo > 0) || !(anios >= 1)) return null;
+  return fin(((ultimo / primero) ** (1 / anios) - 1) * 100);
+}
+
+/** Alcance de Análisis. Departamento: código INE de 2 dígitos ("03"); municipio: INE de 4 ("0318"). */
+export type Alcance =
+  | { tipo: 'pais' }
+  | { tipo: 'departamento'; cod: string }
+  | { tipo: 'municipio'; ine: string }
+  | { tipo: 'categoria'; categoria: string };
+
+/** Filas (todos los años) que caen en el alcance. Sin filtrar excluidos: eso lo hacen las sumas y medianas. */
+export function filasDeAlcance(filas: Municipality[], a: Alcance): Municipality[] {
+  if (a.tipo === 'pais') return filas;
+  if (a.tipo === 'categoria') return filas.filter((m) => m.category === a.categoria);
+  if (a.tipo === 'departamento') return filas.filter((m) => codigoINE(m.department, m.code).slice(0, 2) === a.cod);
+  return filas.filter((m) => codigoINE(m.department, m.code) === a.ine);
+}
+
+/** Indicadores del bloque por año de Análisis (claves de `Indicadores`). */
+export const INDICADORES_ANALISIS = [
+  'autonomia', 'dependenciaTransferencias', 'funcionamientoSobreCorrientes', 'inversionSobreGasto',
+  'servicioDeudaSobreCorrientes', 'balanceSobreIngresos', 'propiosPerCapita', 'ibiPerCapita', 'inversionPerCapita', 'ejecucion',
+] as const;
+export type IndicadorAnalisis = typeof INDICADORES_ANALISIS[number];
+
+/**
+ * Por año: mediana municipal y agregado (Σ/Σ) de cada indicador, sin excluidos. `filas` ya recortadas al alcance.
+ * Un solo municipio: su propio valor en ambas (aunque esté excluido; la UI lo marca con ⚠).
+ */
+export function indicadoresPorAnio(filas: Municipality[], anios: number[]): Record<number, Record<IndicadorAnalisis, MedianaAgregado>> {
+  return Object.fromEntries(anios.map((y) => {
+    const delAnio = filas.filter((m) => m.year === y);
+    const unico = delAnio.length === 1 ? indicadoresMunicipio(delAnio[0]) : null;
+    const agg = unico ?? indicadoresAgregados(delAnio);
+    return [y, Object.fromEntries(INDICADORES_ANALISIS.map((k) => [k, {
+      mediana:  unico ? unico[k] : mediana(delAnio, k),
+      agregado: agg[k],
+    }])) as Record<IndicadorAnalisis, MedianaAgregado>];
+  }));
+}
+
+/** Columna de la Base de Datos para el pie: suma (montos, población) o mediana (razones, per cápita). */
+export interface ColumnaPie { clave: string; agregacion: 'suma' | 'mediana' | 'ninguna'; valor: (m: Municipality) => number | null }
+
+/** Fila al pie del grupo filtrado: TOTAL o MEDIANA por columna, sin contar los excluidos. */
+export function pieTabla(filas: Municipality[], columnas: ColumnaPie[]): Record<string, number | null> {
+  const en = filas.filter((m) => !excluirDeEstadisticas(m));
+  return Object.fromEntries(columnas.map((c) => {
+    if (c.agregacion === 'ninguna') return [c.clave, null];
+    const v = en.map(c.valor).filter((x): x is number => x != null && Number.isFinite(x));
+    if (!v.length) return [c.clave, null];
+    if (c.agregacion === 'suma') return [c.clave, v.reduce((s, x) => s + x, 0)];
+    v.sort((a, b) => a - b);
+    const h = v.length >> 1;
+    return [c.clave, v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2];
+  }));
 }

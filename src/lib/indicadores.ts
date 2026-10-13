@@ -112,10 +112,29 @@ export function mediana(rows: Municipality[], k: keyof Indicadores): number | nu
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
 }
 
-/** Señales de datos sospechosos de una fila. Vacío = sin observaciones. */
+/** Diferencia tolerada entre un subtotal SEFIN y la suma de sus renglones (lempiras). */
+const TOL = 1;
+const suma = (m: Municipality, ks: (keyof Municipality)[]) => ks.reduce((s, k) => s + n(m[k] as number), 0);
+
+/** Señales de datos sospechosos de una fila (catálogo en docs/ATIPICOS.md). Vacío = sin observaciones. */
 export function atipicos(m: Municipality): string[] {
   const i = insumos(m);
+  const r = calcular(i);
   const out: string[] = [];
   if (i.ingresosCorrientes < 0) out.push('Ingresos corrientes negativos');
+  if (i.ingresosCorrientes === 0 && i.ingresosTotales > 0) out.push('Ingresos corrientes en cero');
+  if (i.ingresosTotales > 0 && i.ingresosDelAnio <= 0) out.push('Ingresos del año ≤ 0 (balance y financiamiento ≥ total)');
+  if (r.autonomia !== null && r.autonomia > 100) out.push('Autonomía > 100 %');
+  if (i.poblacion <= 0) out.push('Sin población');
+  if (i.totalEgresos <= 0) out.push('Sin egresos reportados');
+  if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');
+  // ponytail: umbral fijo 2× el aprobado; ajustar si aparecen ampliaciones presupuestarias legítimas.
+  if (r.ejecucion !== null && r.ejecucion > 200) out.push('Egresos > 2 × presupuesto aprobado');
+  const g1 = suma(m, ['impuesto_bi', 'impuesto_personal', 'impuesto_industria', 'impuesto_comercio', 'impuesto_servicios',
+    'impuesto_pecuario', 'impuesto_extraccion', 'impuesto_telecomunicaciones', 'tasas_servicios', 'derechos']);
+  if (Math.abs(g1 - n(m.ingresos_tributarios)) > TOL) out.push('Tributarios ≠ suma de renglones');
+  if (Math.abs(i.ingresosCorrientes - n(m.ingresos_corrientes)) > TOL) out.push('Corrientes SEFIN ≠ G1 + G2');
+  const func = suma(m, ['servicios_personales', 'servicios_no_personales', 'materiales_suministro', 'transferencias_corrientes', 'otros_gastos']);
+  if (Math.abs(func - i.funcionamiento) > TOL) out.push('Funcionamiento ≠ suma de renglones');
   return out;
 }

@@ -99,6 +99,16 @@ describe('bordes', () => {
   it('ingresos corrientes negativos → atípico', () => {
     expect(atipicos(row({ ingresos_tributarios: -5 }))).toContain('Ingresos corrientes negativos');
   });
+  it('fila sin liquidación → corrientes en cero y sin egresos', () => {
+    const a = atipicos(row({ ingresos_recaudados: 10000, population: 5, presupuesto_municipal: 1 }));
+    expect(a).toEqual(expect.arrayContaining(['Ingresos corrientes en cero', 'Sin egresos reportados']));
+  });
+  it('subtotal SEFIN que no cuadra con sus renglones', () => {
+    expect(atipicos(row({ ingresos_tributarios: 100, impuesto_bi: 50 }))).toContain('Tributarios ≠ suma de renglones');
+  });
+  it('ejecución > 200 %', () => {
+    expect(atipicos(row({ total_egresos: 201, presupuesto_municipal: 100 }))).toContain('Egresos > 2 × presupuesto aprobado');
+  });
   it('fila vacía: ratios null, montos 0, sin NaN', () => {
     const r = indicadoresMunicipio(row({}));
     expect(r.autonomia).toBeNull();

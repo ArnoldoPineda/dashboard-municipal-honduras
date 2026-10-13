@@ -3,7 +3,7 @@ import type { Municipality } from '../hooks/useMunicipalities';
 import {
   comparacionPares, semaforo, lecturaSimho, indicadoresMunicipio, ClaveSemaforo, Comparacion,
 } from './indicadores';
-import { opcionesMunicipios, ineDeEtiqueta, filasPorINE, rutaFicha } from './municipios';
+import { opcionesMunicipios, buscarMunicipios, filasPorINE, rutaFicha } from './municipios';
 import catA from './__fixtures__/catA2025.json';
 
 // 43 municipios de categoría A 2025 (Supabase, leído 2026-10-13), recortados a los campos de los indicadores.
@@ -105,9 +105,24 @@ describe('buscador por código INE — homónimos', () => {
       { ine: '0409', etiqueta: 'Concepción — Copán' },
       { ine: '1003', etiqueta: 'Concepción — Intibucá' },
     ]);
-    expect(ineDeEtiqueta('Concepción — Intibucá', ops)).toBe('1003');
-    expect(ineDeEtiqueta('Concepción', ops)).toBeNull();
+    expect(buscarMunicipios('concepcion', ops).map((o) => o.ine)).toEqual(['0409', '1003']); // homónimos: ambos
+    expect(buscarMunicipios('Concepción — Intibucá', ops).map((o) => o.ine)).toEqual(['1003']);
     expect(filasPorINE(homonimos, '1003')).toHaveLength(2);
+  });
+
+  it('búsqueda sin tildes ni mayúsculas y por coincidencia parcial', () => {
+    const ops = opcionesMunicipios(filas.concat([
+      { department: 'SANTA BARBARA', code: 1, name: 'Santa Bárbara', year: 2025 },
+      { department: 'COPAN', code: 1, name: 'Santa Rosa de Copán', year: 2025 },
+    ] as Municipality[]));
+    expect(buscarMunicipios('sigua', ops)).toEqual([{ ine: '0318', etiqueta: 'Siguatepeque — Comayagua' }]);
+    expect(buscarMunicipios('SIGUATEPEQUE', ops)).toHaveLength(1);
+    expect(buscarMunicipios('santa barbara', ops)[0].etiqueta).toBe('Santa Bárbara — Santa Bárbara');
+    expect(buscarMunicipios('santa', ops).length).toBeGreaterThanOrEqual(2);
+    expect(buscarMunicipios('comayagua', ops).every((o) => o.etiqueta.includes('Comayagua'))).toBe(true); // también por departamento
+    expect(buscarMunicipios('   ', ops)).toEqual([]);
+    expect(buscarMunicipios('zzz', ops)).toEqual([]);
+    expect(buscarMunicipios('a', ops, 3)).toHaveLength(3);
   });
 
   it('rutaFicha: solo 4 dígitos con departamento válido y código ≥ 1', () => {

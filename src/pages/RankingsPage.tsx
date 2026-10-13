@@ -130,7 +130,7 @@ export default function RankingsPage() {
 
   // Full ranked list (all munis, active metric)
   const rankedAll = useMemo(() => {
-    return elegibles(allMusArr)
+    return [...elegibles(allMusArr)]
       .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
   }, [metric, allMusArr, elegibles]);
 

@@ -6,7 +6,8 @@ import type { Municipality } from '../../hooks/useMunicipalities';
 import { opcionesMunicipios, buscarMunicipios, rutaFicha, OpcionMunicipio } from '../../lib/municipios';
 import { C, SANS } from './estilo';
 
-export default function BuscadorMunicipio({ filas }: { filas: Municipality[] }) {
+/** `onElegir`: en lugar de abrir la ficha, entrega el municipio elegido (Análisis). Sin ella, el comportamiento de la Ficha. */
+export default function BuscadorMunicipio({ filas, onElegir }: { filas: Municipality[]; onElegir?: (o: OpcionMunicipio) => void }) {
   const navigate = useNavigate();
   const id = useId();
   const [texto, setTexto] = useState('');
@@ -17,6 +18,7 @@ export default function BuscadorMunicipio({ filas }: { filas: Municipality[] }) 
   const visible = abierta && resultados.length > 0;
 
   const abrir = (o: OpcionMunicipio) => {
+    if (onElegir) { setTexto(''); setAbierta(false); setActiva(-1); onElegir(o); return; }
     const ruta = rutaFicha(o.ine);
     if (!ruta) return;
     setTexto(''); setAbierta(false); setActiva(-1);

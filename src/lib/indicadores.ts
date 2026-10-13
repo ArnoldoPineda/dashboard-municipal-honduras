@@ -286,3 +286,171 @@ export function lecturaSimho(fila: Municipality, comparaciones: Partial<Record<C
   }
   return frases.length ? frases.slice(0, 2).join(' ') : 'Indicadores en línea con la mediana de su categoría.';
 }
+
+// ── Panorama Nacional y mapas (Fase 4) ───────────────────────────────────────
+
+/** Métricas del selector compartido (Panorama, Mapa nacional y Vista Departamental). */
+export type MetricaMapa = 'autonomia' | 'propiosPc' | 'dependencia' | 'inversionPc' | 'categoria';
+export type MetricaNumerica = Exclude<MetricaMapa, 'categoria'>;
+
+/** Indicador de cada métrica numérica (fórmulas de calcular()). */
+export const CLAVE_METRICA: Record<MetricaNumerica, ClaveSemaforo> = {
+  autonomia:   'autonomia',
+  propiosPc:   'propiosPerCapita',
+  dependencia: 'dependenciaTransferencias',
+  inversionPc: 'inversionPerCapita',
+};
+
+const CATEGORIAS = ['A', 'B', 'C', 'D'] as const;
+const enEstadisticas = (filas: Municipality[]) => filas.filter((m) => !excluirDeEstadisticas(m));
+
+export interface MedianaAgregado { mediana: number | null; agregado: number | null }
+
+/** 5 grupos de autonomía. Se agrupa por el valor MOSTRADO (1 decimal): un "10.0 %" nunca cae en "< 10". */
+export const GRUPOS_AUTONOMIA: { etiqueta: string; desde: number; hasta: number }[] = [
+  { etiqueta: '< 10 %',  desde: -Infinity, hasta: 10 },
+  { etiqueta: '10–25 %', desde: 10, hasta: 25 },
+  { etiqueta: '25–50 %', desde: 25, hasta: 50 },
+  { etiqueta: '50–75 %', desde: 50, hasta: 75 },
+  { etiqueta: '≥ 75 %',  desde: 75, hasta: Infinity },
+];
+
+/** Municipios por grupo de autonomía (sin excluidos). `filas` de un solo año. */
+export function distribucionAutonomia(filas: Municipality[]): { etiqueta: string; n: number }[] {
+  const valores = enEstadisticas(filas)
+    .map((m) => indicadoresMunicipio(m).autonomia)
+    .filter((v): v is number => v != null)
+    .map((v) => Math.round(v * 10) / 10);
+  return GRUPOS_AUTONOMIA.map((g) => ({ etiqueta: g.etiqueta, n: valores.filter((v) => v >= g.desde && v < g.hasta).length }));
+}
+
+export interface ResumenCategoria {
+  categoria: string; n: number; poblacion: number;
+  autonomia: number | null; propiosPc: number | null; dependencia: number | null;
+}
+
+/** Medianas municipales por categoría SGJD (A–D), sin excluidos. `filas` de un solo año. */
+export function resumenPorCategoria(filas: Municipality[]): ResumenCategoria[] {
+  return CATEGORIAS.map((c) => {
+    const grupo = filas.filter((m) => m.category === c);
+    return {
+      categoria:   c,
+      n:           enEstadisticas(grupo).length,
+      poblacion:   sumarInsumos(grupo).poblacion,
+      autonomia:   mediana(grupo, 'autonomia'),
+      propiosPc:   mediana(grupo, 'propiosPerCapita'),
+      dependencia: mediana(grupo, 'dependenciaTransferencias'),
+    };
+  });
+}
+
+export interface ResumenNacional {
+  anio: number;
+  n: number;                  // municipios en estadísticas
+  excluidos: string[];        // nombres
+  departamentos: number;
+  indicadores: Record<'autonomia' | 'propiosPerCapita' | 'dependenciaTransferencias' | 'balanceSobreIngresos', MedianaAgregado>;
+  distribucion: { etiqueta: string; n: number }[];
+  categorias: ResumenCategoria[];
+}
+
+export function resumenNacional(filas: Municipality[], anio: number): ResumenNacional {
+  const delAnio = filas.filter((m) => m.year === anio);
+  const en = enEstadisticas(delAnio);
+  const agregado = indicadoresAgregados(delAnio);
+  const par = (k: keyof Indicadores): MedianaAgregado => ({ mediana: mediana(delAnio, k), agregado: agregado[k] as number | null });
+  return {
+    anio,
+    n: en.length,
+    excluidos: delAnio.filter(excluirDeEstadisticas).map((m) => m.name ?? ''),
+    departamentos: new Set(en.map((m) => (m.department ?? '').trim().toUpperCase())).size,
+    indicadores: {
+      autonomia:                 par('autonomia'),
+      propiosPerCapita:          par('propiosPerCapita'),
+      dependenciaTransferencias: par('dependenciaTransferencias'),
+      balanceSobreIngresos:      par('balanceSobreIngresos'),
+    },
+    distribucion: distribucionAutonomia(delAnio),
+    categorias: resumenPorCategoria(delAnio),
+  };
+}
+
+export interface ResumenDepartamento {
+  department: string;                 // nombre SEFIN (la UI lo muestra con nombreDepartamento)
+  valor: number | null;               // métricas numéricas
+  categoria?: string;                 // métrica "categoria": predominante
+  conteo?: Record<string, number>;    // métrica "categoria": municipios por categoría
+}
+
+/**
+ * Valor de cada departamento: autonomía = MEDIANA municipal; propios, dependencia e inversión = agregado
+ * departamental (Σ/Σ); categoría = la predominante (empate → la más alta). Sin excluidos. `filas` de un año.
+ */
+export function resumenPorDepartamento(filas: Municipality[], metrica: MetricaMapa): ResumenDepartamento[] {
+  const grupos = new Map<string, Municipality[]>();
+  filas.forEach((m) => {
+    const d = (m.department ?? '').trim().toUpperCase();
+    grupos.set(d, [...(grupos.get(d) ?? []), m]);
+  });
+  return Array.from(grupos.entries()).map(([department, grupo]) => {
+    if (metrica === 'categoria') {
+      const conteo = Object.fromEntries(CATEGORIAS.map((c) => [c, 0])) as Record<string, number>;
+      enEstadisticas(grupo).forEach((m) => { if (m.category && m.category in conteo) conteo[m.category]++; });
+      const max = Math.max(...Object.values(conteo));
+      const categoria = max > 0 ? CATEGORIAS.find((c) => conteo[c] === max) : undefined; // A antes que B…: la más alta
+      return { department, valor: null, categoria, conteo };
+    }
+    const valor = metrica === 'autonomia'
+      ? mediana(grupo, 'autonomia')
+      : (indicadoresAgregados(grupo)[CLAVE_METRICA[metrica]] as number | null);
+    return { department, valor };
+  });
+}
+
+/** Lectura automática nacional (2 frases, plantillas fijas). */
+export function lecturaNacional(r: ResumenNacional): string {
+  const med = r.indicadores.autonomia.mediana;
+  const agg = r.indicadores.autonomia.agregado;
+  if (med == null || !r.n) return 'Sin datos suficientes para la lectura nacional.';
+  const bajo25 = r.distribucion.slice(0, 2).reduce((s, g) => s + g.n, 0);
+  const frase1 = `La mitad de los municipios financia con recursos propios menos del ${Math.round(med)} % de sus ingresos del año, `
+    + `y ${bajo25} de ${r.n} (${Math.round((100 * bajo25) / r.n)} %) no llegan al 25 %.`;
+  const a = r.categorias.find((c) => c.categoria === 'A')?.propiosPc;
+  const d = r.categorias.find((c) => c.categoria === 'D')?.propiosPc;
+  const veces = a && d ? Math.round(a / d) : null;
+  let frase2 = '';
+  if (agg != null && agg - med >= 15) {
+    frase2 = ` El agregado nacional (${agg.toFixed(1)} %) lo sostienen las grandes ciudades`
+      + (veces && veces >= 2 ? `: la categoría A recauda ${veces} veces más por habitante que la D.` : '.');
+  } else if (veces && veces >= 2) {
+    frase2 = ` La categoría A recauda ${veces} veces más por habitante que la D.`;
+  }
+  return frase1 + frase2;
+}
+
+/** Cuantil lineal (tipo 7, como d3.quantile) de valores ordenados. */
+function cuantil(ordenados: number[], p: number): number {
+  const h = (ordenados.length - 1) * p;
+  const i = Math.floor(h);
+  return ordenados[i] + (h - i) * ((ordenados[i + 1] ?? ordenados[i]) - ordenados[i]);
+}
+
+export interface Clases {
+  cortes: number[];                                          // 4 cortes (quintiles)
+  clase: (v: number | null | undefined) => number | null;    // 0 (oscuro, peor) … 4 (claro, mejor)
+  rangos: { clase: number; desde: number; hasta: number }[]; // para la leyenda, de clase 0 a 4
+}
+
+/** 5 clases por quintiles de los valores mostrados. Dirección "menor": se invierte, el tono claro es el mejor. */
+export function clasesQuintil(valores: (number | null | undefined)[], direccion: 'mayor' | 'menor'): Clases {
+  const v = valores.filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b);
+  if (!v.length) return { cortes: [], clase: () => null, rangos: [] };
+  const cortes = [0.2, 0.4, 0.6, 0.8].map((p) => cuantil(v, p));
+  const bruta = (x: number) => cortes.filter((c) => x >= c).length;
+  const clase = (x: number | null | undefined) =>
+    x == null || !Number.isFinite(x) ? null : direccion === 'mayor' ? bruta(x) : 4 - bruta(x);
+  const limites = [v[0], ...cortes, v[v.length - 1]];
+  const porBruta = [0, 1, 2, 3, 4].map((k) => ({ desde: limites[k], hasta: limites[k + 1] }));
+  const rangos = [0, 1, 2, 3, 4].map((c) => ({ clase: c, ...porBruta[direccion === 'mayor' ? c : 4 - c] }));
+  return { cortes, clase, rangos };
+}

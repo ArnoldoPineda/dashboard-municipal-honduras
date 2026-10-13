@@ -1,5 +1,5 @@
 // Pestañas Ingresos / Gastos / Resultado / Deuda / Evolución / Pares (barras simples, sin donas ni radar).
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { Municipality } from '../../hooks/useMunicipalities';
 import {
   indicadoresMunicipio, insumos, semaforo, sinLiquidacion, ClaveSemaforo, ROTULO_SIN_LIQUIDACION,
@@ -24,15 +24,32 @@ interface Props { fila: Municipality; filasMuni: Municipality[]; comps: Comparac
 
 export default function PestanasFicha(props: Props) {
   const [activa, setActiva] = useState<Pestana>('ingresos');
+  const botones = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Patrón ARIA tabs: flechas izquierda/derecha (circular), Inicio y Fin; activa y enfoca la pestaña.
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const i = PESTANAS.findIndex(([id]) => id === activa);
+    const n = PESTANAS.length;
+    const destino = e.key === 'ArrowRight' ? (i + 1) % n
+      : e.key === 'ArrowLeft' ? (i - 1 + n) % n
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? n - 1
+      : -1;
+    if (destino < 0) return;
+    e.preventDefault();
+    setActiva(PESTANAS[destino][0]);
+    botones.current[destino]?.focus();
+  };
   return (
     <section style={{ background: C.panel, border: `1px solid ${C.borde}`, borderRadius: 14, overflow: 'hidden' }}>
-      <div role="tablist" aria-label="Detalle de la ficha" style={{
+      <div role="tablist" aria-label="Detalle de la ficha" onKeyDown={onKeyDown} style={{
         display: 'flex', flexWrap: 'wrap', gap: 4, padding: 10, borderBottom: `1px solid ${C.borde}`, background: C.panel2,
       }}>
-        {PESTANAS.map(([id, label]) => {
+        {PESTANAS.map(([id, label], idx) => {
           const on = activa === id;
           return (
             <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={on} aria-controls={`panel-${id}`}
+              ref={(el) => { botones.current[idx] = el; }} tabIndex={on ? 0 : -1}
               onClick={() => setActiva(id)} style={{
                 minHeight: 44, padding: '0 18px', borderRadius: 8, cursor: 'pointer', fontFamily: COND, fontSize: 17,
                 fontWeight: 600, letterSpacing: 0.5,
@@ -42,7 +59,7 @@ export default function PestanasFicha(props: Props) {
           );
         })}
       </div>
-      <div role="tabpanel" id={`panel-${activa}`} aria-labelledby={`tab-${activa}`}
+      <div role="tabpanel" id={`panel-${activa}`} aria-labelledby={`tab-${activa}`} tabIndex={0}
         style={{ padding: 'clamp(14px, 3vw, 22px)', display: 'flex', flexDirection: 'column', gap: 18 }}>
         {activa === 'ingresos' && <TabIngresos {...props} />}
         {activa === 'gastos' && <TabGastos {...props} />}

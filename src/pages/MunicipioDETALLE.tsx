@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { DEPARTAMENTOS, codigoINE, nombreDepartamento } from '../data/departamentos';
 import { fmtL } from '../lib/formato';
+import SelectorAnio from '../components/SelectorAnio';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { muniKey, deptSlug, NO_DATA_MSG } from '../utils/sefin';
@@ -15,7 +16,7 @@ import { ANIOS_SEFIN } from '../data/anios';
 const SEFIN_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts).
-const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
+const ALL_DEPTS: { code: string; name: string }[] = [...(DEPARTAMENTOS as any[])]
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));
 
@@ -189,7 +190,7 @@ function DonutTooltip({ active, payload }: any) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MunicipioDETALLE() {
-  const { fiscalYear, setFiscalYear } = useNavbar();
+  const { fiscalYear } = useNavbar();
   const [deptCode, setDeptCode] = useState<string>('');
   const [muniId,   setMuniId]   = useState<string>(''); // clave "DEPARTAMENTO|code"
   const [openSections, setOpenSections] = useState<Set<string>>(
@@ -471,12 +472,7 @@ export default function MunicipioDETALLE() {
           }}>
             <label>
               <span style={LABEL}>AÑO</span>
-              <select className="simho-select" value={fiscalYear}
-                onChange={e => setFiscalYear(Number(e.target.value))}>
-                {ANIOS_SEFIN.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+              <SelectorAnio />
             </label>
 
             <label>

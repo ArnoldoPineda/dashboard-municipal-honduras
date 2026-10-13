@@ -11,9 +11,10 @@ export function fmtL(n: number | string | null | undefined, opts: { completo?: b
   const v = Number(n);
   if (!Number.isFinite(v)) return '—';
   const a = Math.abs(v);
-  const cuerpo = opts.completo ? miles(a)
-    : a >= 1e9 ? `${(a / 1e9).toFixed(1)} mil M`
-    : a >= 1e6 ? `${(a / 1e6).toFixed(1)} M`
-    : miles(a);
+  // La unidad se elige después de redondear, para que 999,999.5 no salga "L 1,000,000" ni 999.95 M "L 1000.0 M".
+  const millones = Math.round(a / 1e5) / 10;
+  const cuerpo = opts.completo || Math.round(a) < 1e6 ? miles(a)
+    : millones >= 1000 ? `${(Math.round(a / 1e8) / 10).toFixed(1)} mil M`
+    : `${millones.toFixed(1)} M`;
   return `${v < 0 && Math.round(a) > 0 ? '−' : ''}L ${cuerpo}`;
 }

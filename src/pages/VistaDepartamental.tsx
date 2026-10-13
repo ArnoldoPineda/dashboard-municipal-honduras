@@ -493,7 +493,7 @@ export default function VistaDepartamental() {
                     )}
                   </div>
                   <span style={{ fontSize: 15, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
-                    L {fmt.format(m.budget)}
+                    {fmtL(m.budget)}
                   </span>
                 </div>
               );

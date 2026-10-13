@@ -15,7 +15,7 @@ import { fmtL } from '../lib/formato';
 const ALL_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts). Los municipios salen de Supabase.
-const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
+const ALL_DEPTS: { code: string; name: string }[] = [...(DEPARTAMENTOS as any[])]
   .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));
 

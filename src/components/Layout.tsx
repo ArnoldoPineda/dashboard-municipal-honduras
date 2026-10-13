@@ -70,7 +70,7 @@ function IconTrophy() {
 const NAV_ITEMS = [
   { to: '/',             label: 'Mapa Interactivo',  icon: <IconMap />,      exact: true },
   { to: '/dashboard',    label: 'Dashboard Nacional', icon: <IconDashboard />, exact: false },
-  { to: '/muni-detalle', label: 'Detalle Municipio',  icon: <IconBuilding />,  exact: false },
+  { to: '/muni-detalle', label: 'Ficha Municipal',    icon: <IconBuilding />,  exact: false, alias: '/municipio/' },
   { to: '/financiero',   label: 'Datos Financieros',  icon: <IconDollar />,    exact: false },
   { to: '/analisis',     label: 'Análisis',            icon: <IconTrend />,     exact: false },
   { to: '/comparativos', label: 'Comparativos',        icon: <IconScale />,     exact: false },
@@ -114,7 +114,7 @@ function Sidebar() {
               to={item.to}
               end={item.exact}
               style={({ isActive: routerIsActive }) => {
-                const active = item.exact ? routerIsActive : location.pathname.startsWith(item.to);
+                const active = item.exact ? routerIsActive : location.pathname.startsWith(item.to) || (!!item.alias && location.pathname.startsWith(item.alias));
                 return {
                   position: 'relative',
                   display: 'flex',
@@ -135,7 +135,7 @@ function Sidebar() {
               }}
             >
               {({ isActive: routerActive }) => {
-                const active = item.exact ? routerActive : location.pathname.startsWith(item.to);
+                const active = item.exact ? routerActive : location.pathname.startsWith(item.to) || (!!item.alias && location.pathname.startsWith(item.alias));
                 return (
                   <>
                     {active && (

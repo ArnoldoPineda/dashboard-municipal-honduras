@@ -7,7 +7,7 @@ import {
 import { fmtL } from '../../lib/formato';
 import { BarraPercentil, BarraValor } from './Barras';
 import { Comparaciones, ETIQUETAS, fmtIndicador } from './TarjetasIndicadores';
-import { C, MONO, COND, panel, rotulo, cifra, grilla, h2, nota, TONO_COLOR } from './estilo';
+import { C, MONO, COND, rotulo, cifra, grilla, h2, nota, TONO_COLOR } from './estilo';
 
 type Pestana = 'ingresos' | 'gastos' | 'resultado' | 'deuda' | 'evolucion' | 'pares';
 const PESTANAS: [Pestana, string][] = [

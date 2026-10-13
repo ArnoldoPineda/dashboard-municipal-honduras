@@ -1,7 +1,7 @@
 // Ficha Municipal única (Fase 3): reemplaza la ficha del mapa y la antigua Detalle Municipio.
 // Todas las cifras salen de lib/indicadores (comparacionPares, semaforo, lecturaSimho) y lib/formato (fmtL).
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Navigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { ANIOS_SEFIN } from '../data/anios';
@@ -92,4 +92,13 @@ export function BuscarFicha({ filas, mensaje }: { filas: Parameters<typeof Busca
       </div>
     </div>
   );
+}
+
+/** /muni-detalle: abre la última ficha consultada o, si no hay, el buscador. */
+export function UltimaFicha() {
+  const { municipalities } = useMunicipalitiesMultiYear(ANIOS_SEFIN);
+  let ultima: string | null = null;
+  try { ultima = localStorage.getItem(CLAVE_ULTIMA_FICHA); } catch { /* sin almacenamiento */ }
+  if (ultima && /^\/municipio\/[a-z-]+\/\d+$/.test(ultima)) return <Navigate to={ultima} replace />;
+  return <BuscarFicha filas={municipalities} />;
 }

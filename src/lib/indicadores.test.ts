@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
-import { indicadoresMunicipio, indicadoresAgregados, mediana } from './indicadores';
+import { indicadoresMunicipio, indicadoresAgregados, mediana, atipicos } from './indicadores';
 
 const M = 1e6;
 const row = (o: Partial<Municipality>) => o as Municipality;
@@ -38,7 +38,67 @@ describe('Siguatepeque 2025', () => {
   ])('%s', (_k, got, want) => expect(Math.abs((got as number) - want)).toBeLessThanOrEqual(1));
 });
 
+// Fila exacta de Supabase `municipalities`, Siguatepeque 2025 (leída 2026-10-13, anon key, solo lectura).
+// Solo campos no nulos ni cero; el resto se omite.
+const siguatepequeExacta = row({
+  code: 18, name: 'Siguatepeque', department: 'COMAYAGUA', year: 2025, population: 122477,
+  presupuesto_municipal: 198668937.96, gastos_presupuestados: 198668937.96,
+  ingresos_propios: 169627706.56, ingresos_recaudados: 302985517.61, autonomia_financiera: 55.985417355275416,
+  ingresos_corrientes: 148169116.66, ingresos_tributarios: 134312058.74, impuesto_bi: 12270584.66,
+  impuesto_personal: 4844856.15, impuesto_industria: 4463259.13, impuesto_comercio: 18043571.32,
+  impuesto_servicios: 16568066.87, impuesto_extraccion: 426994.73, impuesto_telecomunicaciones: 3221069.26,
+  tasas_servicios: 34696007.96, derechos: 39777648.66, ingresos_no_tributarios: 13857057.92,
+  ingresos_capital: 154816400.95, venta_activos: 5958575.06, contribuciones: 80934.34,
+  transferencias_art91: 25574594.99, subsidios: 350000, herencias_legados: 696194.32,
+  otros_ingresos_capital: 15419080.5, recursos_balance: 106737021.74, gastos_funcionamiento: 83517490.73,
+  servicios_personales: 56344503.05, servicios_no_personales: 5202059.26, materiales_suministro: 2230515.48,
+  transferencias_corrientes: 430081.86, otros_gastos: 19310331.08, gastos_capital_deuda: 124960128.16,
+  bienes_capitalizables: 98879306.85, transferencias_capital: 20360352.01, servicios_deuda: 5720469.3,
+  total_egresos: 208477618.89, superavit_deficit: 94507898.72, gasto_corriente: 195202301.7,
+  ingreso_corriente_ajustado: 195202301.7,
+});
+
+describe('Siguatepeque 2025 — fila exacta de Supabase', () => {
+  const r = indicadoresMunicipio(siguatepequeExacta);
+  it.each([
+    ['ingresosCorrientes', r.ingresosCorrientes / M, 148.2],
+    ['ingresosDelAnio', r.ingresosDelAnio / M, 196.2],
+    ['autonomia', r.autonomia, 75.5],
+    ['dependenciaTransferencias', r.dependenciaTransferencias, 13.0],
+    ['funcionamientoSobreCorrientes', r.funcionamientoSobreCorrientes, 56.4],
+    ['inversionSobreGasto', r.inversionSobreGasto, 47.4],
+    ['servicioDeudaSobreCorrientes', r.servicioDeudaSobreCorrientes, 3.9],
+    ['ahorroCorriente', r.ahorroCorriente / M, 64.7],
+    ['balanceSobreIngresos', r.balanceSobreIngresos, 35.2],
+    ['resultadoConBalance', r.resultadoConBalance / M, 94.5],
+    ['resultadoSinBalance', r.resultadoSinBalance / M, -12.2],
+    ['ejecucion', r.ejecucion, 104.9],
+  ])('%s', (_k, got, want) => expect(Math.abs((got as number) - want)).toBeLessThanOrEqual(0.1));
+
+  // Per cápita se muestra en lempiras enteros.
+  it.each([
+    ['propiosPerCapita', r.propiosPerCapita, 1210],
+    ['ibiPerCapita', r.ibiPerCapita, 100],
+    ['inversionPerCapita', r.inversionPerCapita, 807],
+  ])('%s', (_k, got, want) => expect(Math.round(got as number)).toBe(want));
+
+  it('resultado con balance = superavit_deficit de SEFIN', () => {
+    expect(r.resultadoConBalance).toBeCloseTo(94507898.72, 1);
+  });
+  it('sin atípicos', () => expect(atipicos(siguatepequeExacta)).toEqual([]));
+});
+
 describe('bordes', () => {
+  it('no finitos → null en ratios, 0 en montos', () => {
+    const r = indicadoresMunicipio(row({ ingresos_recaudados: Infinity, ingresos_tributarios: NaN, population: '1e999' as any }));
+    expect(r.ingresosDelAnio).toBe(0);
+    expect(r.autonomia).toBeNull();
+    expect(r.propiosPerCapita).toBeNull();
+    Object.values(r).forEach((v) => expect(v === null || Number.isFinite(v)).toBe(true));
+  });
+  it('ingresos corrientes negativos → atípico', () => {
+    expect(atipicos(row({ ingresos_tributarios: -5 }))).toContain('Ingresos corrientes negativos');
+  });
   it('fila vacía: ratios null, montos 0, sin NaN', () => {
     const r = indicadoresMunicipio(row({}));
     expect(r.autonomia).toBeNull();

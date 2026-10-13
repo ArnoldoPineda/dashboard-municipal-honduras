@@ -32,23 +32,24 @@ Insumos (millones de lempiras): ingresos_totales 303.0; recursos_de_balance 106.
 | Resultado esperado | Valor |
 |---|---|
 | ingresos_corrientes | 148.2 |
-| ingresos_del_año | 196.3 |
+| ingresos_del_año | 196.2 |
 | autonomía | 75.5 % |
 | dependencia | 13.0 % |
 | propios_pc | L 1 210 |
 | ibi_pc | L 100 |
-| inversion_pc | L 808 |
-| funcionamiento/corrientes | 56.3 % |
+| inversion_pc | L 807 |
+| funcionamiento/corrientes | 56.4 % |
 | inversión/gasto | 47.4 % |
-| servicio deuda/corrientes | 3.8 % |
+| servicio deuda/corrientes | 3.9 % |
 | ahorro_corriente | 64.7 |
 | balance/ingresos | 35.2 % |
 | resultado_con_balance | +94.5 |
 | resultado_sin_balance | −12.2 |
+| ejecución (vs. aprobado) | 104.9 % |
 
 Tolerancia de las pruebas: ±0.1 en la unidad mostrada.
 
-Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinciden.
+Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinciden. Los valores esperados se calculan con la fila exacta (fijada en `src/lib/indicadores.test.ts`); con los insumos redondeados de arriba, cuatro cifras cambian en el último dígito.
 
 ## 3. Decisiones de datos pendientes de aprobación
 

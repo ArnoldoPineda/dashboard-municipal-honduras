@@ -2,9 +2,11 @@
 // Por municipio y año. Agregados (departamento, nación): suma de numeradores y denominadores.
 import type { Municipality } from '../hooks/useMunicipalities';
 
-const n = (v: number | null | undefined) => Number(v) || 0;
-const ratio = (num: number, den: number) => (den > 0 ? (num / den) * 100 : null);
-const perCapita = (num: number, pob: number) => (pob > 0 ? num / pob : null);
+/** Montos no finitos (NaN, ±Infinity, texto) se tratan como null, es decir, 0 en las sumas. */
+const n = (v: number | string | null | undefined) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
+const fin = (x: number) => (Number.isFinite(x) ? x : null);
+const ratio = (num: number, den: number) => (den > 0 ? fin((num / den) * 100) : null);
+const perCapita = (num: number, pob: number) => (pob > 0 ? fin(num / pob) : null);
 
 /** Montos base (lempiras) de los que salen todos los indicadores. Sumables entre municipios. */
 export interface Insumos {
@@ -103,4 +105,12 @@ export function mediana(rows: Municipality[], k: keyof Indicadores): number | nu
   if (!v.length) return null;
   const h = v.length >> 1;
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
+}
+
+/** Señales de datos sospechosos de una fila. Vacío = sin observaciones. */
+export function atipicos(m: Municipality): string[] {
+  const i = insumos(m);
+  const out: string[] = [];
+  if (i.ingresosCorrientes < 0) out.push('Ingresos corrientes negativos');
+  return out;
 }

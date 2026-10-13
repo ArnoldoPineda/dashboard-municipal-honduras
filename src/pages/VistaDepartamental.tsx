@@ -294,7 +294,7 @@ export default function VistaDepartamental() {
     const signo = indicator !== 'categoria' && METRICAS[indicator].direccion === 'menor' ? 1 : -1;
     const v = (m: MuniStat) => (m.excluida ? null : m.valor);
     return [...munis]
-      .sort((a, b) => indicator === 'categoria' ? (a.category || 'Z').localeCompare(b.category || 'Z')
+      .sort((a, b) => indicator === 'categoria' ? ((a.excluida ? 'Z' : a.category || 'Y').localeCompare(b.excluida ? 'Z' : b.category || 'Y') || a.name.localeCompare(b.name))
         : v(a) == null ? 1 : v(b) == null ? -1 : signo * (v(a)! - v(b)!))
       .filter((m) => !q || m.name.toLowerCase().includes(q));
   }, [munis, search, indicator]);
@@ -441,7 +441,10 @@ export default function VistaDepartamental() {
               return (
                 <div
                   key={m.key}
+                  role="link"
+                  tabIndex={0}
                   onClick={() => navigate(m.path)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(m.path); }}
                   style={{
                     padding: '10px 10px', borderRadius: 7, cursor: 'pointer',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',

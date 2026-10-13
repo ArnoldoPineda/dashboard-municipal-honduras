@@ -1,5 +1,6 @@
 // Secciones del Panorama Nacional (mockup docs/mockups/panorama-nacional.mockup.html). Sin donas, radar ni gradientes.
 import React from 'react';
+import { Link } from 'react-router-dom';
 import type { Municipality } from '../../hooks/useMunicipalities';
 import {
   ResumenNacional, MetricaMapa, mediana, indicadoresAgregados, lecturaNacional,
@@ -7,6 +8,7 @@ import {
 import { fmtL } from '../../lib/formato';
 import { METRICAS, ETIQUETA_METRICA, CATEGORICA } from '../../lib/colorMetrica';
 import { nombreDepartamento } from '../../data/departamentos';
+import { deptSlug } from '../../utils/sefin';
 import { C, MONO, COND, panel, rotulo, cifra, h2, nota } from '../ficha/estilo';
 import MapaDepartamentos, { datosDepartamentos, valorTexto } from './MapaDepartamentos';
 import SelectorMetrica from '../SelectorMetrica';
@@ -139,9 +141,15 @@ export function SeccionDepartamentos({ filasAnio, metrica, onMetrica, anio }: {
   const datos = datosDepartamentos(filasAnio, metrica);
   const numerica = metrica !== 'categoria';
   const signo = numerica && METRICAS[metrica].direccion === 'menor' ? 1 : -1; // el mejor primero
-  const filas = [...datos.filas].sort((a, b) => numerica
-    ? (a.valor == null ? 1 : b.valor == null ? -1 : signo * (a.valor - b.valor))
-    : (b.conteo!.A + b.conteo!.B) - (a.conteo!.A + a.conteo!.B));
+  const propAB = (f: typeof datos.filas[number]) => {
+    const t = Object.values(f.conteo ?? {}).reduce((s, n) => s + n, 0);
+    return t ? (f.conteo!.A + f.conteo!.B) / t : -1;
+  };
+  // Mejor primero; sin dato al final; empate por nombre. En categoría: proporción de municipios A + B.
+  const filas = [...datos.filas].sort((a, b) => (numerica
+    ? (Number(a.valor == null) - Number(b.valor == null)) || (a.valor != null && b.valor != null ? signo * (a.valor - b.valor) : 0)
+    : propAB(b) - propAB(a))
+    || nombreDepartamento(a.department).localeCompare(nombreDepartamento(b.department)));
   const max = Math.max(1e-9, ...datos.filas.map((f) => f.valor ?? 0));
   return (
     <section aria-label="Departamentos" style={seccion}>
@@ -154,11 +162,11 @@ export function SeccionDepartamentos({ filasAnio, metrica, onMetrica, anio }: {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))', gap: 22, alignItems: 'start' }}>
         <MapaDepartamentos filasAnio={filasAnio} metrica={metrica} />
-        <ol aria-label={`Ranking de departamentos por ${ETIQUETA_METRICA[metrica]}`} style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <ol aria-label={`Ranking de departamentos por ${ETIQUETA_METRICA[metrica]}`} style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 0 }}>
           {filas.map((f, i) => (
-            <li key={f.department} style={{ display: 'grid', gridTemplateColumns: `22px minmax(0, 1.4fr) minmax(36px, 1fr) ${numerica ? 76 : 116}px`, gap: 10, alignItems: 'center', fontSize: 14, color: C.texto }}>
+            <li key={f.department} style={{ display: 'grid', gridTemplateColumns: `22px minmax(0, 1.4fr) minmax(36px, 1fr) ${numerica ? 76 : 116}px`, gap: 10, alignItems: 'center', minHeight: 44, fontSize: 14, color: C.texto }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: C.gris, textAlign: 'right' }}>{i + 1}</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombreDepartamento(f.department)}</span>
+              <Link to={`/departamento/${deptSlug(f.department)}`} style={{ color: C.texto, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '12px 0' }}>{nombreDepartamento(f.department)}</Link>
               {numerica ? (
                 <div style={{ height: 10, borderRadius: 5, background: C.pista }}>
                   <div style={{ height: 10, borderRadius: 5, width: `${Math.max(0, ((f.valor ?? 0) / max) * 100)}%`, background: C.turquesa }} />

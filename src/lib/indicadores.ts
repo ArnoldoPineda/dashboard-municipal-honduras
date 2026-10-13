@@ -395,7 +395,7 @@ export function resumenPorDepartamento(filas: Municipality[], metrica: MetricaMa
   return Array.from(grupos.entries()).map(([department, grupo]) => {
     if (metrica === 'categoria') {
       const conteo = Object.fromEntries(CATEGORIAS.map((c) => [c, 0])) as Record<string, number>;
-      enEstadisticas(grupo).forEach((m) => { if (m.category && m.category in conteo) conteo[m.category]++; });
+      enEstadisticas(grupo).forEach((m) => { if (m.category && (CATEGORIAS as readonly string[]).includes(m.category)) conteo[m.category]++; });
       const max = Math.max(...Object.values(conteo));
       const categoria = max > 0 ? CATEGORIAS.find((c) => conteo[c] === max) : undefined; // A antes que B…: la más alta
       return { department, valor: null, categoria, conteo };
@@ -413,16 +413,18 @@ export function lecturaNacional(r: ResumenNacional): string {
   const agg = r.indicadores.autonomia.agregado;
   if (med == null || !r.n) return 'Sin datos suficientes para la lectura nacional.';
   const bajo25 = r.distribucion.slice(0, 2).reduce((s, g) => s + g.n, 0);
+  const total = r.distribucion.reduce((s, g) => s + g.n, 0) || r.n; // mismo denominador que el gráfico
   const frase1 = `La mitad de los municipios financia con recursos propios menos del ${Math.round(med)} % de sus ingresos del año, `
-    + `y ${bajo25} de ${r.n} (${Math.round((100 * bajo25) / r.n)} %) no llegan al 25 %.`;
+    + `y ${bajo25} de ${total} (${Math.round((100 * bajo25) / total)} %) no llegan al 25 %.`;
   const a = r.categorias.find((c) => c.categoria === 'A')?.propiosPc;
   const d = r.categorias.find((c) => c.categoria === 'D')?.propiosPc;
-  const veces = a && d ? Math.round(a / d) : null;
+  const razon = a && d ? a / d : null;
+  const veces = razon != null && razon >= 2 ? Math.round(razon) : null; // umbral sobre la razón real, no la redondeada
   let frase2 = '';
   if (agg != null && agg - med >= 15) {
     frase2 = ` El agregado nacional (${agg.toFixed(1)} %) lo sostienen las grandes ciudades`
-      + (veces && veces >= 2 ? `: la categoría A recauda ${veces} veces más por habitante que la D.` : '.');
-  } else if (veces && veces >= 2) {
+      + (veces ? `: la categoría A recauda ${veces} veces más por habitante que la D.` : '.');
+  } else if (veces) {
     frase2 = ` La categoría A recauda ${veces} veces más por habitante que la D.`;
   }
   return frase1 + frase2;
@@ -446,9 +448,10 @@ export function clasesQuintil(valores: (number | null | undefined)[], direccion:
   const v = valores.filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b);
   if (!v.length) return { cortes: [], clase: () => null, rangos: [] };
   const cortes = [0.2, 0.4, 0.6, 0.8].map((p) => cuantil(v, p));
-  const bruta = (x: number) => cortes.filter((c) => x >= c).length;
+  // "menor": se cuenta en espejo (x <= corte) para que los empates en el mínimo queden en la clase clara (mejor).
   const clase = (x: number | null | undefined) =>
-    x == null || !Number.isFinite(x) ? null : direccion === 'mayor' ? bruta(x) : 4 - bruta(x);
+    x == null || !Number.isFinite(x) ? null
+      : direccion === 'mayor' ? cortes.filter((c) => x >= c).length : cortes.filter((c) => x <= c).length;
   const limites = [v[0], ...cortes, v[v.length - 1]];
   const porBruta = [0, 1, 2, 3, 4].map((k) => ({ desde: limites[k], hasta: limites[k + 1] }));
   const rangos = [0, 1, 2, 3, 4].map((c) => ({ clase: c, ...porBruta[direccion === 'mayor' ? c : 4 - c] }));

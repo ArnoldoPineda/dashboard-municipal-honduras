@@ -66,7 +66,7 @@ export default function MapaInteractivo() {
             </div>
           </div>
         ) : !loading && (
-          <MapaDepartamentos filasAnio={rows} metrica={indicator} maxAlto="calc(100vh - 440px)" />
+          <MapaDepartamentos filasAnio={rows} metrica={indicator} maxAlto="max(240px, calc(100vh - 440px))" />
         )}
         <div style={{ fontFamily: MONO, fontSize: 10, color: '#8a9bb0', letterSpacing: '0.06em', marginTop: 8 }}>
           Límites: OCHA COD-AB / SINIT (CC BY-IGO) · EJERCICIO FISCAL {fiscalYear}

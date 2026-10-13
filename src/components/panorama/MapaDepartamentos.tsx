@@ -38,7 +38,7 @@ export function LeyendaMetrica({ metrica, clases, sinDato = false }: { metrica: 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center', fontFamily: MONO, fontSize: 11, color: '#a9b7c8' }}>
       {items.map((it) => (
-        <span key={it.texto} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span key={it.color} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: 3, background: it.color, display: 'inline-block' }} />{it.texto}
         </span>
       ))}
@@ -81,9 +81,11 @@ export default function MapaDepartamentos({ filasAnio, metrica, maxAlto = 420 }:
           const fill = d ? colorMetrica(metrica, d, datos.clases) : SIN_DATO;
           return (
             <path key={f.department} d={f.d} fill={fill} stroke="#0a0f1a" strokeWidth={1.2} style={{ cursor: 'pointer' }}
+              tabIndex={0} role="link" aria-label={`${nombreDepartamento(f.department)}: ${d ? valorTexto(metrica, d) : 'sin dato'}`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/departamento/${deptSlug(f.department)}`); } }}
               onMouseMove={(e) => {
                 const r = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect();
-                if (d) setHover({ x: e.clientX - r.left, y: e.clientY - r.top, d });
+                if (d) setHover({ x: Math.min(e.clientX - r.left, r.width - 250), y: e.clientY - r.top, d }); // que no se salga por la derecha
               }}
               onClick={() => navigate(`/departamento/${deptSlug(f.department)}`)}>
               <title>{nombreDepartamento(f.department)}</title>
@@ -102,7 +104,7 @@ export default function MapaDepartamentos({ filasAnio, metrica, maxAlto = 420 }:
       </svg>
       {hover && (
         <div role="tooltip" style={{
-          position: 'absolute', left: Math.min(hover.x + 12, 9999), top: hover.y + 12, pointerEvents: 'none', zIndex: 5,
+          position: 'absolute', left: Math.max(0, hover.x + 12), top: hover.y + 12, pointerEvents: 'none', zIndex: 5,
           background: '#0c1320', border: '1px solid #2a3d55', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#e6edf3',
           maxWidth: 240,
         }}>

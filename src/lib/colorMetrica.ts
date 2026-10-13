@@ -51,7 +51,7 @@ export const ETIQUETA_METRICA: Record<MetricaMapa, string> = {
 /** Relleno de una unidad del mapa. `excluida` → trama "Sin dato comparable". */
 export function colorMetrica(metrica: MetricaMapa, entrada: { valor?: number | null; categoria?: string | null; excluida?: boolean }, clases?: Clases): string {
   if (entrada.excluida) return `url(#${ID_TRAMA})`;
-  if (metrica === 'categoria') return (entrada.categoria && CATEGORICA[entrada.categoria]) || SIN_DATO;
+  if (metrica === 'categoria') return (entrada.categoria && Object.prototype.hasOwnProperty.call(CATEGORICA, entrada.categoria) && CATEGORICA[entrada.categoria]) || SIN_DATO;
   const c = clases?.clase(entrada.valor);
   return c == null ? SIN_DATO : SECUENCIAL[c];
 }

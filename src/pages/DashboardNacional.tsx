@@ -7,8 +7,9 @@ import {
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
 import { NO_DATA_MSG } from '../utils/sefin';
+import { ANIOS_SEFIN } from '../data/anios';
 
-const YEARS = [2021, 2022, 2023, 2024, 2025];
+const YEARS = ANIOS_SEFIN;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

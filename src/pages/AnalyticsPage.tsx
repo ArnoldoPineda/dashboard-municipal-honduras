@@ -7,10 +7,11 @@ import {
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { sumarInsumos, calcular, Indicadores } from '../lib/indicadores';
+import { ANIOS_SEFIN } from '../data/anios';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ALL_YEARS = [2021, 2022, 2023, 2024, 2025];
+const ALL_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts). Los municipios salen de Supabase.
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])

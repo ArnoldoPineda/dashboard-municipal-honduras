@@ -4,6 +4,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG, muniKey } from '../utils/sefin';
+import { ANIOS_SEFIN } from '../data/anios';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -203,7 +204,7 @@ export default function RankingsPage() {
                 letterSpacing: '0.12em', textTransform: 'uppercase',
               }}>AÑO</span>
               <div style={{ display: 'flex', gap: 5 }}>
-                {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(y => (
+                {ANIOS_SEFIN.map(y => (
                   <button
                     key={y}
                     className={y === year ? 'rk-pill rk-pill--active' : 'rk-pill'}

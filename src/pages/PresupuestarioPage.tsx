@@ -3,6 +3,7 @@ import { ROTULO_POBLACION, ROTULO_CATEGORIA, indicadoresMunicipio, insumos, Indi
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { muniKey } from '../utils/sefin';
+import { ANIOS_SEFIN } from '../data/anios';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -150,7 +151,7 @@ const PresupuestarioPage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
+  const { municipalities, loading, error } = useMunicipalitiesMultiYear(ANIOS_SEFIN);
 
   const selectedMunicipalityData = useMemo(() => {
     if (!selectedMunicipality) return [];
@@ -793,7 +794,7 @@ const PresupuestarioPage = () => {
             <div>
               <span style={FLABEL}>AÑO</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[2021, 2022, 2023, 2024, 2025].map(y => (
+                {ANIOS_SEFIN.map(y => (
                   <button key={y}
                     onClick={() => setSelectedYears([y])}
                     style={selectedYears.includes(y) ? PILL_ON : PILL}>

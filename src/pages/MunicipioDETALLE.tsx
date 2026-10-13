@@ -7,10 +7,11 @@ import { DEPARTAMENTOS } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { muniKey, deptSlug, NO_DATA_MSG } from '../utils/sefin';
+import { ANIOS_SEFIN } from '../data/anios';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const SEFIN_YEARS = [2021, 2022, 2023, 2024, 2025];
+const SEFIN_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts).
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
@@ -515,7 +516,7 @@ export default function MunicipioDETALLE() {
               <span style={LABEL}>AÑO</span>
               <select className="simho-select" value={fiscalYear}
                 onChange={e => setFiscalYear(Number(e.target.value))}>
-                {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(y => (
+                {ANIOS_SEFIN.map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>

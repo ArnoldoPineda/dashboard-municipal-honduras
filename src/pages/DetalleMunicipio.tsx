@@ -6,8 +6,9 @@ import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
 import { indicadoresMunicipio } from '../lib/indicadores';
+import { ANIOS_SEFIN } from '../data/anios';
 
-const SEFIN_YEARS = [2021, 2022, 2023, 2024, 2025];
+const SEFIN_YEARS = ANIOS_SEFIN;
 
 export default function DetalleMunicipio() {
   // Ruta /municipio/:deptId/:code — misma clave department|code que Supabase y la geometría.

@@ -3,6 +3,7 @@ import { ROTULO_POBLACION, insumos, indicadoresMunicipio, indicadoresAgregados }
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
+import { ANIOS_SEFIN, RANGO_ANIOS } from '../data/anios';
 import {
   LineChart,
   Line,
@@ -24,7 +25,7 @@ import {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+const YEARS = ANIOS_SEFIN;
 const PALETTE = ['#2dd4bf', '#f59e0b', '#3a9bd6', '#ec4899'];
 const SECTION_COLORS = ['#2dd4bf', '#f59e0b'];
 const MAX_MUNIS = 3;
@@ -1152,7 +1153,7 @@ function ModeHistorica({ municipalities }: { municipalities: any[] }) {
 
       {muniName && metrics.length > 0 && (
         <ChartCard
-          title={`${muniName.toUpperCase()} — EVOLUCIÓN 2019–2025`}
+          title={`${muniName.toUpperCase()} — EVOLUCIÓN ${RANGO_ANIOS}`}
           data={chartData}
           keys={metrics}
         />

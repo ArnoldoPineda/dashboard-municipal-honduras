@@ -156,20 +156,6 @@ export default function DetalleMunicipio() {
         </div>
       )}
 
-      {/* ── FOOTER ── */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '5px 22px',
-        borderTop: '1px solid rgba(0,212,184,0.08)',
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 7, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-          FUENTE: SEFIN
-        </span>
-        <span style={{ fontSize: 7, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-          SIMHO — SISTEMA DE INFORMACIÓN MUNICIPAL DE HONDURAS
-        </span>
-      </div>
     </div>
   );
 }

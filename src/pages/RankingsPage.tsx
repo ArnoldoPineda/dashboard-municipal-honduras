@@ -449,20 +449,6 @@ export default function RankingsPage() {
           </div>
         )}
 
-        {/* ── FOOTER ── */}
-        <div style={{
-          marginTop: 20,
-          paddingTop: 12,
-          borderTop: '1px solid rgba(0,212,184,0.08)',
-          display: 'flex', justifyContent: 'space-between',
-        }}>
-          <span style={{ fontSize: 9.5, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-            FUENTE: AMHON / SEFIN / INE HONDURAS
-          </span>
-          <span style={{ fontSize: 9.5, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-            SIMHO — SISTEMA DE INFORMACIÓN MUNICIPAL DE HONDURAS
-          </span>
-        </div>
 
       </div>
     </DashboardLayout>

@@ -396,7 +396,7 @@ export default function VistaDepartamental() {
             />
           </div>
           <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', flexShrink: 0 }}>
-            FUENTE: SEFIN · Límites: OCHA COD-AB / SINIT (CC BY-IGO)
+            Límites: OCHA COD-AB / SINIT (CC BY-IGO)
           </div>
         </div>
 

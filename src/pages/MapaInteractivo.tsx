@@ -419,7 +419,7 @@ export default function MapaInteractivo() {
           fontFamily: "'IBM Plex Mono', monospace", pointerEvents: 'none',
         }}>
           <div style={{ fontSize: 10, color: '#4a5a73', letterSpacing: '0.06em' }}>
-            FUENTE: AMHON / SEFIN / INE · Límites: OCHA COD-AB / SINIT (CC BY-IGO)
+            Límites: OCHA COD-AB / SINIT (CC BY-IGO)
           </div>
           <div style={{ fontSize: 10, color: '#4a5a73', letterSpacing: '0.06em', marginTop: 2 }}>
             EJERCICIO FISCAL {fiscalYear}

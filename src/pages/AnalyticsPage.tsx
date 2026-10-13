@@ -566,11 +566,8 @@ export default function AnalyticsPage() {
           <div style={{
             padding: '7px 18px',
             borderTop: '1px solid rgba(255,255,255,0.04)',
-            display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4,
+            display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 4,
           }}>
-            <span style={{ ...MONO, fontSize: 9, color: '#3d4d63', letterSpacing: '0.05em' }}>
-              FUENTE: SEFIN — Liquidación Presupuestaria Municipal. Elaboración SIMHO.
-            </span>
             <span style={{ ...MONO, fontSize: 9, color: '#3d4d63' }}>
               {loading ? 'Cargando…' : `${municipalities.length.toLocaleString()} registros`}
             </span>

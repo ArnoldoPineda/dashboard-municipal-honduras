@@ -1,6 +1,7 @@
 import React from 'react';
 import { RANGO_ANIOS } from '../data/anios';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import PieFuente from './PieFuente';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -263,6 +264,7 @@ export default function Layout() {
           style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}
         >
           <Outlet />
+          <PieFuente />
         </main>
       </div>
     </div>

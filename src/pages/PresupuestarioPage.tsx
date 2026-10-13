@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, indicadoresMunicipio, insumos, sinLiquidacion, Indicadores } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { DEPARTAMENTOS } from '../data/departamentos';
-import { muniKey, categoryOf, autonomia } from '../utils/sefin';
+import { muniKey } from '../utils/sefin';
+import { ANIOS_SEFIN, ANIO_ACTUAL } from '../data/anios';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -38,13 +40,13 @@ const SEFIN_COLUMNS: { key: string; header: string; isText?: boolean }[] = [
   { key: 'cod_mun',                    header: 'COD. MUN.',                         isText: true },
   { key: 'department',                 header: 'DEPARTAMENTO',                      isText: true },
   { key: 'name',                       header: 'MUNICIPIO',                         isText: true },
-  { key: 'categoria',                  header: 'CATEGORIA',                         isText: true },
-  { key: 'population',                 header: 'POBLACION AJUSTADA 2002' },
+  { key: 'categoria',                  header: ROTULO_CATEGORIA.toUpperCase(),       isText: true },
+  { key: 'population',                 header: ROTULO_POBLACION.toUpperCase() },
   { key: 'presupuesto_municipal',      header: 'PRESUPUESTO MUNICIPAL' },
   { key: 'gastos_presupuestados',      header: 'GASTOS PRESUPUESTADOS' },
-  { key: 'ingresos_propios',           header: 'INGRESOS PROPIOS' },
+  { key: 'ingresos_propios',           header: 'INGRESOS PROPIOS (SEFIN)' },
   { key: 'ingresos_recaudados',        header: 'INGRESOS RECAUDADOS' },
-  { key: 'autonomia_financiera',       header: 'AUTONOMIA FINANCIERA' },
+  { key: 'autonomia_financiera',       header: 'AUTONOMIA FINANCIERA (SEFIN)' },
   { key: 'ingresos_corrientes',        header: 'INGRESOS CORRIENTES' },
   { key: 'ingresos_tributarios',       header: 'INGRESOS TRIBUTARIOS' },
   { key: 'impuesto_bi',                header: 'IMPUESTO SOBRE BI' },
@@ -84,8 +86,28 @@ const SEFIN_COLUMNS: { key: string; header: string; isText?: boolean }[] = [
   { key: 'asignaciones_globales',      header: 'ASIGNACIONES GLOBALES' },
   { key: 'total_egresos',              header: 'TOTAL EGRESOS' },
   { key: 'superavit_deficit',          header: 'SUPERAVIT O DEFICIT' },
-  { key: 'gasto_corriente',            header: 'Gasto Corriente' },
+  // Bug 4: en el Excel fuente esta columna es idéntica a la 59 (= propios + Art. 91); no es un gasto.
+  { key: 'gasto_corriente',            header: 'Gasto Corriente (SEFIN: = ingreso corriente ajustado, no es gasto)' },
   { key: 'ingreso_corriente_ajustado', header: 'Ingreso Corriente Ajustado' },
+];
+
+// Indicadores SIMHO (lib/indicadores) a la derecha de las columnas SEFIN, que quedan intactas.
+const SIMHO_COLUMNS: { key: keyof Indicadores; header: string; pct?: true }[] = [
+  { key: 'ingresosCorrientes',            header: 'SIMHO · Ingresos corrientes (L)' },
+  { key: 'ingresosDelAnio',               header: 'SIMHO · Ingresos del año (L)' },
+  { key: 'autonomia',                     header: 'SIMHO · Autonomía (%)', pct: true },
+  { key: 'dependenciaTransferencias',     header: 'SIMHO · Dependencia de transferencias (%)', pct: true },
+  { key: 'propiosPerCapita',              header: 'SIMHO · Ingresos propios per cápita (L)' },
+  { key: 'ibiPerCapita',                  header: 'SIMHO · IBI per cápita (L)' },
+  { key: 'funcionamientoSobreCorrientes', header: 'SIMHO · Funcionamiento / corrientes (%)', pct: true },
+  { key: 'inversionSobreGasto',           header: 'SIMHO · Inversión / gasto total (%)', pct: true },
+  { key: 'inversionPerCapita',            header: 'SIMHO · Inversión per cápita (L)' },
+  { key: 'ahorroCorriente',               header: 'SIMHO · Ahorro corriente (L)' },
+  { key: 'servicioDeudaSobreCorrientes',  header: 'SIMHO · Servicio de deuda / corrientes (%)', pct: true },
+  { key: 'balanceSobreIngresos',          header: 'SIMHO · Recursos de balance / ingresos (%)', pct: true },
+  { key: 'resultadoConBalance',           header: 'SIMHO · Resultado con balance (L)' },
+  { key: 'resultadoSinBalance',           header: 'SIMHO · Resultado sin balance (L)' },
+  { key: 'ejecucion',                     header: 'SIMHO · Ejecución vs. presupuesto aprobado (%)', pct: true },
 ];
 
 // 👇 AJUSTE: aceptar number | string | null para evitar error con ValueType
@@ -115,7 +137,7 @@ const PresupuestarioPage = () => {
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   // Clave "DEPARTAMENTO|code": hay 24 nombres repetidos entre departamentos.
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>('');
-  const [selectedYears, setSelectedYears] = useState<number[]>([2024]);
+  const [selectedYears, setSelectedYears] = useState<number[]>([ANIO_ACTUAL]);
   const [activeTab, setActiveTab] = useState('general');
   const [muniSearch, setMuniSearch] = useState<string>('');
   const [selectedCategoria, setSelectedCategoria] = useState<string>('');
@@ -129,7 +151,7 @@ const PresupuestarioPage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const { municipalities, loading, error } = useMunicipalitiesMultiYear([2021, 2022, 2023, 2024, 2025]);
+  const { municipalities, loading, error } = useMunicipalitiesMultiYear(ANIOS_SEFIN);
 
   const selectedMunicipalityData = useMemo(() => {
     if (!selectedMunicipality) return [];
@@ -139,19 +161,19 @@ const PresupuestarioPage = () => {
   }, [selectedMunicipality, selectedYears, municipalities]);
 
   const yearRowCount = useMemo(
-    () => municipalities.filter(m => m.year === (selectedYears[0] ?? 2024)).length,
+    () => municipalities.filter(m => m.year === (selectedYears[0] ?? ANIO_ACTUAL)).length,
     [municipalities, selectedYears]
   );
 
   const sefinTableData = useMemo(() => {
-    const year = selectedYears[0] ?? 2024;
+    const year = selectedYears[0] ?? ANIO_ACTUAL;
     const deptNorm = selectedDeptId ? normalize(selectedDeptId.replace(/-/g, ' ')) : null;
     return municipalities
       .filter(m => {
         if (m.year !== year) return false;
         if (deptNorm && normalize(m.department || '') !== deptNorm) return false;
         if (muniSearch.trim() && !normalize(m.name || '').includes(normalize(muniSearch))) return false;
-        if (selectedCategoria && categoryOf(m.presupuesto_municipal ?? 0) !== selectedCategoria) return false;
+        if (selectedCategoria && m.category !== selectedCategoria) return false;
         if (presupuestoMin > 0 && (m.presupuesto_municipal || 0) < presupuestoMin) return false;
         return true;
       })
@@ -252,7 +274,7 @@ const PresupuestarioPage = () => {
             <YAxis />
             <Tooltip formatter={(value: string | number) => `L ${formatNumber(value, 0)}M`} />
             {!isMobile && <Legend />}
-            <Line type="monotone" dataKey="Propios" stroke="#8884d8" strokeWidth={2} />
+            <Line type="monotone" dataKey="Propios" name="Propios (SEFIN, incluye capital propio)" stroke="#8884d8" strokeWidth={2} />
             <Line type="monotone" dataKey="Corrientes" stroke="#82ca9d" strokeWidth={2} />
             <Line type="monotone" dataKey="Recaudados" stroke="#ffc658" strokeWidth={2} />
           </LineChart>
@@ -322,7 +344,10 @@ const PresupuestarioPage = () => {
                 <th className={`text-right font-semibold ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>Presupuesto</th>
                 <th className={`text-right font-semibold ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>Egresos</th>
                 <th className={`text-right font-semibold ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
-                  Superávit/Déficit
+                  Superávit/Déficit (con balance)
+                </th>
+                <th className={`text-right font-semibold ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
+                  Resultado sin balance
                 </th>
               </tr>
             </thead>
@@ -341,7 +366,12 @@ const PresupuestarioPage = () => {
                       mun.superavit_deficit > 0 ? 'text-green-600' : 'text-red-600'
                     } ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}
                   >
-                    {formatCurrency(mun.superavit_deficit)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(mun.superavit_deficit)}
+                  </td>
+                  <td className={`text-right font-bold ${
+                    indicadoresMunicipio(mun).resultadoSinBalance > 0 ? 'text-green-600' : 'text-red-600'
+                  } ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(indicadoresMunicipio(mun).resultadoSinBalance)}
                   </td>
                 </tr>
               ))}
@@ -387,7 +417,7 @@ const PresupuestarioPage = () => {
                     </td>
                   </tr>
                   <tr className="bg-gray-50">
-                    <td className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>Ingresos Propios</td>
+                    <td className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>Ingresos Propios (SEFIN)</td>
                     <td className={`text-right ${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>
                       {formatCurrency(mun.ingresos_propios)}
                     </td>
@@ -562,7 +592,9 @@ const PresupuestarioPage = () => {
     const data = selectedMunicipalityData.map((m) => ({
       year: `${m.year}`,
       'Total Egresos': Math.round(m.total_egresos / 1_000_000),
-      'Superávit/Déficit': Math.round(m.superavit_deficit / 1_000_000),
+      // Sin liquidación: sin barras (no hay resultado que graficar).
+      'Superávit/Déficit (con balance)': sinLiquidacion(m) ? null : Math.round(m.superavit_deficit / 1_000_000),
+      'Resultado sin balance': sinLiquidacion(m) ? null : Math.round(indicadoresMunicipio(m).resultadoSinBalance / 1_000_000),
     }));
 
     return (
@@ -579,7 +611,8 @@ const PresupuestarioPage = () => {
                   <Tooltip formatter={(value: string | number) => `L ${formatNumber(value, 0)}M`} />
                   {!isMobile && <Legend />}
                   <Bar dataKey="Total Egresos" fill="#0088FE" />
-                  <Bar dataKey="Superávit/Déficit" fill="#82ca9d" />
+                  <Bar dataKey="Superávit/Déficit (con balance)" fill="#82ca9d" />
+                  <Bar dataKey="Resultado sin balance" fill="#f59e0b" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -596,7 +629,7 @@ const PresupuestarioPage = () => {
                   Total Egresos
                 </th>
                 <th className={`text-right font-semibold ${isMobile ? 'px-2 py-2' : 'px-3 py-2'}`}>
-                  Superávit/Déficit
+                  Superávit/Déficit (con balance)
                 </th>
               </tr>
             </thead>
@@ -612,7 +645,7 @@ const PresupuestarioPage = () => {
                       mun.superavit_deficit > 0 ? 'text-green-600' : 'text-red-600'
                     } ${isMobile ? 'px-2 py-2' : 'px-3 py-2'}`}
                   >
-                    {formatCurrency(mun.superavit_deficit)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(mun.superavit_deficit)}
                   </td>
                 </tr>
               ))}
@@ -627,6 +660,8 @@ const PresupuestarioPage = () => {
     if (selectedMunicipalityData.length === 0) return null;
 
     const latestYear = selectedMunicipalityData[0];
+    const latestInd  = indicadoresMunicipio(latestYear);
+    const latestSL   = sinLiquidacion(latestYear);
 
     const kpis = [
       {
@@ -638,20 +673,20 @@ const PresupuestarioPage = () => {
       },
       {
         title: 'Autonomía',
-        value: `${latestYear.autonomia_financiera?.toFixed(2) || '0.00'}%`,
+        value: latestSL ? ROTULO_SIN_LIQUIDACION : latestInd.autonomia === null ? '—' : `${latestInd.autonomia.toFixed(1)}%`,
         icon: '📈',
         color: 'bg-purple-50 border-purple-200',
         textColor: 'text-purple-700',
       },
       {
-        title: 'Superávit/Déficit',
-        value: formatCurrency(latestYear.superavit_deficit),
-        icon: latestYear.superavit_deficit > 0 ? '✅' : '⚠️',
-        color: latestYear.superavit_deficit > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200',
-        textColor: latestYear.superavit_deficit > 0 ? 'text-emerald-700' : 'text-red-700',
+        title: 'Resultado sin balance',
+        value: latestSL ? ROTULO_SIN_LIQUIDACION : formatCurrency(latestInd.resultadoSinBalance),
+        icon: latestInd.resultadoSinBalance > 0 ? '✅' : '⚠️',
+        color: latestInd.resultadoSinBalance > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200',
+        textColor: latestInd.resultadoSinBalance > 0 ? 'text-emerald-700' : 'text-red-700',
       },
       {
-        title: 'Población',
+        title: ROTULO_POBLACION,
         value: formatNumber(latestYear.population, 0),
         icon: '👥',
         color: 'bg-orange-50 border-orange-200',
@@ -744,7 +779,7 @@ const PresupuestarioPage = () => {
               Datos Financieros
             </div>
             <div style={{ fontSize: 13, color: '#7c8aa3', marginTop: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
-              {yearRowCount} registros SEFIN · ejercicio {selectedYears[0] ?? 2024}
+              {yearRowCount} registros SEFIN · ejercicio {selectedYears[0] ?? ANIO_ACTUAL}
             </div>
           </div>
         </div>
@@ -761,7 +796,7 @@ const PresupuestarioPage = () => {
             <div>
               <span style={FLABEL}>AÑO</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[2021, 2022, 2023, 2024, 2025].map(y => (
+                {ANIOS_SEFIN.map(y => (
                   <button key={y}
                     onClick={() => setSelectedYears([y])}
                     style={selectedYears.includes(y) ? PILL_ON : PILL}>
@@ -834,7 +869,7 @@ const PresupuestarioPage = () => {
 
             {/* CATEGORÍA pills */}
             <div>
-              <span style={FLABEL}>CATEGORÍA</span>
+              <span style={FLABEL} title={ROTULO_CATEGORIA}>CATEGORÍA (SEFIN)</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {['Todas', 'A', 'B', 'C', 'D'].map(cat => {
                   const isActive = cat === 'Todas' ? selectedCategoria === '' : selectedCategoria === cat;
@@ -869,7 +904,9 @@ const PresupuestarioPage = () => {
         {/* KPI CARDS — fila SEFIN del año más reciente seleccionado (IDH eliminado: no existe en Supabase) */}
         {selectedMunicipalityData.length > 0 && (() => {
           const m = selectedMunicipalityData[0];
-          const af = autonomia(m.ingresos_propios ?? 0, m.ingresos_recaudados ?? 0);
+          const ind = indicadoresMunicipio(m);
+          const sl = sinLiquidacion(m);
+          const af = sl ? null : ind.autonomia;
           const fmtM = (n: number) => n >= 1_000_000_000
             ? `L ${(n / 1_000_000_000).toFixed(1)} mil M`
             : n >= 1_000_000
@@ -878,10 +915,10 @@ const PresupuestarioPage = () => {
           const fmtPop = new Intl.NumberFormat('es-HN');
           const kpis = [
             { title: 'Presupuesto',      value: fmtM(m.presupuesto_municipal ?? 0),             color: '#2dd4bf' },
-            { title: 'Ingresos Propios', value: fmtM(m.ingresos_propios ?? 0),                  color: '#2dd4bf' },
-            { title: 'Transferencias',   value: fmtM(m.transferencias_art91 ?? 0),              color: '#f59e0b' },
-            { title: 'Autonomía',        value: af === null ? '—' : `${af.toFixed(1)}%`,        color: '#8b5cf6' },
-            { title: 'Población',        value: fmtPop.format(m.population ?? 0) + ' hab.',     color: '#e8eef6' },
+            { title: 'Ingresos Corrientes', value: fmtM(ind.ingresosCorrientes),               color: '#2dd4bf' },
+            { title: 'Transferencias',   value: fmtM(insumos(m).transferencias),                       color: '#f59e0b' },
+            { title: 'Autonomía',        value: sl ? ROTULO_SIN_LIQUIDACION : af === null ? '—' : `${af.toFixed(1)}%`, color: '#8b5cf6' },
+            { title: ROTULO_POBLACION,    value: fmtPop.format(m.population ?? 0) + ' hab.',     color: '#e8eef6' },
           ];
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -981,7 +1018,7 @@ const PresupuestarioPage = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <span style={{ fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                {sefinTableData.length} municipios · {selectedYears[0] ?? 2024} · {SEFIN_COLUMNS.length} columnas SEFIN
+                {sefinTableData.length} municipios · {selectedYears[0] ?? ANIO_ACTUAL} · {SEFIN_COLUMNS.length} columnas SEFIN + {SIMHO_COLUMNS.length} indicadores SIMHO
               </span>
             </div>
             <div style={{ overflowX: 'auto', maxHeight: '70vh', overflowY: 'auto' }}>
@@ -999,13 +1036,24 @@ const PresupuestarioPage = () => {
                         {col.header}
                       </th>
                     ))}
+                    {SIMHO_COLUMNS.map(col => (
+                      <th key={col.key} style={{
+                        padding: '8px 10px', color: '#2dd4bf', fontWeight: 600,
+                        letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 8,
+                        textAlign: 'right', background: '#0d1628', whiteSpace: 'nowrap',
+                        borderRight: '1px solid #1f2937',
+                      }}>
+                        {col.header}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {sefinTableData.map((m, i) => {
-                    const cat = categoryOf(m.presupuesto_municipal ?? 0);
+                    const cat = m.category ?? '';
                     const codDep = COD_DEP_MAP[normalize(m.department || '')] || '';
                     const catColor: Record<string, string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
+                    const ind = indicadoresMunicipio(m);
                     const row: Record<string, any> = {
                       no_mun: i + 1,
                       cod_dep: codDep,
@@ -1096,12 +1144,25 @@ const PresupuestarioPage = () => {
                             </td>
                           );
                         })}
+                        {SIMHO_COLUMNS.map((col, ci) => {
+                          const v = ind[col.key];
+                          const sl = sinLiquidacion(m);
+                          return (
+                            <td key={col.key} style={{
+                              padding: '8px 10px', textAlign: 'right', whiteSpace: 'nowrap',
+                              borderRight: '1px solid #1a2232', color: '#5eead4',
+                            }}>
+                              {sl ? (ci === 0 ? ROTULO_SIN_LIQUIDACION : '—')
+                                : v === null ? '—' : v.toLocaleString('en-US', { maximumFractionDigits: col.pct ? 1 : 0 })}
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
                   })}
                   {sefinTableData.length === 0 && (
                     <tr>
-                      <td colSpan={SEFIN_COLUMNS.length} style={{ padding: '32px 16px', textAlign: 'center', color: '#4a5a73' }}>
+                      <td colSpan={SEFIN_COLUMNS.length + SIMHO_COLUMNS.length} style={{ padding: '32px 16px', textAlign: 'center', color: '#4a5a73' }}>
                         {municipalities.length === 0 ? 'Cargando datos SEFIN...' : 'Sin municipios para los filtros seleccionados'}
                       </td>
                     </tr>

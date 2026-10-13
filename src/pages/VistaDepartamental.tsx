@@ -2,11 +2,12 @@ import React, {
   useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
+import { ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion, notaDatoIncompleto } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
-import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf, muniPath } from '../utils/sefin';
+import { useSefinYear, normName as normalizeName, muniKey, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
@@ -37,6 +38,8 @@ interface MuniStat {
   name:     string;
   budget:   number;
   category: string;
+  sinLiq:   boolean;       // docs/ATIPICOS.md §2
+  incompleto: string | null; // tooltip del ⚠ (docs/ATIPICOS.md §5–6)
   path:     string;        // ruta del detalle: /municipio/<depto>/<code>
 }
 
@@ -276,26 +279,20 @@ export default function VistaDepartamental() {
       code:     m.code ?? 0,
       name:     m.name ?? '',
       budget:   m.presupuesto_municipal ?? 0,
-      category: categoryOf(m.presupuesto_municipal ?? 0), // Supabase no trae categoría
+      category: m.category ?? '',
+      sinLiq:   sinLiquidacion(m),
+      incompleto: notaDatoIncompleto(m),
       path:     muniPath(m),
     })),
     [deptRows]
   );
 
-  // Department aggregates for selected year (Supabase)
-  const deptYear = useMemo(() => ({
-    presupuesto:     sum(deptRows, 'presupuesto_municipal'),
-    ingresosPropios: sum(deptRows, 'ingresos_propios'),
-    transferencia:   sum(deptRows, 'transferencias_art91'),
-    poblacion:       sum(deptRows, 'population'),
-  }), [deptRows]);
-
-  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (Supabase).
-  // Fórmula estándar del proyecto — misma que afSEFIN en MunicipioDETALLE.tsx.
-  const autonomiaSb: number | null = useMemo(() => {
-    if (deptRows.length === 0) return null; // sin filas de Supabase para este año (2019/2020)
-    return autonomia(sum(deptRows, 'ingresos_propios'), sum(deptRows, 'ingresos_recaudados')) ?? 0;
-  }, [deptRows]);
+  // Agregados del departamento (lib/indicadores: Σ numeradores ÷ Σ denominadores).
+  const deptYear = useMemo(() => sumarInsumos(deptRows), [deptRows]);
+  const autonomiaSb: number | null = useMemo(
+    () => (deptRows.length === 0 ? null : calcular(deptYear).autonomia),
+    [deptRows, deptYear]
+  );
 
   // Capital = municipio con code 1 (cabecera departamental)
   const capital = dept?.capital ?? '';
@@ -332,11 +329,11 @@ export default function VistaDepartamental() {
   const na = (v: string) => (noData || !loaded ? '—' : v); // mientras carga: '—', nunca 0
   const kpis = [
     { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
-    { label: 'POBLACIÓN',      value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
+    { label: ROTULO_POBLACION.toUpperCase(), value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
     { label: 'PRESUPUESTO',    value: na(`L ${fmt.format(deptYear.presupuesto)}`),     color: '#f59e0b' },
-    { label: 'ING. PROPIOS',   value: na(`L ${fmt.format(deptYear.ingresosPropios)}`), color: '#f59e0b' },
-    { label: 'AUTONOMÍA PROM.', value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
-    { label: 'TRANSFERENCIAS', value: na(`L ${fmt.format(deptYear.transferencia)}`),   color: '#f59e0b' },
+    { label: 'ING. CORRIENTES', value: na(`L ${fmt.format(deptYear.ingresosCorrientes)}`), color: '#f59e0b' },
+    { label: 'AUTONOMÍA',      value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
+    { label: 'TRANSFERENCIAS', value: na(`L ${fmt.format(deptYear.transferencias)}`),   color: '#f59e0b' },
   ];
 
   return (
@@ -469,8 +466,19 @@ export default function VistaDepartamental() {
                         CAPITAL
                       </span>
                     )}
-                    {indicator === 'categorias' && (
+                    {m.incompleto && (
+                      <span title={m.incompleto} style={{ color: '#f59e0b', fontSize: 12, cursor: 'help' }}>⚠</span>
+                    )}
+                    {m.sinLiq && (
                       <span style={{
+                        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#f59e0b',
+                        border: '1px solid #f59e0b55', borderRadius: 3, padding: '1px 5px',
+                      }}>
+                        {ROTULO_SIN_LIQUIDACION.toUpperCase()}
+                      </span>
+                    )}
+                    {indicator === 'categorias' && (
+                      <span title={ROTULO_CATEGORIA} style={{
                         fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
                         color: CAT_COLORS[cat], background: CAT_COLORS[cat] + '18',
                         border: `1px solid ${CAT_COLORS[cat]}30`, borderRadius: 3, padding: '1px 5px',

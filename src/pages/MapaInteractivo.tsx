@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA } from '../lib/indicadores';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
 import { DEPARTAMENTOS, deptNameToId, getDepartamento } from '../data/departamentos';
 import { Municipality } from '../hooks/useMunicipalities';
-import { useSefinYear, normName, aggregate, groupByDept, categoryOf, SefinAgg } from '../utils/sefin';
+import { useSefinYear, normName, aggregate, groupByDept, SefinAgg } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
@@ -28,12 +29,12 @@ const CAT_COLORS: Record<string, string> = {
 
 function deptCatData(munis: Municipality[]): { dominant: string; counts: Record<string, number> } {
   const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-  munis.forEach((m) => { counts[categoryOf(m.presupuesto_municipal ?? 0)]++; });
+  munis.forEach((m) => { if (m.category && m.category in counts) counts[m.category]++; });
   // Use capital city's category as the dept color — freq-dominant always returns D
   // because most municipalities are small towns (< 50M). Capital = code 1 (cabecera).
   const capital = munis.find((m) => m.code === 1);
   const dominant = capital
-    ? categoryOf(capital.presupuesto_municipal ?? 0)
+    ? (capital.category ?? 'D')
     : (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'D');
   return { dominant, counts };
 }
@@ -52,7 +53,7 @@ export default function MapaInteractivo() {
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
-  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (agregado por depto).
+  // Autonomía por departamento: lib/indicadores (Σ corrientes ÷ Σ ingresos del año).
   const { rows, loading, message: noDataMsg } = useSefinYear(fiscalYear);
   const hideFigures = loading || !!noDataMsg; // mientras carga: '—', nunca 0
 
@@ -306,7 +307,7 @@ export default function MapaInteractivo() {
             fontSize: 14, color: '#7c8aa3', maxWidth: 460, lineHeight: 1.5,
           }}>
             {indicator === 'categorias'
-              ? 'Categorías municipales por presupuesto. Seleccione un departamento para ver el detalle.'
+              ? `${ROTULO_CATEGORIA}. Seleccione un departamento para ver el detalle.`
               : `Coropleta por presupuesto ${fiscalYear}. Seleccione un departamento para explorar sus municipios.`}
           </div>
         </div>
@@ -323,7 +324,7 @@ export default function MapaInteractivo() {
               fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
             }}>
-              {`${indicator === 'autonomia' ? 'autonomía' : indicator === 'poblacion' ? 'población' : 'presupuesto'} ${fiscalYear}`}
+              {`${indicator === 'autonomia' ? 'autonomía' : indicator === 'poblacion' ? ROTULO_POBLACION.toLowerCase() : 'presupuesto'} ${fiscalYear}`}
             </div>
             <div style={{
               height: 8, borderRadius: 4,
@@ -374,13 +375,13 @@ export default function MapaInteractivo() {
               fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10,
             }}>
-              Categoría Municipal
+              {ROTULO_CATEGORIA}
             </div>
             {([
-              { cat: 'A', label: 'Cat. A — Grandes',      color: CAT_COLORS.A },
-              { cat: 'B', label: 'Cat. B — Medianos',     color: CAT_COLORS.B },
-              { cat: 'C', label: 'Cat. C — Pequeños',     color: CAT_COLORS.C },
-              { cat: 'D', label: 'Cat. D — Muy pequeños', color: CAT_COLORS.D },
+              { cat: 'A', label: 'Categoría A', color: CAT_COLORS.A },
+              { cat: 'B', label: 'Categoría B', color: CAT_COLORS.B },
+              { cat: 'C', label: 'Categoría C', color: CAT_COLORS.C },
+              { cat: 'D', label: 'Categoría D', color: CAT_COLORS.D },
             ] as const).map(({ cat, label, color }) => (
               <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{
@@ -479,7 +480,7 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
-            }}>Población Nacional</div>
+            }}>{`${ROTULO_POBLACION} · nacional`}</div>
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#e8eef6',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,

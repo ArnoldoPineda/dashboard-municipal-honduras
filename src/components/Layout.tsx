@@ -1,4 +1,6 @@
 import React from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ANIOS_SEFIN, RANGO_ANIOS } from '../data/anios';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useNavbar, IndicatorKey } from '../context/NavbarContext';
 
@@ -78,12 +80,12 @@ const NAV_ITEMS = [
 
 const INDICATORS: { key: IndicatorKey; label: string }[] = [
   { key: 'presupuesto', label: 'PRESUPUESTO' },
-  { key: 'poblacion',   label: 'POBLACIÓN'   },
+  { key: 'poblacion',   label: ROTULO_POBLACION.toUpperCase() },
   { key: 'autonomia',   label: 'AUTONOMÍA'   },
   { key: 'categorias',  label: 'CATEGORÍAS'  },
 ];
 
-const FISCAL_YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+const FISCAL_YEARS = ANIOS_SEFIN;
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -170,7 +172,7 @@ function Sidebar() {
         marginTop: 8,
       }}>
         <div style={{ fontSize: 9.5, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-          v2.1 · Honduras 2019–2025
+          v2.1 · Honduras {RANGO_ANIOS}
         </div>
       </div>
     </aside>

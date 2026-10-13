@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from 'react';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, UMBRAL_EJECUCION, indicadoresMunicipio, sinLiquidacion, notaDatoIncompleto } from '../lib/indicadores';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { muniKey, deptSlug, categoryOf, NO_DATA_MSG } from '../utils/sefin';
+import { muniKey, deptSlug, NO_DATA_MSG } from '../utils/sefin';
+import { ANIOS_SEFIN } from '../data/anios';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const SEFIN_YEARS = [2021, 2022, 2023, 2024, 2025];
+const SEFIN_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts).
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
@@ -31,10 +33,7 @@ function formatMoney(n: number): string {
 }
 
 const CATEGORIA_LABEL: Record<string, string> = {
-  A: 'Categoría A — Municipio Grande',
-  B: 'Categoría B — Municipio Mediano',
-  C: 'Categoría C — Municipio Intermedio',
-  D: 'Categoría D — Municipio Pequeño',
+  A: 'Categoría A', B: 'Categoría B', C: 'Categoría C', D: 'Categoría D',
 };
 
 // Códigos INE de departamento (mismos que PresupuestarioPage). Antes estaban en orden
@@ -275,6 +274,16 @@ export default function MunicipioDETALLE() {
   };
 
   const codDep = muni ? (DEPT_CODES[deptSlug(muni.department)] ?? '—') : '—';
+  // Indicadores: única fuente lib/indicadores.
+  // Sin liquidación (docs/ATIPICOS.md §2): no se calculan indicadores.
+  const sinLiq = sb ? sinLiquidacion(sb) : false;
+  const ind  = sb && !sinLiq ? indicadoresMunicipio(sb) : null;
+  const notaSinLiq = sinLiq ? `${ROTULO_SIN_LIQUIDACION}: el municipio no reportó egresos ni ingresos corrientes; no se calculan indicadores.` : undefined;
+  const fPct = (v: number | null | undefined) => (v == null ? '—' : `${v.toFixed(1)}%`);
+  const fPc  = (v: number | null | undefined) => (v == null ? '—' : `L ${fmtF.format(Math.round(v))}`);
+  const fM   = (v: number | null | undefined) => (v == null ? '—' : fmZ(v));
+  const fS   = (v: number | null | undefined) => (v == null ? '—' : fmtSigned(v));
+  const fEje = (v: number | null | undefined) => (v == null ? '—' : `${v > UMBRAL_EJECUCION ? '⚠ ' : ''}${v.toFixed(1)}%`);
   const codMun = muni?.code != null ? String(muni.code).padStart(2, '0') : '—';
   // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
   const g1 = sb
@@ -313,20 +322,24 @@ export default function MunicipioDETALLE() {
         { label: 'Cód. Municipio',      value: codMun },
         { label: 'Departamento',        value: deptNombre },
         { label: 'Municipio',           value: sb.name ?? '' },
-        { label: 'Categoría Municipal', value: CATEGORIA_LABEL[categoryOf(sb.presupuesto_municipal ?? 0)] },
-        { label: 'Población',           value: fmtP.format(Number(sb.population ?? 0)) + ' hab.' },
+        { label: ROTULO_CATEGORIA,      value: CATEGORIA_LABEL[sb.category ?? ''] ?? '—' },
+        { label: ROTULO_POBLACION,      value: fmtP.format(Number(sb.population ?? 0)) + ' hab.' },
       ],
     },
     {
       key: 'resumen', title: 'Datos Presupuestarios', color: '#06b6d4',
       amount: sb.presupuesto_municipal ?? 0,
+      note: notaSinLiq,
       rows: [
-        { label: 'Presupuesto Aprobado',  value: fmZ(sb.presupuesto_municipal) },
-        { label: 'Gastos Presupuestados', value: fmZ(sb.gastos_presupuestados) },
-        { label: 'Ingresos Propios',      value: fmZ(sb.ingresos_propios)      },
-        { label: 'Ingresos Recaudados',   value: fmZ(sb.ingresos_recaudados)   },
-        { label: 'Autonomía Financiera',  value: sb.autonomia_financiera != null ? `${Number(sb.autonomia_financiera).toFixed(1)}%` : '0.0%' },
-        { label: 'Ingresos Corrientes',   value: fmZ(sb.ingresos_corrientes)   },
+        { label: 'Presupuesto Aprobado',          value: fmZ(sb.presupuesto_municipal) },
+        { label: 'Ingresos Totales (recaudados)', value: fmZ(sb.ingresos_recaudados)   },
+        { label: 'Ingresos del Año (sin balance, préstamos ni bonos)', value: fM(ind?.ingresosDelAnio) },
+        { label: 'Ingresos Corrientes (G1 + G2)', value: fM(ind?.ingresosCorrientes)  },
+        { label: 'Autonomía',                     value: fPct(ind?.autonomia) + (sb && notaDatoIncompleto(sb) ? ` ⚠ ${notaDatoIncompleto(sb)}` : '') },
+        { label: 'Dependencia de Transferencias', value: fPct(ind?.dependenciaTransferencias) },
+        { label: 'Ingresos Propios per cápita',   value: fPc(ind?.propiosPerCapita) },
+        { label: 'IBI per cápita',                value: fPc(ind?.ibiPerCapita) },
+        { label: 'Ejecución (vs. presupuesto aprobado)', value: fEje(ind?.ejecucion) },
       ],
     },
     {
@@ -349,14 +362,12 @@ export default function MunicipioDETALLE() {
     },
     {
       key: 'ing_no_tributarios',
-      title: 'G2 — Ingresos No Tributarios Propios',
+      title: 'G2 — Ingresos No Tributarios',
       color: '#f59e0b',
       amount: g2,
-      note: 'Tasas por Servicios y Derechos se muestran aquí solo como referencia cruzada — ya están contabilizados en G1.',
+      note: 'Tasas por Servicios y Derechos son tributarios: se cuentan una sola vez, en G1.',
       rows: [
-        { label: 'Tasas por Servicios (→ G1)',     value: fmZ(sb.tasas_servicios) },
-        { label: 'Derechos (→ G1)',                 value: fmZ(sb.derechos)        },
-        { label: 'Otros (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios ?? 0) },
+        { label: 'Ingresos No Tributarios (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios ?? 0) },
       ],
     },
     {
@@ -403,11 +414,17 @@ export default function MunicipioDETALLE() {
     {
       key: 'resultado', title: 'Resultado Fiscal', color: '#a78bfa',
       amount: sb.total_egresos ?? 0,
+      note: notaSinLiq,
       rows: [
-        { label: 'Total Egresos',              value: fmZ(sb.total_egresos)              },
-        { label: 'Superávit / Déficit',        value: fmtSigned(sb.superavit_deficit)    },
-        { label: 'Gasto Corriente',            value: fmZ(sb.gasto_corriente)            },
-        { label: 'Ingreso Corriente Ajustado', value: fmZ(sb.ingreso_corriente_ajustado) },
+        { label: 'Total Egresos',                     value: fmZ(sb.total_egresos)                 },
+        { label: 'Resultado con Balance',             value: fS(ind?.resultadoConBalance)   },
+        { label: 'Resultado sin Balance',             value: fS(ind?.resultadoSinBalance)   },
+        { label: 'Ahorro Corriente',                  value: fS(ind?.ahorroCorriente)       },
+        { label: 'Funcionamiento / Corrientes',       value: fPct(ind?.funcionamientoSobreCorrientes) },
+        { label: 'Inversión / Gasto Total',           value: fPct(ind?.inversionSobreGasto)        },
+        { label: 'Inversión per cápita',              value: fPc(ind?.inversionPerCapita)          },
+        { label: 'Servicio de Deuda / Corrientes',    value: fPct(ind?.servicioDeudaSobreCorrientes) },
+        { label: 'Recursos de Balance / Ingresos',    value: fPct(ind?.balanceSobreIngresos)       },
       ],
     },
   ];
@@ -507,7 +524,7 @@ export default function MunicipioDETALLE() {
               <span style={LABEL}>AÑO</span>
               <select className="simho-select" value={fiscalYear}
                 onChange={e => setFiscalYear(Number(e.target.value))}>
-                {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(y => (
+                {ANIOS_SEFIN.map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -661,7 +678,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 11, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
                     letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3,
                   }}>
-                    POBLACIÓN
+                    {ROTULO_POBLACION}
                   </div>
                   <div style={{
                     fontSize: 26, fontWeight: 700, color: '#f9fafb',

@@ -1,21 +1,21 @@
 import React, { useState, useMemo } from 'react';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG, muniKey } from '../utils/sefin';
+import { ANIOS_SEFIN, ANIO_ACTUAL } from '../data/anios';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'gastosCapital' | 'superavit';
+type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'propiosPc' | 'gastosCapital' | 'resultadoConBalance' | 'superavit';
+
+/** Métricas que se agregan como Σ/Σ (no promedio de municipios). */
+const RATIO_METRICS: Partial<Record<Metric, 'autonomia' | 'propiosPerCapita'>> = {
+  autonomia: 'autonomia', propiosPc: 'propiosPerCapita',
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getCategory(budget: number): string {
-  if (budget > 3_000_000_000) return 'A';
-  if (budget > 1_200_000_000) return 'B';
-  if (budget > 400_000_000)   return 'C';
-  return 'D';
-}
 
 const CAT_COLORS: Record<string, string> = {
   A: '#00d4b8', B: '#3a9bd6', C: '#f59e0b', D: '#7c8aa3',
@@ -27,7 +27,8 @@ const fmtInt = new Intl.NumberFormat('es-HN');
 function formatValue(metric: Metric, value: number): string {
   if (metric === 'autonomia')  return `${value.toFixed(1)}%`;
   if (metric === 'poblacion')  return fmtInt.format(Math.round(value));
-  if (metric === 'superavit') {
+  if (metric === 'propiosPc')  return `L ${fmtInt.format(Math.round(value))}`;
+  if (metric === 'superavit' || metric === 'resultadoConBalance') {
     const abs = Math.abs(value);
     return (value >= 0 ? '+' : '−') + `L ${fmt.format(abs)}`;
   }
@@ -38,13 +39,13 @@ function getMetricValue(m: any, metric: Metric): number {
   switch (metric) {
     case 'poblacion':      return m.poblacion || 0;
     case 'presupuesto':    return m.presupuesto || 0;
-    case 'ingresosPropios':return m.ingresosPropios || 0;
-    case 'autonomia':
-      // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (fórmula estándar, afSEFIN).
-      return m.ingresosRecaudados > 0 ? (m.ingresosPropios / m.ingresosRecaudados) * 100 : 0;
+    // lib/indicadores: corrientes, autonomía, per cápita y resultado sin balance.
+    case 'ingresosPropios':return m.ind.ingresosCorrientes;
+    case 'autonomia':      return m.ind.autonomia ?? 0;
+    case 'propiosPc':      return m.ind.propiosPerCapita ?? 0;
     case 'gastosCapital':  return m.otros || 0;
-    // SEFIN superavit_deficit = ingresos_recaudados − total_egresos
-    case 'superavit':      return m.superavit || 0;
+    case 'resultadoConBalance': return m.ind.resultadoConBalance;
+    case 'superavit':      return m.ind.resultadoSinBalance;
     default:               return 0;
   }
 }
@@ -60,10 +61,10 @@ function toRow(m: Municipality) {
     departamentoId: deptId,
     poblacion:     m.population ?? 0,
     presupuesto:   m.presupuesto_municipal ?? 0,
-    ingresosPropios: m.ingresos_propios ?? 0,
-    ingresosRecaudados: m.ingresos_recaudados ?? 0,
+    categoria:     m.category ?? '',
+    ind:           indicadoresMunicipio(m),
+    src:           m,
     otros:         m.gastos_capital_deuda ?? 0,
-    superavit:     m.superavit_deficit ?? 0,
     isCapital:     m.code === 1, // cabecera departamental
   };
 }
@@ -74,12 +75,14 @@ const SORTED_DEPTS = [...(DEPARTAMENTOS as any[])]
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 
 const METRICS: { key: Metric; label: string }[] = [
-  { key: 'poblacion',       label: 'Población' },
+  { key: 'poblacion',       label: ROTULO_POBLACION },
   { key: 'presupuesto',     label: 'Presupuesto Total' },
-  { key: 'ingresosPropios', label: 'Ingresos Propios' },
-  { key: 'autonomia',       label: 'Autonomía Financiera' },
-  { key: 'gastosCapital',   label: 'Gastos de Capital' },
-  { key: 'superavit',       label: 'Superávit/Déficit' },
+  { key: 'ingresosPropios', label: 'Ingresos Corrientes' },
+  { key: 'autonomia',       label: 'Autonomía' },
+  { key: 'propiosPc',       label: 'Ingresos Propios per cápita' },
+  { key: 'gastosCapital',   label: 'Gastos de Capital y Deuda' },
+  { key: 'resultadoConBalance', label: 'Resultado con Balance' },
+  { key: 'superavit',       label: 'Resultado sin Balance' },
 ];
 
 const PAGE_SIZE = 25;
@@ -87,7 +90,7 @@ const PAGE_SIZE = 25;
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function RankingsPage() {
-  const [year,       setYear]       = useState<number>(2024);
+  const [year,       setYear]       = useState<number>(ANIO_ACTUAL);
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [metric,     setMetric]     = useState<Metric>('presupuesto');
   const [page,       setPage]       = useState<number>(0);
@@ -100,20 +103,23 @@ export default function RankingsPage() {
   const prevRows = useMemo(() => supabaseMunis.filter(m => m.year === year - 1), [supabaseMunis, year]);
   const noData = !sbLoading && yearRows.length === 0;
 
-  const allMusArr = useMemo(() => yearRows.map(toRow), [yearRows]);
-  const prevMusArr = useMemo(() => prevRows.map(toRow), [prevRows]);
+  // Sin liquidación o dato incompleto: fuera de todo ranking y de la referencia departamental (docs/ATIPICOS.md).
+  const allMusArr = useMemo(() => yearRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [yearRows]);
+  const prevMusArr = useMemo(() => prevRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [prevRows]);
+  const sinLiqNombres = useMemo(() => yearRows.filter(sinLiquidacion).map(m => m.name ?? ''), [yearRows]);
+  const incompletosNombres = useMemo(() => yearRows.filter(datoIncompleto).map(m => m.name ?? ''), [yearRows]);
 
-  // Dept average per departamentoId for the active metric
+  // Referencia departamental: montos = promedio por municipio; razones y per cápita = Σ/Σ del departamento.
   const deptAvgMap = useMemo<Record<string, number>>(() => {
-    const map: Record<string, { sum: number; count: number }> = {};
-    allMusArr.forEach(m => {
-      const v = getMetricValue(m, metric);
-      if (!map[m.departamentoId]) map[m.departamentoId] = { sum: 0, count: 0 };
-      map[m.departamentoId].sum   += v;
-      map[m.departamentoId].count += 1;
-    });
+    const byDept: Record<string, typeof allMusArr> = {};
+    allMusArr.forEach(m => { (byDept[m.departamentoId] = byDept[m.departamentoId] || []).push(m); });
+    const ratioKey = RATIO_METRICS[metric];
     const result: Record<string, number> = {};
-    Object.entries(map).forEach(([k, { sum, count }]) => { result[k] = count ? sum / count : 0; });
+    Object.entries(byDept).forEach(([k, list]) => {
+      result[k] = ratioKey
+        ? indicadoresAgregados(list.map(m => m.src))[ratioKey] ?? 0
+        : list.reduce((s, m) => s + getMetricValue(m, metric), 0) / list.length;
+    });
     return result;
   }, [metric, allMusArr]);
 
@@ -132,7 +138,7 @@ export default function RankingsPage() {
 
   // Puesto del año anterior con la misma métrica y el mismo filtro (vacío si ese año no tiene datos).
   const prevRankMap = useMemo<Record<string, number>>(() => {
-    const sorted = prevMusArr
+    const sorted = [...prevMusArr]
       .filter((m: any) => deptFilter === 'all' || m.departamentoId === deptFilter)
       .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
     const map: Record<string, number> = {};
@@ -191,7 +197,9 @@ export default function RankingsPage() {
               Rankings
             </div>
             <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
-              {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`}
+              {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`
+                + (sinLiqNombres.length ? ` · ${ROTULO_SIN_LIQUIDACION} (excluidos): ${sinLiqNombres.join(', ')}` : '')
+                + (incompletosNombres.length ? ` · ⚠ ${ROTULO_DATO_INCOMPLETO} (excluidos): ${incompletosNombres.join(', ')}` : '')}
             </div>
           </div>
 
@@ -203,7 +211,7 @@ export default function RankingsPage() {
                 letterSpacing: '0.12em', textTransform: 'uppercase',
               }}>AÑO</span>
               <div style={{ display: 'flex', gap: 5 }}>
-                {[2019, 2020, 2021, 2022, 2023, 2024, 2025].map(y => (
+                {ANIOS_SEFIN.map(y => (
                   <button
                     key={y}
                     className={y === year ? 'rk-pill rk-pill--active' : 'rk-pill'}
@@ -279,7 +287,7 @@ export default function RankingsPage() {
           {/* Header row */}
           <div style={{ display: 'grid', gridTemplateColumns: GRID }}>
             {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'vs DEPTO', 'RELATIVO'].map(h => (
-              <div key={h} style={{ ...TH, textAlign: h === 'VALOR' || h === 'vs DEPTO' ? 'right' : 'left' }}>
+              <div key={h} title={h === 'CAT.' ? ROTULO_CATEGORIA : undefined} style={{ ...TH, textAlign: h === 'VALOR' || h === 'vs DEPTO' ? 'right' : 'left' }}>
                 {h}
               </div>
             ))}
@@ -294,7 +302,7 @@ export default function RankingsPage() {
             const barPct     = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
             const prevRank   = prevRankMap[muni.id];
             const movement   = prevRank ? prevRank - globalRank : null;
-            const cat        = getCategory(muni.presupuesto);
+            const cat        = muni.categoria;
 
             const rowBg = globalRank === 1
               ? 'rgba(245,196,81,0.06)'
@@ -386,7 +394,7 @@ export default function RankingsPage() {
                   padding: '9px 12px',
                   fontSize: 12.5,
                   fontFamily: "'IBM Plex Mono', monospace",
-                  color: metric === 'superavit' && value < 0 ? '#ef5a5a' : '#2dd4bf',
+                  color: (metric === 'superavit' || metric === 'resultadoConBalance') && value < 0 ? '#ef5a5a' : '#2dd4bf',
                   textAlign: 'right',
                   fontWeight: 600,
                 }}>
@@ -414,7 +422,7 @@ export default function RankingsPage() {
                     <div style={{
                       height: '100%', borderRadius: 4,
                       width: `${Math.min(100, Math.max(0, barPct))}%`,
-                      background: metric === 'superavit' && value < 0
+                      background: (metric === 'superavit' || metric === 'resultadoConBalance') && value < 0
                         ? 'linear-gradient(90deg,#ef5a5a,#f87171)'
                         : 'linear-gradient(90deg,#00d4b8,#5eead4)',
                       transition: 'width 0.3s ease',

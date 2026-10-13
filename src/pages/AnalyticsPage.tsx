@@ -6,10 +6,12 @@ import {
 } from 'recharts';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
+import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, Indicadores } from '../lib/indicadores';
+import { ANIOS_SEFIN } from '../data/anios';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ALL_YEARS = [2021, 2022, 2023, 2024, 2025];
+const ALL_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts). Los municipios salen de Supabase.
 const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
@@ -45,12 +47,12 @@ function sumField(rows: Municipality[], key: keyof Municipality): number {
   return rows.reduce((acc, r) => acc + ((r[key] as number) ?? 0), 0);
 }
 
-interface YearData {
+// Montos SEFIN sumados + indicadores SIMHO (lib/indicadores, Σ/Σ sobre el ámbito).
+interface YearData extends Indicadores {
   presupuesto_municipal:    number;
-  ingresos_propios:         number;
   ingresos_recaudados:      number;
-  autonomia_financiera:     number;
-  ingresos_corrientes:      number;
+  transferencias:           number;
+  recursos_balance:         number;
   ingresos_tributarios:     number;
   tasas_servicios:          number;
   derechos:                 number;
@@ -75,16 +77,20 @@ interface YearData {
   superavit_deficit:        number;
 }
 
-function aggregate(rows: Municipality[]): YearData {
+/**
+ * Agregado del ámbito, sin filas excluidas de estadísticas (docs/ATIPICOS.md §2, §5, §6).
+ * `unMunicipio`: vista de un solo municipio; no excluye, muestra sus cifras (la UI marca el ⚠).
+ */
+function aggregate(all: Municipality[], unMunicipio = false): YearData {
+  const rows = unMunicipio ? all : all.filter(m => !excluirDeEstadisticas(m));
   const s = (k: keyof Municipality) => sumField(rows, k);
-  const ip = s('ingresos_propios');
-  const ir = s('ingresos_recaudados');
+  const ins = unMunicipio && rows.length === 1 ? insumos(rows[0]) : sumarInsumos(rows);
   return {
+    ...calcular(ins),
     presupuesto_municipal:     s('presupuesto_municipal'),
-    ingresos_propios:          ip,
-    ingresos_recaudados:       ir,
-    autonomia_financiera:      ir > 0 ? (ip / ir) * 100 : 0,
-    ingresos_corrientes:       s('ingresos_corrientes'),
+    ingresos_recaudados:       ins.ingresosTotales,
+    transferencias:            ins.transferencias,
+    recursos_balance:          ins.recursosBalance,
     ingresos_tributarios:      s('ingresos_tributarios'),
     tasas_servicios:           s('tasas_servicios'),
     derechos:                  s('derechos'),
@@ -122,6 +128,7 @@ interface TRow {
   variant:  RowVariant;
   field?:   keyof YearData;
   pct?:     boolean;
+  lempiras?: boolean; // per cápita: lempiras enteros
 }
 
 const TABLE_ROWS: TRow[] = [
@@ -129,14 +136,14 @@ const TABLE_ROWS: TRow[] = [
   { key: 'pres',    label: 'Presupuesto Municipal',          variant: 'main',      field: 'presupuesto_municipal' },
 
   { key: 'g_ing',   label: 'INGRESOS',                       variant: 'group' },
-  { key: 'ing_p',   label: 'Ingresos Propios',               variant: 'main',      field: 'ingresos_propios' },
   { key: 'ing_r',   label: 'Ingresos Recaudados (total)',    variant: 'main',      field: 'ingresos_recaudados' },
-  { key: 'af',      label: 'Autonomía Financiera',           variant: 'main',      field: 'autonomia_financiera', pct: true },
-  { key: 'ing_c',   label: 'Ingresos Corrientes',            variant: 'main',      field: 'ingresos_corrientes' },
-  { key: 'ing_t',   label: '↳ Ingresos Tributarios',         variant: 'sub',       field: 'ingresos_tributarios' },
-  { key: 'tasas',   label: '↳ Tasas por Servicios',          variant: 'sub',       field: 'tasas_servicios' },
-  { key: 'derech',  label: '↳ Derechos',                     variant: 'sub',       field: 'derechos' },
-  { key: 'ing_nt',  label: 'Ingresos No Tributarios',        variant: 'main',      field: 'ingresos_no_tributarios' },
+  { key: 'ing_a',   label: 'Ingresos del Año (sin balance, préstamos ni bonos)', variant: 'main', field: 'ingresosDelAnio' },
+  // Jerarquía SEFIN: Corrientes = Tributarios (G1, ya incluye Tasas y Derechos) + No Tributarios (G2).
+  { key: 'ing_c',   label: 'Ingresos Corrientes',            variant: 'main',      field: 'ingresosCorrientes' },
+  { key: 'ing_t',   label: '↳ Ingresos Tributarios (G1)',    variant: 'sub',       field: 'ingresos_tributarios' },
+  { key: 'tasas',   label: '\u00a0\u00a0\u00a0\u00a0↳ de los cuales: Tasas por Servicios', variant: 'sub', field: 'tasas_servicios' },
+  { key: 'derech',  label: '\u00a0\u00a0\u00a0\u00a0↳ de los cuales: Derechos', variant: 'sub', field: 'derechos' },
+  { key: 'ing_nt',  label: '↳ Ingresos No Tributarios (G2)', variant: 'sub',       field: 'ingresos_no_tributarios' },
   { key: 'ing_cap', label: 'Ingresos de Capital',            variant: 'main',      field: 'ingresos_capital' },
 
   { key: 'g_trans', label: 'TRANSFERENCIAS RECIBIDAS',       variant: 'group' },
@@ -160,7 +167,21 @@ const TABLE_ROWS: TRow[] = [
   { key: 'te',      label: 'Total Egresos',                  variant: 'highlight', field: 'total_egresos' },
 
   { key: 'g_res',   label: 'RESULTADO',                      variant: 'group' },
-  { key: 'sdef',    label: 'Superávit / Déficit',            variant: 'signed',    field: 'superavit_deficit' },
+  { key: 'sdef',    label: 'Resultado con Balance (Superávit/Déficit SEFIN)', variant: 'signed', field: 'resultadoConBalance' },
+  { key: 'rsb',     label: 'Resultado sin Balance',          variant: 'signed',    field: 'resultadoSinBalance' },
+  { key: 'ahc',     label: 'Ahorro Corriente',               variant: 'signed',    field: 'ahorroCorriente' },
+
+  { key: 'g_ind',   label: 'INDICADORES',                    variant: 'group' },
+  { key: 'af',      label: 'Autonomía',                      variant: 'main', field: 'autonomia', pct: true },
+  { key: 'dep',     label: 'Dependencia de Transferencias',  variant: 'main', field: 'dependenciaTransferencias', pct: true },
+  { key: 'fsc',     label: 'Funcionamiento / Corrientes',    variant: 'main', field: 'funcionamientoSobreCorrientes', pct: true },
+  { key: 'isg',     label: 'Inversión / Gasto Total',        variant: 'main', field: 'inversionSobreGasto', pct: true },
+  { key: 'sdc',     label: 'Servicio de Deuda / Corrientes', variant: 'main', field: 'servicioDeudaSobreCorrientes', pct: true },
+  { key: 'bsi',     label: 'Recursos de Balance / Ingresos', variant: 'main', field: 'balanceSobreIngresos', pct: true },
+  { key: 'eje',     label: 'Ejecución vs. Presupuesto Aprobado', variant: 'main', field: 'ejecucion', pct: true },
+  { key: 'ppc',     label: 'Ingresos Propios per cápita (L)', variant: 'main', field: 'propiosPerCapita', lempiras: true },
+  { key: 'ibipc',   label: 'IBI per cápita (L)',             variant: 'main', field: 'ibiPerCapita', lempiras: true },
+  { key: 'ipc',     label: 'Inversión per cápita (L)',       variant: 'main', field: 'inversionPerCapita', lempiras: true },
 ];
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -241,10 +262,17 @@ export default function AnalyticsPage() {
         );
       }
 
-      map[year] = aggregate(rows);
+      map[year] = aggregate(rows, scope === 'municipio');
     }
     return map;
   }, [municipalities, scope, deptName, muniName, activeYears]);
+  // Filas del municipio elegido: años sin liquidación (sin cifras) y con dato incompleto (⚠).
+  const muniFilas = useMemo(() => (scope !== 'municipio' ? [] : municipalities
+    .filter(m => m.department && m.name && norm(m.department) === norm(deptName) && norm(m.name) === norm(muniName))),
+    [municipalities, scope, deptName, muniName]);
+  const sinLiqYears = useMemo(() => new Set<number>(muniFilas.filter(sinLiquidacion).map(m => Number(m.year))), [muniFilas]);
+  const notaIncompleto = useMemo(() => new Map<number, string>(muniFilas
+    .flatMap(m => { const t = notaDatoIncompleto(m); return t ? [[Number(m.year), t] as [number, string]] : []; })), [muniFilas]);
 
   const scopeLabel = useMemo(() => {
     if (scope === 'municipio' && muniName) return `${muniName} — ${deptName}`;
@@ -275,12 +303,13 @@ export default function AnalyticsPage() {
     const d = yearDataMap[year] ?? EMPTY_YEAR;
     const v = d[row.field];
     if (row.pct) return fmtPct(v);
+    if (row.lempiras) return v == null ? '—' : `L ${fmtInt.format(v)}`;
     return fmtM(v);
   }
 
   function getCellColor(row: TRow, year: number): string {
     if (row.variant === 'signed' && row.field) {
-      const v = (yearDataMap[year] ?? EMPTY_YEAR)[row.field];
+      const v = (yearDataMap[year] ?? EMPTY_YEAR)[row.field] ?? 0;
       if (v > 0) return '#22c55e';
       if (v < 0) return '#ef4444';
       return '#4a5a73';
@@ -294,16 +323,21 @@ export default function AnalyticsPage() {
   // Chart data
   const toM = (v: number) => Math.round(v / 1e6 * 10) / 10;
 
-  const chart1 = sortedYears.map(y => ({
-    year: String(y),
-    'Ing. Propios':       toM(yearDataMap[y]?.ingresos_propios ?? 0),
-    'Transferencias 91':  toM(yearDataMap[y]?.transferencias_art91 ?? 0),
-    'Cap. y Financ.':     toM(yearDataMap[y]?.ingresos_capital ?? 0),
-  }));
+  // Composición de los ingresos recaudados: las cuatro series suman el total, sin doble conteo.
+  const chart1 = sortedYears.map(y => {
+    const d = yearDataMap[y] ?? EMPTY_YEAR;
+    return {
+      year: String(y),
+      'Ing. Corrientes':        toM(d.ingresosCorrientes),
+      'Transferencias':         toM(d.transferencias),
+      'Otros del año':          toM(d.ingresosDelAnio - d.ingresosCorrientes - d.transferencias),
+      'Balance y financ.':      toM(d.ingresos_recaudados - d.ingresosDelAnio),
+    };
+  });
 
   const chart2 = sortedYears.map(y => ({
     year: String(y),
-    'Autonomía %': Math.round((yearDataMap[y]?.autonomia_financiera ?? 0) * 10) / 10,
+    'Autonomía %': Math.round((yearDataMap[y]?.autonomia ?? 0) * 10) / 10,
   }));
 
   const chart3 = sortedYears.map(y => ({
@@ -314,7 +348,7 @@ export default function AnalyticsPage() {
 
   const chart4 = sortedYears.map(y => ({
     year: String(y),
-    value: toM(yearDataMap[y]?.superavit_deficit ?? 0),
+    value: sinLiqYears.has(y) ? null : toM(yearDataMap[y]?.resultadoSinBalance ?? 0),
   }));
 
   const TICK_STYLE = { fill: '#4a5a73', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" };
@@ -469,6 +503,12 @@ export default function AnalyticsPage() {
                       minWidth: 108,
                     }}>
                       {y}
+                      {notaIncompleto.has(y) && (
+                        <div title={notaIncompleto.get(y)} style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600, cursor: 'help' }}>⚠ {ROTULO_DATO_INCOMPLETO}</div>
+                      )}
+                      {sinLiqYears.has(y) && (
+                        <div style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>⚠ {ROTULO_SIN_LIQUIDACION}</div>
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -565,9 +605,10 @@ export default function AnalyticsPage() {
                 <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={42} tickFormatter={v => `${v}M`} />
                 <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
                 <Legend formatter={LEG_FMT} iconSize={7} />
-                <Bar dataKey="Ing. Propios"      fill={CHART_COLORS.teal}   radius={[3,3,0,0]} maxBarSize={18} />
-                <Bar dataKey="Transferencias 91" fill={CHART_COLORS.amber}  radius={[3,3,0,0]} maxBarSize={18} />
-                <Bar dataKey="Cap. y Financ."    fill={CHART_COLORS.violet} radius={[3,3,0,0]} maxBarSize={18} />
+                <Bar dataKey="Ing. Corrientes"   stackId="ing" fill={CHART_COLORS.teal}   maxBarSize={36} />
+                <Bar dataKey="Transferencias"    stackId="ing" fill={CHART_COLORS.amber}  maxBarSize={36} />
+                <Bar dataKey="Otros del año"     stackId="ing" fill={CHART_COLORS.blue}   maxBarSize={36} />
+                <Bar dataKey="Balance y financ." stackId="ing" fill={CHART_COLORS.violet} radius={[3,3,0,0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -626,7 +667,7 @@ export default function AnalyticsPage() {
             borderRadius: 10, padding: '14px 10px 10px',
           }}>
             <div style={{ ...MONO, fontSize: 9.5, color: '#4a5a73', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10, paddingLeft: 6 }}>
-              Superávit / Déficit (L. M)
+              Resultado sin Balance (L. M)
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chart4} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="42%">
@@ -635,7 +676,7 @@ export default function AnalyticsPage() {
                 <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={44} tickFormatter={v => `${v}M`} />
                 <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
-                <Bar dataKey="value" name="Superávit/Déficit" radius={[3,3,0,0]} maxBarSize={38}>
+                <Bar dataKey="value" name="Resultado sin balance" radius={[3,3,0,0]} maxBarSize={38}>
                   {chart4.map((entry, i) => (
                     <Cell key={i} fill={entry.value >= 0 ? CHART_COLORS.green : CHART_COLORS.red} />
                   ))}

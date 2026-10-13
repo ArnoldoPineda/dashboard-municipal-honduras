@@ -4,9 +4,11 @@ import { getDepartamento } from '../data/departamentos';
 import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { deptSlug, autonomia, NO_DATA_MSG } from '../utils/sefin';
+import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
+import { indicadoresMunicipio, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION } from '../lib/indicadores';
+import { ANIOS_SEFIN } from '../data/anios';
 
-const SEFIN_YEARS = [2021, 2022, 2023, 2024, 2025];
+const SEFIN_YEARS = ANIOS_SEFIN;
 
 export default function DetalleMunicipio() {
   // Ruta /municipio/:deptId/:code — misma clave department|code que Supabase y la geometría.
@@ -30,16 +32,17 @@ export default function DetalleMunicipio() {
   const header = row ?? muniRows[muniRows.length - 1] ?? null; // nombre/depto aunque el año no tenga datos
 
   const deptAvg = useMemo(() => {
-    const yearRows = deptRowsAll.filter((m) => m.year === fiscalYear);
+    const yearRows = deptRowsAll.filter((m) => m.year === fiscalYear && !excluirDeEstadisticas(m));
     if (!yearRows.length) return null;
     const figs = yearRows.map(toFigures);
     const avg = (k: keyof ReturnType<typeof toFigures>) => figs.reduce((s, f) => s + f[k], 0) / figs.length;
-    return { presupuesto: avg('presupuesto'), ingresosPropios: avg('ingresosPropios'), transferencia: avg('transferencia') };
+    return { presupuesto: avg('presupuesto'), ingresosCorrientes: avg('ingresosCorrientes'), transferencia: avg('transferencia'), ingresosDelAnio: avg('ingresosDelAnio') };
   }, [deptRowsAll, fiscalYear]);
 
   const evolucion = useMemo(
-    () => muniRows.filter((m) => m.year <= fiscalYear).map((m) => ({ year: m.year, presupuesto: m.presupuesto_municipal ?? 0 })),
-    [muniRows, fiscalYear]
+    // Evolución sobre todo el rango (ANIOS_SEFIN), no solo hasta el año elegido.
+    () => muniRows.map((m) => ({ year: m.year, presupuesto: m.presupuesto_municipal ?? 0 })),
+    [muniRows]
   );
 
   if (loading) {
@@ -71,7 +74,8 @@ export default function DetalleMunicipio() {
 
   // Nombre del departamento con tildes (data/departamentos.ts).
   const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? header.department ?? '';
-  const af = row ? autonomia(row.ingresos_propios ?? 0, row.ingresos_recaudados ?? 0) : null;
+  const sinLiq = row ? sinLiquidacion(row) : false;
+  const af = row && !sinLiq ? indicadoresMunicipio(row).autonomia : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -125,11 +129,21 @@ export default function DetalleMunicipio() {
 
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 600, color: '#5eead4', flexShrink: 0 }}>
           Autonomía: <strong style={{ color: '#2dd4bf' }}>{af === null ? '—' : `${af.toFixed(1)}%`}</strong>
+          {row && notaDatoIncompleto(row) && (
+            <span title={notaDatoIncompleto(row)!} style={{ color: '#f59e0b', marginLeft: 6, cursor: 'help' }}>⚠</span>
+          )}
         </div>
       </div>
 
       {/* ── KPI + CHARTS (shared) ── */}
-      {row ? (
+      {row && sinLiq ? (
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+          color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700,
+        }}>
+          ⚠ {ROTULO_SIN_LIQUIDACION} ({fiscalYear}): el municipio no reportó egresos ni ingresos corrientes.
+        </div>
+      ) : row ? (
         <MuniDetailContent row={row} deptAvg={deptAvg} evolucion={evolucion} />
       ) : (
         <div style={{

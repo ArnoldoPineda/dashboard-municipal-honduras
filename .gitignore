@@ -28,3 +28,6 @@ test-results/
 
 # Respaldos de variables de entorno (p.ej. .env.local.bak_pre_rotacion)
 .env.*
+
+# Salida de builds (CRA genera build/; dist/ por higiene)
+dist/

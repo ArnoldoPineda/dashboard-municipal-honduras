@@ -83,7 +83,7 @@ function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside style={{
+    <aside className="simho-sidebar" style={{
       width: 220,
       flexShrink: 0,
       height: '100%',
@@ -96,7 +96,7 @@ function Sidebar() {
       position: 'relative',
       zIndex: 5,
     }}>
-      <div style={{
+      <div className="simho-sidebar-texto" style={{
         fontFamily: "'IBM Plex Mono', monospace",
         fontSize: 8.5,
         color: '#4a5a73',
@@ -113,6 +113,8 @@ function Sidebar() {
               key={item.to}
               to={item.to}
               end={item.exact}
+              aria-label={item.label}
+              title={item.label}
               style={({ isActive: routerIsActive }) => {
                 const active = item.exact ? routerIsActive : location.pathname.startsWith(item.to) || (!!item.alias && location.pathname.startsWith(item.alias));
                 return {
@@ -148,7 +150,7 @@ function Sidebar() {
                       }} />
                     )}
                     <span style={{ position: 'relative', zIndex: 1, lineHeight: 0 }}>{item.icon}</span>
-                    <span style={{ position: 'relative', zIndex: 1 }}>{item.label}</span>
+                    <span className="simho-sidebar-texto" style={{ position: 'relative', zIndex: 1 }}>{item.label}</span>
                   </>
                 );
               }}
@@ -156,7 +158,7 @@ function Sidebar() {
         ))}
       </div>
 
-      <div style={{
+      <div className="simho-sidebar-texto" style={{
         borderTop: '1px solid rgba(0,212,184,0.1)',
         paddingTop: 12,
         marginTop: 8,

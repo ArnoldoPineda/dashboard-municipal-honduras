@@ -288,3 +288,10 @@ input[type="range"].simho-slider::-moz-range-thumb {
 }
 .simho-content .recharts-default-tooltip .recharts-tooltip-label { color: #e8eef6 !important; }
 .simho-content .recharts-default-tooltip .recharts-tooltip-item { color: #aab6c9 !important; }
+
+/* Pantallas angostas: el menú lateral queda en íconos (64 px) para no comprimir el contenido.
+   ponytail: provisional hasta la versión para celular (Fase 7). */
+@media (max-width: 700px) {
+  .simho-sidebar { width: 64px !important; padding: 14px 8px !important; }
+  .simho-sidebar-texto { display: none !important; }
+}

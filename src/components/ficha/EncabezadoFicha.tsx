@@ -36,7 +36,7 @@ export default function EncabezadoFicha({ fila, filas }: { fila: Municipality; f
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
         <BuscadorMunicipio filas={filas} />
-        <SelectorAnio />
+        <SelectorAnio alto />
         <Link to={`/comparativos?municipio=${ine}`} style={{
           minHeight: 44, display: 'flex', alignItems: 'center', padding: '0 16px', borderRadius: 10,
           background: C.turquesa, color: '#062621', fontFamily: COND, fontWeight: 700, fontSize: 16,

@@ -7,13 +7,10 @@ export const ROTULO_POBLACION = 'Población: proyección (provisional)';
 /** Rótulo único de la categoría A–D: columna `category`; nota del Excel SEFIN 2021–2022 (docs/ATIPICOS.md §6). */
 export const ROTULO_CATEGORIA = 'Categoría SGJD 2020 (según nota del Excel SEFIN)';
 export const ROTULO_SIN_LIQUIDACION = 'Sin liquidación';
-export const ROTULO_DATO_INCOMPLETO = 'Dato incompleto';
-/** Autonomía desde la que se presume que faltan las transferencias (docs/ATIPICOS.md §5). */
-export const UMBRAL_AUTONOMIA_INCOMPLETA = 99;
-const NOTA_AUTONOMIA_INCOMPLETA =
-  'Dato incompleto: autonomía ≥ 99 % porque Art. 91 y otras transferencias vienen en 0 en la fuente SEFIN. Excluido de rankings, medianas y agregados.';
-const NOTA_RENDICION_PARCIAL =
-  'Dato incompleto (rendición parcial): el Excel SEFIN indica que el municipio no rindió el año completo. Excluido de rankings, medianas y agregados.';
+/** Fila con liquidación pero Art. 91 + otras transferencias = 0 (docs/ATIPICOS.md §5). */
+export const ROTULO_SIN_ART91 = 'Sin transferencia Art. 91 en la fuente (puede ser retención de SEFIN o dato faltante)';
+/** Rendición de menos de un año según las notas del Excel SEFIN (docs/ATIPICOS.md §6). */
+export const ROTULO_RENDICION_PARCIAL = 'Dato incompleto (rendición parcial)';
 /**
  * Rendiciones parciales según las notas al pie del Excel SEFIN que no caen en "sin liquidación"
  * (docs/ATIPICOS.md §6). Clave: "DEPARTAMENTO|code|año".
@@ -73,18 +70,21 @@ export function insumos(m: Municipality): Insumos {
 export const sinLiquidacion = (m: Municipality) =>
   n(m.total_egresos) <= 0 && n(m.ingresos_tributarios) + n(m.ingresos_no_tributarios) === 0;
 
-const rendicionParcial = (m: Municipality) => RENDICION_PARCIAL.has(`${m.department}|${m.code}|${m.year}`);
+export const rendicionParcial = (m: Municipality) =>
+  !sinLiquidacion(m) && RENDICION_PARCIAL.has(`${m.department}|${m.code}|${m.year}`);
 
-/**
- * Dato incompleto: tiene liquidación, pero autonomía ≥ 99 % (transferencias ausentes en la fuente)
- * o rendición parcial según el Excel. Se muestra con ⚠ y se excluye de las estadísticas.
- */
-export const datoIncompleto = (m: Municipality) =>
-  !sinLiquidacion(m) && (rendicionParcial(m) || (indicadoresMunicipio(m).autonomia ?? 0) >= UMBRAL_AUTONOMIA_INCOMPLETA);
+/** Art. 91 + otras transferencias = 0 con ingresos corrientes > 0 (y con liquidación). */
+export const sinArt91 = (m: Municipality) =>
+  !sinLiquidacion(m) && !rendicionParcial(m)
+  && n(m.transferencias_art91) + n(m.otras_transferencias) === 0
+  && n(m.ingresos_tributarios) + n(m.ingresos_no_tributarios) > 0;
 
-/** Texto del ⚠ (tooltip) de una fila incompleta; null si no lo es. */
+/** Dato incompleto: sin Art. 91 en la fuente o rendición parcial. Se muestra con ⚠ y se excluye de las estadísticas. */
+export const datoIncompleto = (m: Municipality) => rendicionParcial(m) || sinArt91(m);
+
+/** Texto del ⚠ (rótulo y tooltip) de una fila incompleta; null si no lo es. */
 export const notaDatoIncompleto = (m: Municipality): string | null =>
-  !datoIncompleto(m) ? null : rendicionParcial(m) ? NOTA_RENDICION_PARCIAL : NOTA_AUTONOMIA_INCOMPLETA;
+  rendicionParcial(m) ? ROTULO_RENDICION_PARCIAL : sinArt91(m) ? ROTULO_SIN_ART91 : null;
 
 /** Criterio único: fuera de totales, agregados, medianas y rankings (sin liquidación o dato incompleto). */
 export const excluirDeEstadisticas = (m: Municipality) => sinLiquidacion(m) || datoIncompleto(m);
@@ -165,7 +165,8 @@ export function atipicos(m: Municipality): string[] {
   if (i.ingresosCorrientes === 0 && i.ingresosTotales > 0) out.push('Ingresos corrientes en cero');
   if (i.ingresosTotales > 0 && i.ingresosDelAnio <= 0) out.push('Ingresos del año ≤ 0 (balance y financiamiento ≥ total)');
   if (r.autonomia !== null && r.autonomia > 100) out.push('Autonomía > 100 %');
-  if (datoIncompleto(m)) out.push(rendicionParcial(m) ? 'Dato incompleto (rendición parcial)' : 'Autonomía ≥ 99 % (dato incompleto)');
+  const nota = notaDatoIncompleto(m);
+  if (nota) out.push(nota);
   if (i.poblacion <= 0) out.push('Sin población');
   if (i.totalEgresos <= 0) out.push('Sin egresos reportados');
   if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');

@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
-import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, Indicadores } from '../lib/indicadores';
+import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, Indicadores } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 import { fmtL } from '../lib/formato';
 
@@ -495,7 +495,7 @@ export default function AnalyticsPage() {
                     }}>
                       {y}
                       {notaIncompleto.has(y) && (
-                        <div title={notaIncompleto.get(y)} style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600, cursor: 'help' }}>⚠ {ROTULO_DATO_INCOMPLETO}</div>
+                        <div title={notaIncompleto.get(y)} style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600, cursor: 'help', maxWidth: 140, whiteSpace: 'normal' }}>⚠ {notaIncompleto.get(y)}</div>
                       )}
                       {sinLiqYears.has(y) && (
                         <div style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>⚠ {ROTULO_SIN_LIQUIDACION}</div>

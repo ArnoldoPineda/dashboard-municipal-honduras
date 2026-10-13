@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, indicadoresMunicipio, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_SIN_ART91, ROTULO_RENDICION_PARCIAL, indicadoresMunicipio, sinLiquidacion, sinArt91, rendicionParcial, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId, nombreDepartamento } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
@@ -97,7 +97,8 @@ export default function RankingsPage() {
   const allMusArr = useMemo(() => yearRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [yearRows]);
   const prevMusArr = useMemo(() => prevRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [prevRows]);
   const sinLiqNombres = useMemo(() => yearRows.filter(sinLiquidacion).map(m => m.name ?? ''), [yearRows]);
-  const incompletosNombres = useMemo(() => yearRows.filter(datoIncompleto).map(m => m.name ?? ''), [yearRows]);
+  const sinArt91Nombres = useMemo(() => yearRows.filter(sinArt91).map(m => m.name ?? ''), [yearRows]);
+  const parcialNombres  = useMemo(() => yearRows.filter(rendicionParcial).map(m => m.name ?? ''), [yearRows]);
 
   // Full ranked list (all munis, active metric)
   const rankedAll = useMemo(() => {
@@ -175,7 +176,8 @@ export default function RankingsPage() {
             <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
               {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`
                 + (sinLiqNombres.length ? ` · ${ROTULO_SIN_LIQUIDACION} (excluidos): ${sinLiqNombres.join(', ')}` : '')
-                + (incompletosNombres.length ? ` · ⚠ ${ROTULO_DATO_INCOMPLETO} (excluidos): ${incompletosNombres.join(', ')}` : '')}
+                + (sinArt91Nombres.length ? ` · ⚠ ${ROTULO_SIN_ART91} (excluidos): ${sinArt91Nombres.join(', ')}` : '')
+                + (parcialNombres.length ? ` · ⚠ ${ROTULO_RENDICION_PARCIAL} (excluidos): ${parcialNombres.join(', ')}` : '')}
             </div>
           </div>
 

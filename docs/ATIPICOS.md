@@ -3,7 +3,11 @@
 Fuente: `public.municipalities`, 2021–2025 (1 490 filas), leída el 2026-10-13 con la anon key, solo lectura.
 Reglas: `atipicos()` en `src/lib/indicadores.ts`. Una señal no corrige ni excluye la fila; solo marca qué revisar contra la liquidación SEFIN.
 
-**Criterio único de exclusión** (2026-10-13): `excluirDeEstadisticas()` = `sinLiquidacion()` (§2) **o** `datoIncompleto()` (§5–6). Las filas excluidas quedan fuera de totales, agregados nacionales y departamentales (Σ/Σ), medianas y rankings. En las vistas de un solo municipio (ficha del mapa, Detalle Municipio, Análisis por municipio, Comparativos por municipio, Datos Financieros) siguen visibles: con "Sin liquidación", o con sus cifras y ⚠ con tooltip si son dato incompleto. Hay 11 filas excluidas en 2021–2025.
+**Criterio único de exclusión** (2026-10-13): `excluirDeEstadisticas()` = `sinLiquidacion()` (§2) **o** `datoIncompleto()` (§5–6). Las filas excluidas quedan fuera de totales, agregados nacionales y departamentales (Σ/Σ), medianas y rankings. En las vistas de un solo municipio (ficha del mapa, Detalle Municipio, Análisis por municipio, Comparativos por municipio, Datos Financieros) siguen visibles: con "Sin liquidación", o con sus cifras y ⚠ con tooltip si son dato incompleto. Hay 13 filas excluidas en 2021–2025: 4 sin liquidación, 7 sin transferencia Art. 91 y 2 rendiciones parciales.
+
+Hay dos tipos de dato incompleto, con rótulos distintos:
+- **"⚠ Sin transferencia Art. 91 en la fuente (puede ser retención de SEFIN o dato faltante)"**: `sinArt91()` (§5).
+- **"Dato incompleto (rendición parcial)"**: `rendicionParcial()` (§6).
 
 ## 1. Catálogo de reglas
 
@@ -13,8 +17,8 @@ Reglas: `atipicos()` en `src/lib/indicadores.ts`. Una señal no corrige ni exclu
 | Ingresos corrientes en cero | G1 + G2 = 0 con ingresos totales > 0 | 4 |
 | Ingresos del año ≤ 0 | totales − balance − préstamos − bonos ≤ 0, con totales > 0 | 3 |
 | Autonomía > 100 % | corrientes > ingresos del año | 0 |
-| Autonomía ≥ 99 % (dato incompleto) | `datoIncompleto()`: con liquidación y autonomía ≥ 99 % | 5 |
-| Dato incompleto (rendición parcial) | `datoIncompleto()`: lista fija según notas del Excel (§6) | 2 |
+| Sin transferencia Art. 91 en la fuente | `sinArt91()`: con liquidación, Art. 91 + otras = 0 y corrientes > 0 | 7 |
+| Dato incompleto (rendición parcial) | `rendicionParcial()`: lista fija según notas del Excel (§6) | 2 |
 | Sin población | `population` ≤ 0 o nula | 0 |
 | Sin egresos reportados | `total_egresos` ≤ 0 | 4 |
 | Sin ingresos reportados | `ingresos_recaudados` ≤ 0 | 0 |
@@ -47,11 +51,13 @@ Autonomía municipal sin todas las filas excluidas (sin liquidación + dato inco
 
 | Año | Municipios en estadísticas | Mediana municipal | Agregado nacional (Σ/Σ) |
 |---|---|---|---|
-| 2021 | 296 | 12.4 % | 55.2 % |
+| 2021 | 295 | 12.4 % | 54.5 % |
 | 2022 | 295 | 13.7 % | 59.8 % |
-| 2023 | 297 | 13.8 % | 58.4 % |
+| 2023 | 296 | 13.7 % | 52.1 % |
 | 2024 | 296 | 11.4 % | 52.9 % |
 | 2025 | 295 | 17.0 % | 60.1 % |
+
+(Con la regla de la Fase 2, "Art. 91 + otras = 0". En 2023 el agregado baja de 58.4 % a 52.1 % porque sale San Pedro Sula.)
 
 ## 3. Egresos mayores que el doble del presupuesto aprobado (19 filas)
 
@@ -87,19 +93,28 @@ Otro caso para revisar fuera de reglas: Las Vegas (Santa Bárbara) 2021 tiene tr
 
 Sin señales.
 
-## 5. Autonomía ≥ 99 %: dato incompleto (5 filas)
+## 5. Sin transferencia Art. 91 en la fuente (7 filas)
 
-En las cinco filas, Art. 91 y otras transferencias valen 0, **tanto en Supabase como en el Excel fuente** (hoja del año, columnas 34 y 35). No es un error de importación: la fuente SEFIN no trae las transferencias. El Excel no tiene notas sobre estos municipios.
+**Regla (Fase 2, 2026-10-13):** `sinArt91()` = con liquidación, Art. 91 + otras transferencias = 0 e ingresos corrientes > 0. Reemplaza a la regla anterior, "autonomía ≥ 99 %". `otras_transferencias` vale 0 en las 1 490 filas, así que en la práctica la regla es "Art. 91 = 0". Rótulo y tooltip: **"⚠ Sin transferencia Art. 91 en la fuente (puede ser retención de SEFIN o dato faltante)"**.
+
+En todas estas filas, Art. 91 y otras transferencias valen 0, **tanto en Supabase como en el Excel fuente** (hoja del año, columnas 34 y 35). No es un error de importación: la fuente SEFIN no trae la transferencia, sea por retención o por dato faltante. El Excel no tiene notas sobre estos municipios.
+
+Cambio respecto de la regla anterior:
+- **Entran 2:** La Ceiba 2021 (autonomía 89.6 %, ingresos L 411.0 M, egresos L 403.3 M) y **San Pedro Sula 2023** (97.6 %, ingresos L 3 421.5 M, egresos L 3 048.6 M). San Pedro Sula recibió Art. 91 en los demás años: L 121.1 M (2021), L 28.0 M (2022), L 403.1 M (2024) y L 179.2 M (2025).
+- **Salen 0:** las 5 filas de la regla anterior siguen dentro.
+- **Juticalpa 2025** (autonomía 98.7 %) **no entra**: trae Art. 91 por L 2.06 M. Con la regla nueva es un dato válido.
 
 | Año | Municipio | Autonomía | Ingresos totales | Egresos | Art. 91 del año anterior | Lectura |
 |---|---|---|---|---|---|---|
+| 2021 | La Ceiba (Atlántida 01) | 89.6 % | L 411.0 M | L 403.3 M | — | Entra con la regla de la Fase 2. |
 | 2022 | La Ceiba (Atlántida 01) | 99.1 % | L 385.0 M | L 360.3 M | 0 (2021) | Art. 91 en 0 también en 2021; desde 2023 trae Art. 91 (L 3.4 M, L 10.4 M, L 2.3 M). |
+| 2023 | San Pedro Sula (Cortés 01) | 97.6 % | L 3 421.5 M | L 3 048.6 M | L 28.0 M (2022) | Entra con la regla de la Fase 2. |
 | 2022 | Santa Fé (Ocotepeque 14) | 100.0 % | L 2.4 M | L 17.8 M | — | Ingresos solo corrientes; egresos 7.6 × ingresos. |
 | 2024 | Esquipulas del Norte (Olancho 07) | 100.0 % | L 1.8 M | L 31.5 M | — | Ingresos solo corrientes; egresos 17 × ingresos. |
 | 2025 | El Triunfo (Choluteca 06) | 100.0 % | L 17.8 M | L 17.4 M | L 17.0 M (2024) | Recibió entre L 17.0 M y L 28.5 M de Art. 91 en 2021–2024. |
 | 2025 | San Juan Guarita (Lempira 18) | 100.0 % | L 0.9 M | L 19.1 M | L 31.4 M (2024) | Ingresos solo corrientes; egresos 22 × ingresos. |
 
-**Decisión (2026-10-13, revisada):** igual tratamiento que las filas sin liquidación, mediante `excluirDeEstadisticas()`. Quedan fuera de todos los rankings (no solo del de autonomía), de las medianas y de los agregados nacional y departamental. Siguen visibles con ⚠ y tooltip en la ficha del mapa, en Detalle Municipio, en Análisis por municipio y en la tabla de Comparativos. Rankings los lista en el encabezado como "Dato incompleto (excluidos)".
+**Decisión (2026-10-13, revisada):** igual tratamiento que las filas sin liquidación, mediante `excluirDeEstadisticas()`. Quedan fuera de todos los rankings (no solo del de autonomía), de las medianas y de los agregados nacional y departamental. Siguen visibles con ⚠ y tooltip en la ficha del mapa, en Detalle Municipio, en Análisis por municipio y en la tabla de Comparativos. Rankings los lista en el encabezado por separado: "⚠ Sin transferencia Art. 91 en la fuente (…) (excluidos)" y "⚠ Dato incompleto (rendición parcial) (excluidos)", además de "Sin liquidación (excluidos)".
 
 ## 6. Rendiciones parciales según las notas del Excel fuente
 

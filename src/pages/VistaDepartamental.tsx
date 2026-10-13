@@ -2,6 +2,7 @@ import React, {
   useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
@@ -332,7 +333,7 @@ export default function VistaDepartamental() {
   const na = (v: string) => (noData || !loaded ? '—' : v); // mientras carga: '—', nunca 0
   const kpis = [
     { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
-    { label: 'POBLACIÓN',      value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
+    { label: ROTULO_POBLACION.toUpperCase(), value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
     { label: 'PRESUPUESTO',    value: na(`L ${fmt.format(deptYear.presupuesto)}`),     color: '#f59e0b' },
     { label: 'ING. PROPIOS',   value: na(`L ${fmt.format(deptYear.ingresosPropios)}`), color: '#f59e0b' },
     { label: 'AUTONOMÍA PROM.', value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },

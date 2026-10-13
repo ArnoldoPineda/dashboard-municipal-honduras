@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
@@ -323,7 +324,7 @@ export default function MapaInteractivo() {
               fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
             }}>
-              {`${indicator === 'autonomia' ? 'autonomía' : indicator === 'poblacion' ? 'población' : 'presupuesto'} ${fiscalYear}`}
+              {`${indicator === 'autonomia' ? 'autonomía' : indicator === 'poblacion' ? ROTULO_POBLACION.toLowerCase() : 'presupuesto'} ${fiscalYear}`}
             </div>
             <div style={{
               height: 8, borderRadius: 4,
@@ -479,7 +480,7 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4,
-            }}>Población Nacional</div>
+            }}>{`${ROTULO_POBLACION} · nacional`}</div>
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#e8eef6',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,

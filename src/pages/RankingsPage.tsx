@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
@@ -74,7 +75,7 @@ const SORTED_DEPTS = [...(DEPARTAMENTOS as any[])]
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 
 const METRICS: { key: Metric; label: string }[] = [
-  { key: 'poblacion',       label: 'Población' },
+  { key: 'poblacion',       label: ROTULO_POBLACION },
   { key: 'presupuesto',     label: 'Presupuesto Total' },
   { key: 'ingresosPropios', label: 'Ingresos Propios' },
   { key: 'autonomia',       label: 'Autonomía Financiera' },

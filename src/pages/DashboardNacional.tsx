@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Area, AreaChart,
@@ -261,7 +262,7 @@ export default function DashboardNacional() {
           <>
             <KpiCard label="Municipios" value={`${kpis.totalMunis}`}
               sub="registrados" />
-            <KpiCard label="Población" value={fmtNum(kpis.pop)}
+            <KpiCard label={ROTULO_POBLACION} value={fmtNum(kpis.pop)}
               sub={`~${fmtNum(Math.round(kpis.pop / kpis.totalMunis))} prom`}
               {...pctChange(kpis.pop, prevYear?.pop)} sparkData={sparkPop} />
             <KpiCard label="Presupuesto" value={fmtB(kpis.presup)}

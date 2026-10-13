@@ -1,4 +1,5 @@
 import React from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
@@ -301,7 +302,7 @@ export function MuniDetailContent({ row, deptAvg, evolucion }: {
   const muniY = toFigures(row);
 
   const kpis = [
-    { label: 'POBLACIÓN',        value: fmtPop.format(row.population ?? 0) + ' hab.', color: '#e8eef6' },
+    { label: ROTULO_POBLACION.toUpperCase(), value: fmtPop.format(row.population ?? 0) + ' hab.', color: '#e8eef6' },
     { label: 'PRESUPUESTO',      value: L(muniY.presupuesto),                         color: '#2dd4bf' },
     { label: 'INGRESOS PROPIOS', value: L(muniY.ingresosPropios),                     color: '#2dd4bf' },
     { label: 'TRANSFERENCIA',    value: L(muniY.transferencia),                       color: '#2dd4bf' },

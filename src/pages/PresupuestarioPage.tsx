@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { muniKey, categoryOf, autonomia } from '../utils/sefin';
@@ -39,7 +40,7 @@ const SEFIN_COLUMNS: { key: string; header: string; isText?: boolean }[] = [
   { key: 'department',                 header: 'DEPARTAMENTO',                      isText: true },
   { key: 'name',                       header: 'MUNICIPIO',                         isText: true },
   { key: 'categoria',                  header: 'CATEGORIA',                         isText: true },
-  { key: 'population',                 header: 'POBLACION AJUSTADA 2002' },
+  { key: 'population',                 header: ROTULO_POBLACION.toUpperCase() },
   { key: 'presupuesto_municipal',      header: 'PRESUPUESTO MUNICIPAL' },
   { key: 'gastos_presupuestados',      header: 'GASTOS PRESUPUESTADOS' },
   { key: 'ingresos_propios',           header: 'INGRESOS PROPIOS' },
@@ -651,7 +652,7 @@ const PresupuestarioPage = () => {
         textColor: latestYear.superavit_deficit > 0 ? 'text-emerald-700' : 'text-red-700',
       },
       {
-        title: 'Población',
+        title: ROTULO_POBLACION,
         value: formatNumber(latestYear.population, 0),
         icon: '👥',
         color: 'bg-orange-50 border-orange-200',
@@ -881,7 +882,7 @@ const PresupuestarioPage = () => {
             { title: 'Ingresos Propios', value: fmtM(m.ingresos_propios ?? 0),                  color: '#2dd4bf' },
             { title: 'Transferencias',   value: fmtM(m.transferencias_art91 ?? 0),              color: '#f59e0b' },
             { title: 'Autonomía',        value: af === null ? '—' : `${af.toFixed(1)}%`,        color: '#8b5cf6' },
-            { title: 'Población',        value: fmtPop.format(m.population ?? 0) + ' hab.',     color: '#e8eef6' },
+            { title: ROTULO_POBLACION,    value: fmtPop.format(m.population ?? 0) + ' hab.',     color: '#e8eef6' },
           ];
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

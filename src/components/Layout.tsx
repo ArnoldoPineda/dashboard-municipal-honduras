@@ -1,4 +1,5 @@
 import React from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useNavbar, IndicatorKey } from '../context/NavbarContext';
 
@@ -78,7 +79,7 @@ const NAV_ITEMS = [
 
 const INDICATORS: { key: IndicatorKey; label: string }[] = [
   { key: 'presupuesto', label: 'PRESUPUESTO' },
-  { key: 'poblacion',   label: 'POBLACIÓN'   },
+  { key: 'poblacion',   label: ROTULO_POBLACION.toUpperCase() },
   { key: 'autonomia',   label: 'AUTONOMÍA'   },
   { key: 'categorias',  label: 'CATEGORÍAS'  },
 ];

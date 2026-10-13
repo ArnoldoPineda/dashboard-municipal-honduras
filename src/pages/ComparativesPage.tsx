@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG, autonomia } from '../utils/sefin';
@@ -39,7 +40,7 @@ const BASE_METRICS: { key: MetricKey; label: string }[] = [
   { key: 'presupuesto',    label: 'Presupuesto' },
   { key: 'ingresos',      label: 'Ingresos Propios' },
   { key: 'autonomia',     label: 'Autonomía' },
-  { key: 'poblacion',     label: 'Población' },
+  { key: 'poblacion',     label: ROTULO_POBLACION },
   { key: 'transferencias',label: 'Transferencias' },
 ];
 

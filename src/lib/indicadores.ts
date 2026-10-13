@@ -3,6 +3,9 @@
 import type { Municipality } from '../hooks/useMunicipalities';
 
 /** Montos no finitos (NaN, ±Infinity, texto) se tratan como null, es decir, 0 en las sumas. */
+/** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
+export const ROTULO_POBLACION = 'Población: proyección (provisional)';
+
 const n = (v: number | string | null | undefined) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const fin = (x: number) => (Number.isFinite(x) ? x : null);
 const ratio = (num: number, den: number) => (den > 0 ? fin((num / den) * 100) : null);

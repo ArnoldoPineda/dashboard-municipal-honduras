@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ROTULO_POBLACION } from '../lib/indicadores';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
@@ -314,7 +315,7 @@ export default function MunicipioDETALLE() {
         { label: 'Departamento',        value: deptNombre },
         { label: 'Municipio',           value: sb.name ?? '' },
         { label: 'Categoría Municipal', value: CATEGORIA_LABEL[categoryOf(sb.presupuesto_municipal ?? 0)] },
-        { label: 'Población',           value: fmtP.format(Number(sb.population ?? 0)) + ' hab.' },
+        { label: ROTULO_POBLACION,      value: fmtP.format(Number(sb.population ?? 0)) + ' hab.' },
       ],
     },
     {
@@ -661,7 +662,7 @@ export default function MunicipioDETALLE() {
                     fontSize: 11, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
                     letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3,
                   }}>
-                    POBLACIÓN
+                    {ROTULO_POBLACION}
                   </div>
                   <div style={{
                     fontSize: 26, fontWeight: 700, color: '#f9fafb',

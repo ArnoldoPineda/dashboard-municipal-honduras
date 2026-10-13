@@ -1,6 +1,6 @@
 // Identificación de municipios para el buscador y las URL: siempre por código INE (DDMM).
 import type { Municipality } from '../hooks/useMunicipalities';
-import { codigoINE, nombreDepartamento } from '../data/departamentos';
+import { codigoINE, nombreDepartamento, DEPARTAMENTOS } from '../data/departamentos';
 
 export interface OpcionMunicipio {
   ine:      string;   // "0318"
@@ -24,3 +24,10 @@ export const ineDeEtiqueta = (texto: string, opciones: OpcionMunicipio[]) =>
 /** Filas de un municipio (todos los años) por código INE. */
 export const filasPorINE = (filas: Municipality[], ine: string) =>
   filas.filter((m) => codigoINE(m.department, m.code) === ine);
+
+/** Ruta de la ficha a partir del código INE: "0318" → "/municipio/comayagua/18". */
+export function rutaFicha(ine: string): string | null {
+  const d = DEPARTAMENTOS.find((x) => x.cod === ine.slice(0, 2));
+  const code = Number(ine.slice(2));
+  return d && Number.isFinite(code) && ine.length === 4 ? `/municipio/${d.id}/${code}` : null;
+}

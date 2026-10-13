@@ -99,7 +99,7 @@ export default function DetalleMunicipio() {
             letterSpacing: '0.06em', flexShrink: 0,
           }}
         >
-          ← {deptNombre.toUpperCase()}
+          ← {deptNombre}
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -113,7 +113,7 @@ export default function DetalleMunicipio() {
               borderRadius: 4, padding: '2px 7px',
               fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em',
             }}>
-              DEPTO. {deptNombre.toUpperCase()}
+              Depto. {deptNombre}
             </span>
             {header.code === 1 && (
               <span style={{

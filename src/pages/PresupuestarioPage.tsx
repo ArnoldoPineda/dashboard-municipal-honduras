@@ -890,7 +890,7 @@ const PresupuestarioPage = () => {
                   border: '1px solid rgba(94,234,212,0.3)', borderRadius: 4,
                   padding: '2px 8px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em',
                 }}>
-                  {(m.department || '').toUpperCase()} · {m.year}
+                  {nombreDepartamento(m.department)} · {m.year}
                 </span>
                 {m.code === 1 && (
                   <span style={{

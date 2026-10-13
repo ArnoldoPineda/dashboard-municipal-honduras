@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
-import { DEPARTAMENTOS, deptNameToId, getDepartamento } from '../data/departamentos';
+import { DEPARTAMENTOS, deptNameToId, getDepartamento, nombreDepartamento } from '../data/departamentos';
 import { Municipality } from '../hooks/useMunicipalities';
 import { useSefinYear, normName, aggregate, groupByDept, SefinAgg } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
@@ -278,7 +278,7 @@ export default function MapaInteractivo() {
       .attr('font-family', "'IBM Plex Mono', monospace")
       .attr('letter-spacing', '0.06em')
       .attr('pointer-events', 'none')
-      .text((f: any) => (f.properties?.name || '').toUpperCase());
+      .text((f: any) => nombreDepartamento(f.properties?.name));
 
   }, [topoData, deptStats, deptRows, geoCountByDept, indicator, getValue, maxVal, fmtIndicator, noDataMsg, hideFigures, containerSize, navigate]);
 

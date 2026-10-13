@@ -1,8 +1,6 @@
 import React from 'react';
-import { ROTULO_POBLACION } from '../lib/indicadores';
-import { ANIOS_SEFIN, RANGO_ANIOS } from '../data/anios';
+import { RANGO_ANIOS } from '../data/anios';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useNavbar, IndicatorKey } from '../context/NavbarContext';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -77,15 +75,6 @@ const NAV_ITEMS = [
   { to: '/comparativos', label: 'Comparativos',        icon: <IconScale />,     exact: false },
   { to: '/rankings',     label: 'Rankings',            icon: <IconTrophy />,    exact: false },
 ];
-
-const INDICATORS: { key: IndicatorKey; label: string }[] = [
-  { key: 'presupuesto', label: 'PRESUPUESTO' },
-  { key: 'poblacion',   label: ROTULO_POBLACION.toUpperCase() },
-  { key: 'autonomia',   label: 'AUTONOMÍA'   },
-  { key: 'categorias',  label: 'CATEGORÍAS'  },
-];
-
-const FISCAL_YEARS = ANIOS_SEFIN;
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -182,8 +171,7 @@ function Sidebar() {
 // ── Top Navbar ───────────────────────────────────────────────────────────────
 
 function TopNavbar() {
-  const { indicator, setIndicator, fiscalYear, setFiscalYear } = useNavbar();
-
+  // Año e indicador ya no viven aquí: cada página tiene su SelectorAnio (estado global).
   return (
     <header style={{
       height: 54,
@@ -218,56 +206,6 @@ function TopNavbar() {
           <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: '#7c8aa3', letterSpacing: '0.06em', marginTop: 2 }}>
             INTELIGENCIA MUNICIPAL
           </div>
-        </div>
-      </div>
-
-      {/* Indicator toggles */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}>
-        {INDICATORS.map((ind) => (
-          <button
-            key={ind.key}
-            onClick={() => setIndicator(ind.key)}
-            style={{
-              background: indicator === ind.key ? 'rgba(0,212,184,0.18)' : 'transparent',
-              border: `1px solid ${indicator === ind.key ? 'rgba(0,212,184,0.6)' : 'rgba(0,212,184,0.2)'}`,
-              borderRadius: 7,
-              color: indicator === ind.key ? '#00d4b8' : '#7c8aa3',
-              cursor: 'pointer',
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 10,
-              fontWeight: indicator === ind.key ? 700 : 400,
-              padding: '5px 12px',
-              letterSpacing: '0.08em',
-              transition: 'all 0.14s',
-            }}
-          >
-            {ind.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Right: year picker + badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <select
-          className="simho-select"
-          value={fiscalYear}
-          onChange={(e) => setFiscalYear(Number(e.target.value))}
-          style={{ fontSize: 11, padding: '4px 10px' }}
-        >
-          {FISCAL_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <div style={{
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: 9,
-          letterSpacing: '0.1em',
-          border: '1px solid rgba(245,158,11,0.4)',
-          color: '#f59e0b',
-          background: 'rgba(245,158,11,0.1)',
-          borderRadius: 5,
-          padding: '4px 10px',
-          whiteSpace: 'nowrap',
-        }}>
-          AÑO FISCAL {fiscalYear}
         </div>
       </div>
     </header>

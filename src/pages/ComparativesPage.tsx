@@ -3,7 +3,8 @@ import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
-import { ANIOS_SEFIN, RANGO_ANIOS, ANIO_ACTUAL } from '../data/anios';
+import { ANIOS_SEFIN, RANGO_ANIOS } from '../data/anios';
+import { useNavbar } from '../context/NavbarContext';
 import {
   LineChart,
   Line,
@@ -541,7 +542,7 @@ function FinancialChartsSection({
   municipalities: any[];
   mode: 'muni' | 'dept';
 }) {
-  const [finYear, setFinYear] = useState<number>(ANIO_ACTUAL);
+  const { fiscalYear: finYear, setFiscalYear: setFinYear } = useNavbar(); // año global
 
   // Which years have at least one record for any selected entity
   const yearsWithData = useMemo(() => {

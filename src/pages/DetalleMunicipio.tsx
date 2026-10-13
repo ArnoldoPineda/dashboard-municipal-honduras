@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
 import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
+import SelectorAnio from '../components/SelectorAnio';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
 import { indicadoresMunicipio, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION } from '../lib/indicadores';
@@ -127,6 +128,7 @@ export default function DetalleMunicipio() {
           </div>
         </div>
 
+        <SelectorAnio />
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 600, color: '#5eead4', flexShrink: 0 }}>
           Autonomía: <strong style={{ color: '#2dd4bf' }}>{af === null ? '—' : `${af.toFixed(1)}%`}</strong>
           {row && notaDatoIncompleto(row) && (

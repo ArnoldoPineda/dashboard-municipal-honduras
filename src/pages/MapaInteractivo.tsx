@@ -8,6 +8,8 @@ import { DEPARTAMENTOS, deptNameToId, getDepartamento } from '../data/departamen
 import { Municipality } from '../hooks/useMunicipalities';
 import { useSefinYear, normName, aggregate, groupByDept, SefinAgg } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
+import SelectorAnio from '../components/SelectorAnio';
+import SelectorIndicador from '../components/SelectorIndicador';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -309,6 +311,10 @@ export default function MapaInteractivo() {
             {indicator === 'categorias'
               ? `${ROTULO_CATEGORIA}. Seleccione un departamento para ver el detalle.`
               : `Coropleta por presupuesto ${fiscalYear}. Seleccione un departamento para explorar sus municipios.`}
+          </div>
+          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <SelectorIndicador />
+            <SelectorAnio />
           </div>
         </div>
 

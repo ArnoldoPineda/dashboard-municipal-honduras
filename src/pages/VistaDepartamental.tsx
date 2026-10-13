@@ -9,6 +9,8 @@ import { getDepartamento } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useSefinYear, normName as normalizeName, muniKey, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
+import SelectorAnio from '../components/SelectorAnio';
+import SelectorIndicador from '../components/SelectorIndicador';
 import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
@@ -367,6 +369,10 @@ export default function VistaDepartamental() {
             <span style={{ margin: '0 8px', opacity: 0.35 }}>·</span>
             <span>{geoCount ?? '—'} municipios</span>
           </div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <SelectorIndicador />
+          <SelectorAnio />
         </div>
       </div>
 

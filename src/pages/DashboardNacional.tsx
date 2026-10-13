@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
-import { ROTULO_POBLACION, sumarInsumos, calcular, indicadoresMunicipio, mediana, excluirDeEstadisticas } from '../lib/indicadores';
+import { ROTULO_POBLACION, sumarInsumos, calcular, mediana, excluirDeEstadisticas } from '../lib/indicadores';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Area, AreaChart,
 } from 'recharts';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
+import { nombreDepartamento } from '../data/departamentos';
+import { fmtL } from '../lib/formato';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 
@@ -30,10 +32,7 @@ function pctChange(cur: number, prev: number | undefined): { trend?: string; tre
   return { trend: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`, trendUp: pct >= 0 };
 }
 
-const fmtB = (v: number) => `L ${(v / 1e9).toFixed(2)}B`;
-const fmtM = (v: number) => `L ${(v / 1e6).toFixed(0)}M`;
-const fmtNum = (v: number) =>
-  v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}K` : `${v}`;
+const fmtNum = (v: number) => Math.round(v).toLocaleString('en-US');
 
 // ─── Dark tooltip ────────────────────────────────────────────────────────────
 const DarkTooltip = ({ active, payload, label, formatter }: any) => {
@@ -135,9 +134,8 @@ export default function DashboardNacional() {
     const propios = ins.ingresosCorrientes;
     const autonomia = calcular(ins).autonomia ?? 0;
     const autonomiaMediana = mediana(byYear, 'autonomia');
-    const topMuni = byYear.filter(m => !excluirDeEstadisticas(m)).sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
     const depts = new Set(byYear.map((m) => normDept(m.department))).size;
-    return { totalMunis, excluidos, pop, presup, propios, autonomia, autonomiaMediana, depts, topMuni };
+    return { totalMunis, excluidos, pop, presup, propios, autonomia, autonomiaMediana, depts };
   }, [byYear]);
 
   // Department bar chart data
@@ -145,7 +143,7 @@ export default function DashboardNacional() {
     const map = new Map<string, { presup: number; propios: number }>();
     byYear.forEach((m: any) => {
       if (!isValidDept(m.department) || excluirDeEstadisticas(m)) return;
-      const d: string = m.department;
+      const d: string = nombreDepartamento(m.department);
       const prev = map.get(d) || { presup: 0, propios: 0 };
       map.set(d, {
         presup: prev.presup + (m.presupuesto_municipal || 0),
@@ -219,7 +217,9 @@ export default function DashboardNacional() {
             Finanzas Municipales Honduras
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-            {loading ? 'Cargando…' : noData ? `${NO_DATA_MSG} (${selectedYear})` : `${kpis?.totalMunis ?? 0} municipios · ${kpis?.depts ?? 0} departamentos`}
+            {loading ? 'Cargando…' : noData ? `${NO_DATA_MSG} (${selectedYear})`
+              : `${kpis?.totalMunis ?? 0} municipios en estadísticas · ${kpis?.depts ?? 0} departamentos`
+                + (kpis?.excluidos ? ` · ${kpis.excluidos} excluidos (sin liquidación, sin Art. 91 o rendición parcial)` : '')}
           </div>
         </div>
 
@@ -259,22 +259,20 @@ export default function DashboardNacional() {
       )}
 
       {/* KPI row */}
-      {!noData && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+      {!noData && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         {loading || !kpis ? (
-          [...Array(6)].map((_, i) => (
+          [...Array(4)].map((_, i) => (
             <div key={i} className="simho-card" style={{ height: 96, opacity: 0.4 }} />
           ))
         ) : (
           <>
-            <KpiCard label="Municipios" value={`${kpis.totalMunis}`}
-              sub={kpis.excluidos ? `en estadísticas · ${kpis.excluidos} excluidos (sin liquidación o dato incompleto)` : 'en estadísticas'} />
             <KpiCard label={ROTULO_POBLACION} value={fmtNum(kpis.pop)}
               sub={`~${fmtNum(Math.round(prom(kpis.pop)))} prom`}
               {...pctChange(kpis.pop, prevYear?.pop)} sparkData={sparkPop} />
-            <KpiCard label="Presupuesto" value={fmtB(kpis.presup)}
-              sub={`${fmtM(prom(kpis.presup))} prom`}
+            <KpiCard label="Presupuesto" value={fmtL(kpis.presup)}
+              sub={`${fmtL(prom(kpis.presup))} prom`}
               {...pctChange(kpis.presup, prevYear?.presup)} sparkData={sparkPresup} />
-            <KpiCard label="Ing. Corrientes" value={fmtB(kpis.propios)}
+            <KpiCard label="Ing. Corrientes" value={fmtL(kpis.propios)}
               sub={kpis.presup > 0 ? `${((kpis.propios / kpis.presup) * 100).toFixed(1)}% del presup` : '—'}
               {...pctChange(kpis.propios, prevYear?.propios)} sparkData={sparkPropios} />
             <KpiCard label="Autonomía (mediana municipal)"
@@ -284,8 +282,6 @@ export default function DashboardNacional() {
                 trend: `${kpis.autonomiaMediana - prevAut >= 0 ? '+' : ''}${(kpis.autonomiaMediana - prevAut).toFixed(1)} pp`,
                 trendUp: kpis.autonomiaMediana >= prevAut,
               } : {})} sparkData={sparkAut} />
-            <KpiCard label="Departamentos" value={`${kpis.depts}`}
-              sub="con datos SEFIN" />
           </>
         )}
       </div>}
@@ -296,14 +292,14 @@ export default function DashboardNacional() {
         {/* Bar chart — departments */}
         {!noData && <div className="simho-card" style={{ padding: '16px 12px 12px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em', marginBottom: 12 }}>
-            PRESUPUESTO POR DEPARTAMENTO · {selectedYear} · (M HNL)
+            PRESUPUESTO POR DEPARTAMENTO · {selectedYear} · (millones de L)
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={deptBars} margin={{ top: 0, right: 4, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,212,184,0.08)" vertical={false} />
               <XAxis dataKey="name" tick={tickStyle} axisLine={false} tickLine={false} />
               <YAxis tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v => `${v}`} />
-              <Tooltip content={<DarkTooltip formatter={(v: number) => `L ${v}M`} />} />
+              <Tooltip content={<DarkTooltip formatter={(v: number) => fmtL(v * 1e6)} />} />
               <Bar dataKey="Presupuesto" fill="#00d4b8" radius={[3, 3, 0, 0]} />
               <Bar dataKey="Ing. Corrientes" fill="rgba(0,212,184,0.3)" radius={[3, 3, 0, 0]} />
             </BarChart>
@@ -313,7 +309,7 @@ export default function DashboardNacional() {
         {/* Area chart — year-over-year trend */}
         <div className="simho-card" style={{ padding: '16px 12px 12px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em', marginBottom: 12 }}>
-            {`TENDENCIA NACIONAL 2021–${YEARS[YEARS.length - 1]} · (B HNL)`}
+            {`TENDENCIA NACIONAL 2021–${YEARS[YEARS.length - 1]} · (miles de millones de L)`}
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={trendData} margin={{ top: 0, right: 4, left: -10, bottom: 0 }}>
@@ -330,7 +326,7 @@ export default function DashboardNacional() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,212,184,0.08)" vertical={false} />
               <XAxis dataKey="year" tick={tickStyle} axisLine={false} tickLine={false} />
               <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-              <Tooltip content={<DarkTooltip formatter={(v: number) => `L ${v}B`} />} />
+              <Tooltip content={<DarkTooltip formatter={(v: number) => fmtL(v * 1e9)} />} />
               <Area type="monotone" dataKey="Presupuesto" stroke="#00d4b8" strokeWidth={2}
                 fill="url(#presupGrad)" dot={{ fill: '#00d4b8', r: 3 }} />
               <Area type="monotone" dataKey="Ing. Corrientes" stroke="#f59e0b" strokeWidth={1.5}
@@ -349,83 +345,6 @@ export default function DashboardNacional() {
         </div>
       </div>
 
-      {/* Top municipalities table */}
-      {!noData && <div className="simho-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(0,212,184,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em' }}>
-            TOP MUNICIPIOS POR PRESUPUESTO · {selectedYear}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            {kpis?.totalMunis ?? 0} registros
-          </div>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(0,212,184,0.1)' }}>
-                {['#', 'Municipio', 'Departamento', 'Presupuesto', 'Ing. Corrientes', 'Autonomía'].map(h => (
-                  <th key={h} style={{
-                    padding: '8px 14px',
-                    textAlign: h === '#' ? 'center' : 'left',
-                    color: 'var(--text-muted)',
-                    fontWeight: 500,
-                    fontSize: 10,
-                    letterSpacing: '0.08em',
-                    fontFamily: "'IBM Plex Mono', monospace",
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                [...Array(8)].map((_, i) => (
-                  <tr key={i}>
-                    {[...Array(6)].map((_, j) => (
-                      <td key={j} style={{ padding: '10px 14px' }}>
-                        <div style={{ height: 12, background: 'rgba(255,255,255,0.05)', borderRadius: 3 }} />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : (
-                byYear.filter(m => !excluirDeEstadisticas(m))
-                  .sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))
-                  .slice(0, 12)
-                  .map((m, i) => (
-                    <tr key={m.id}
-                      style={{ borderBottom: '1px solid rgba(0,212,184,0.06)', transition: 'background 0.12s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,184,0.05)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '10px 14px', textAlign: 'center', color: 'var(--text-muted)', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}>{i + 1}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text)', fontWeight: 500 }}>{m.name}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{m.department}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--teal)', fontFamily: "'IBM Plex Mono', monospace" }}>
-                        {fmtM(m.presupuesto_municipal || 0)}
-                      </td>
-                      <td style={{ padding: '10px 14px', color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace" }}>
-                        {fmtM(indicadoresMunicipio(m).ingresosCorrientes)}
-                      </td>
-                      <td style={{ padding: '10px 14px', fontFamily: "'IBM Plex Mono', monospace" }}>
-                        {(() => {
-                          const a = indicadoresMunicipio(m).autonomia;
-                          return (
-                            <span style={{
-                              color: a === null ? '#7c8aa3' : a >= 30 ? '#1f9d57' : a >= 15 ? '#f59e0b' : '#ef5a5a',
-                              fontSize: 12,
-                            }}>
-                              {a === null ? '—' : `${a.toFixed(1)}%`}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>}
     </div>
   );
 }

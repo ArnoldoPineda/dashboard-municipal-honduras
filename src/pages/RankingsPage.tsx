@@ -1,19 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_SIN_ART91, ROTULO_RENDICION_PARCIAL, indicadoresMunicipio, sinLiquidacion, sinArt91, rendicionParcial, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
-import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
+import { DEPARTAMENTOS, deptNameToId, nombreDepartamento } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG, muniKey } from '../utils/sefin';
-import { ANIOS_SEFIN, ANIO_ACTUAL } from '../data/anios';
+import { ANIOS_SEFIN } from '../data/anios';
+import { useNavbar } from '../context/NavbarContext';
+import { fmtL } from '../lib/formato';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'propiosPc' | 'gastosCapital' | 'resultadoConBalance' | 'superavit';
-
-/** Métricas que se agregan como Σ/Σ (no promedio de municipios). */
-const RATIO_METRICS: Partial<Record<Metric, 'autonomia' | 'propiosPerCapita'>> = {
-  autonomia: 'autonomia', propiosPc: 'propiosPerCapita',
-};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -21,18 +18,12 @@ const CAT_COLORS: Record<string, string> = {
   A: '#00d4b8', B: '#3a9bd6', C: '#f59e0b', D: '#7c8aa3',
 };
 
-const fmt = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
 const fmtInt = new Intl.NumberFormat('es-HN');
 
 function formatValue(metric: Metric, value: number): string {
   if (metric === 'autonomia')  return `${value.toFixed(1)}%`;
   if (metric === 'poblacion')  return fmtInt.format(Math.round(value));
-  if (metric === 'propiosPc')  return `L ${fmtInt.format(Math.round(value))}`;
-  if (metric === 'superavit' || metric === 'resultadoConBalance') {
-    const abs = Math.abs(value);
-    return (value >= 0 ? '+' : '−') + `L ${fmt.format(abs)}`;
-  }
-  return `L ${fmt.format(value)}`;
+  return fmtL(value);
 }
 
 function getMetricValue(m: any, metric: Metric): number {
@@ -53,17 +44,15 @@ function getMetricValue(m: any, metric: Metric): number {
 /** Fila SEFIN → forma usada por el ranking. */
 function toRow(m: Municipality) {
   const deptId  = (deptNameToId as any)(m.department ?? '') ?? (m.department ?? '').toLowerCase().replace(/\s+/g, '-');
-  const dept    = (DEPARTAMENTOS as any[]).find((d: any) => d.id === deptId);
   return {
     id:            muniKey(m), // estable entre años (el id de Supabase cambia por año)
     nombre:        m.name ?? '',
-    departamento:  dept ? dept.nombre : (m.department ?? ''),
+    departamento:  nombreDepartamento(m.department),
     departamentoId: deptId,
     poblacion:     m.population ?? 0,
     presupuesto:   m.presupuesto_municipal ?? 0,
     categoria:     m.category ?? '',
     ind:           indicadoresMunicipio(m),
-    src:           m,
     otros:         m.gastos_capital_deuda ?? 0,
     isCapital:     m.code === 1, // cabecera departamental
   };
@@ -90,7 +79,8 @@ const PAGE_SIZE = 25;
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function RankingsPage() {
-  const [year,       setYear]       = useState<number>(ANIO_ACTUAL);
+  // Año global (NavbarContext), compartido con las demás páginas.
+  const { fiscalYear: year, setFiscalYear: setYear } = useNavbar();
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [metric,     setMetric]     = useState<Metric>('presupuesto');
   const [page,       setPage]       = useState<number>(0);
@@ -107,21 +97,8 @@ export default function RankingsPage() {
   const allMusArr = useMemo(() => yearRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [yearRows]);
   const prevMusArr = useMemo(() => prevRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [prevRows]);
   const sinLiqNombres = useMemo(() => yearRows.filter(sinLiquidacion).map(m => m.name ?? ''), [yearRows]);
-  const incompletosNombres = useMemo(() => yearRows.filter(datoIncompleto).map(m => m.name ?? ''), [yearRows]);
-
-  // Referencia departamental: montos = promedio por municipio; razones y per cápita = Σ/Σ del departamento.
-  const deptAvgMap = useMemo<Record<string, number>>(() => {
-    const byDept: Record<string, typeof allMusArr> = {};
-    allMusArr.forEach(m => { (byDept[m.departamentoId] = byDept[m.departamentoId] || []).push(m); });
-    const ratioKey = RATIO_METRICS[metric];
-    const result: Record<string, number> = {};
-    Object.entries(byDept).forEach(([k, list]) => {
-      result[k] = ratioKey
-        ? indicadoresAgregados(list.map(m => m.src))[ratioKey] ?? 0
-        : list.reduce((s, m) => s + getMetricValue(m, metric), 0) / list.length;
-    });
-    return result;
-  }, [metric, allMusArr]);
+  const sinArt91Nombres = useMemo(() => yearRows.filter(sinArt91).map(m => m.name ?? ''), [yearRows]);
+  const parcialNombres  = useMemo(() => yearRows.filter(rendicionParcial).map(m => m.name ?? ''), [yearRows]);
 
   // Full ranked list (all munis, active metric)
   const rankedAll = useMemo(() => {
@@ -173,7 +150,7 @@ export default function RankingsPage() {
     whiteSpace: 'nowrap',
   };
 
-  const GRID = '48px 1.5fr 1fr 56px 150px 84px 1.3fr';
+  const GRID = '48px 1.5fr 1fr 56px 150px 1.3fr';
 
   return (
     <DashboardLayout title="Rankings">
@@ -199,7 +176,8 @@ export default function RankingsPage() {
             <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
               {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`
                 + (sinLiqNombres.length ? ` · ${ROTULO_SIN_LIQUIDACION} (excluidos): ${sinLiqNombres.join(', ')}` : '')
-                + (incompletosNombres.length ? ` · ⚠ ${ROTULO_DATO_INCOMPLETO} (excluidos): ${incompletosNombres.join(', ')}` : '')}
+                + (sinArt91Nombres.length ? ` · ⚠ ${ROTULO_SIN_ART91} (excluidos): ${sinArt91Nombres.join(', ')}` : '')
+                + (parcialNombres.length ? ` · ⚠ ${ROTULO_RENDICION_PARCIAL} (excluidos): ${parcialNombres.join(', ')}` : '')}
             </div>
           </div>
 
@@ -286,8 +264,8 @@ export default function RankingsPage() {
 
           {/* Header row */}
           <div style={{ display: 'grid', gridTemplateColumns: GRID }}>
-            {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'vs DEPTO', 'RELATIVO'].map(h => (
-              <div key={h} title={h === 'CAT.' ? ROTULO_CATEGORIA : undefined} style={{ ...TH, textAlign: h === 'VALOR' || h === 'vs DEPTO' ? 'right' : 'left' }}>
+            {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'RELATIVO'].map(h => (
+              <div key={h} title={h === 'CAT.' ? ROTULO_CATEGORIA : undefined} style={{ ...TH, textAlign: h === 'VALOR' ? 'right' : 'left' }}>
                 {h}
               </div>
             ))}
@@ -297,8 +275,6 @@ export default function RankingsPage() {
           {pageRows.map((muni: any, i: number) => {
             const globalRank = filtered.indexOf(muni) + 1;
             const value      = getMetricValue(muni, metric);
-            const avg        = deptAvgMap[muni.departamentoId] || 0;
-            const vsPct      = avg !== 0 ? ((value - avg) / Math.abs(avg)) * 100 : 0;
             const barPct     = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
             const prevRank   = prevRankMap[muni.id];
             const movement   = prevRank ? prevRank - globalRank : null;
@@ -401,17 +377,6 @@ export default function RankingsPage() {
                   {formatValue(metric, value)}
                 </div>
 
-                {/* vs Depto */}
-                <div style={{
-                  padding: '9px 12px',
-                  fontSize: 11.5,
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  color: vsPct >= 0 ? '#1f9d57' : '#ef5a5a',
-                  textAlign: 'right',
-                }}>
-                  {vsPct >= 0 ? '+' : ''}{vsPct.toFixed(1)}%
-                </div>
-
                 {/* Relativo — bar + movement */}
                 <div style={{ padding: '9px 16px 9px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   {/* Progress bar */}
@@ -486,20 +451,6 @@ export default function RankingsPage() {
           </div>
         )}
 
-        {/* ── FOOTER ── */}
-        <div style={{
-          marginTop: 20,
-          paddingTop: 12,
-          borderTop: '1px solid rgba(0,212,184,0.08)',
-          display: 'flex', justifyContent: 'space-between',
-        }}>
-          <span style={{ fontSize: 9.5, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-            FUENTE: AMHON / SEFIN / INE HONDURAS
-          </span>
-          <span style={{ fontSize: 9.5, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-            SIMHO — SISTEMA DE INFORMACIÓN MUNICIPAL DE HONDURAS
-          </span>
-        </div>
 
       </div>
     </DashboardLayout>

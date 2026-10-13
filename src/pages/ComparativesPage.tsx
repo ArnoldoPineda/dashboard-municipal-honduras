@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, notaDatoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
-import { ANIOS_SEFIN, RANGO_ANIOS, ANIO_ACTUAL } from '../data/anios';
+import { ANIOS_SEFIN } from '../data/anios';
+import { useNavbar } from '../context/NavbarContext';
+import { nombreDepartamento } from '../data/departamentos';
+import { fmtL, fmtLGrafico } from '../lib/formato';
 import {
   LineChart,
   Line,
@@ -31,7 +34,7 @@ const SECTION_COLORS = ['#2dd4bf', '#f59e0b'];
 const MAX_MUNIS = 3;
 const MAX_DEPTS = 4;
 
-type CompMode = 'municipios' | 'departamentos' | 'historica';
+type CompMode = 'municipios' | 'departamentos';
 type MetricKey =
   | 'presupuesto' | 'ingresos' | 'autonomia' | 'poblacion' | 'transferencias'
   | 'ing_tributarios' | 'ing_no_tributarios' | 'ing_capital'
@@ -138,7 +141,7 @@ function getMetricValue(m: any, metric: MetricKey): number {
 function formatValue(metric: MetricKey, value: number): string {
   if (metric === 'autonomia') return `${value.toFixed(1)}%`;
   if (metric === 'poblacion') return new Intl.NumberFormat('es-HN').format(Math.round(value));
-  return `L ${value.toFixed(1)}M`;
+  return fmtL(value * 1e6); // montos de getMetricValue vienen en millones
 }
 
 /** Valor agregado de varias filas (un año), sin filas excluidas de estadísticas: suma, salvo autonomía (Σ/Σ). */
@@ -158,7 +161,7 @@ function muniLabels(ids: string[]): Record<string, string> {
   const names = ids.map(id => splitMuniId(id)[1]);
   return Object.fromEntries(ids.map((id, i) => {
     const [dept, name] = splitMuniId(id);
-    return [id, names.filter(n => n === names[i]).length > 1 ? `${name} (${dept})` : name];
+    return [id, names.filter(n => n === names[i]).length > 1 ? `${name} (${nombreDepartamento(dept)})` : name];
   }));
 }
 
@@ -336,7 +339,7 @@ function ComparisonTable({ rows, years, metric }: { rows: any[]; years: number[]
                     color: '#2dd4bf', fontSize: 12,
                     fontFamily: "'IBM Plex Mono', monospace",
                     borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  }} title={String(row[`y_${y}`] ?? '').endsWith('⚠') ? 'Dato incompleto: ver la ficha del municipio. Excluido de rankings, medianas y agregados.' : undefined}>
+                  }} title={row[`n_${y}`] ?? undefined}>
                     {row[`y_${y}`] ?? '—'}
                   </td>
                 ))}
@@ -361,14 +364,14 @@ function IncomeBarCard({ title, data }: { title: string; data: any[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
-            tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
-            tickFormatter={(v: number) => `L${v}M`}
+            tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
+            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
             labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
             itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
           />
           <Legend
             wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
@@ -394,14 +397,14 @@ function GastosBarCard({ title, data }: { title: string; data: any[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
-            tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
-            tickFormatter={(v: number) => `L${v}M`}
+            tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
+            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
             labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
             itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
           />
           <Legend
             wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
@@ -445,14 +448,14 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
             tick={AXIS_TICK}
             axisLine={false}
             tickLine={false}
-            width={52}
-            tickFormatter={(v: number) => `L${v}M`}
+            width={84}
+            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
             labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
             itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
           />
           <Legend
             wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
@@ -465,7 +468,7 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
                 dataKey={b.key}
                 position="top"
                 style={{ fontSize: 7.5, fill: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-                formatter={(v: any) => v > 0 ? `L${Number(v).toFixed(0)}M` : ''}
+                formatter={(v: any) => v > 0 ? fmtLGrafico(Number(v) * 1e6) : ''}
               />
             </Bar>
           ))}
@@ -541,7 +544,7 @@ function FinancialChartsSection({
   municipalities: any[];
   mode: 'muni' | 'dept';
 }) {
-  const [finYear, setFinYear] = useState<number>(ANIO_ACTUAL);
+  const { fiscalYear: finYear, setFiscalYear: setFinYear } = useNavbar(); // año global
 
   // Which years have at least one record for any selected entity
   const yearsWithData = useMemo(() => {
@@ -568,7 +571,7 @@ function FinancialChartsSection({
         : municipalities.filter(m => m.department === entity && m.year === effectiveFinYear);
       if (!recs.length || (mode === 'muni' && sinLiquidacion(recs[0]))) return null;
       const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
-      return { name: mode === 'muni' ? labels[entity] : entity, ...fc };
+      return { name: mode === 'muni' ? labels[entity] : nombreDepartamento(entity), ...fc };
     }).filter(Boolean) as any[];
   }, [selected, municipalities, effectiveFinYear, mode]);
 
@@ -705,7 +708,8 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
       years.forEach(y => {
         const rec = municipalities.find(m => muniId(m) === id && m.year === y);
         row[`y_${y}`] = !rec ? null : sinLiquidacion(rec) ? ROTULO_SIN_LIQUIDACION
-          : formatValue(metric, getMetricValue(rec, metric)) + (datoIncompleto(rec) ? ' ⚠' : '');
+          : formatValue(metric, getMetricValue(rec, metric)) + (notaDatoIncompleto(rec) ? ' ⚠' : '');
+        row[`n_${y}`] = rec ? notaDatoIncompleto(rec) : null; // tooltip del ⚠
       });
       return row;
     });
@@ -771,7 +775,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
                     <option value="">— Selecciona Departamento —</option>
                     {departments
                       .filter(d => !usedDepts.includes(d))
-                      .map(d => <option key={d} value={d}>{d}</option>)}
+                      .map(d => <option key={d} value={d}>{nombreDepartamento(d)}</option>)}
                   </select>
                 </div>
 
@@ -954,7 +958,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
         const row: any = { year: y };
         selectedDepts.forEach(d => {
           const recs = municipalities.filter(m => m.department === d && m.year === y);
-          if (recs.length) row[d] = Math.round(getAggMetricValue(recs, metric) * 10) / 10;
+          if (recs.length) row[nombreDepartamento(d)] = Math.round(getAggMetricValue(recs, metric) * 10) / 10;
         });
         return Object.keys(row).length > 1 ? row : null;
       })
@@ -964,7 +968,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
 
   const tableRows = useMemo(() => {
     return selectedDepts.map(dept => {
-      const row: any = { label: dept };
+      const row: any = { label: nombreDepartamento(dept) };
       years.forEach(y => {
         const recs = municipalities.filter(m => m.department === dept && m.year === y);
         if (!recs.length) return;
@@ -996,7 +1000,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
                   disabled={disabled}
                   onClick={() => toggleDept(d)}
                   style={{ opacity: disabled ? 0.4 : 1 }}
-                >{d}</button>
+                >{nombreDepartamento(d)}</button>
               );
             })}
           </div>
@@ -1035,134 +1039,11 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
       <ChartCard
         title={`DEPARTAMENTOS — ${getMetricLabel(metric).toUpperCase()} TOTAL`}
         data={chartData}
-        keys={selectedDepts}
+        keys={selectedDepts.map(nombreDepartamento)}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
 
       <FinancialChartsSection selected={selectedDepts} municipalities={municipalities} mode="dept" />
-    </>
-  );
-}
-
-// ── Mode 3: Evolución Histórica ───────────────────────────────────────────────
-
-function ModeHistorica({ municipalities }: { municipalities: any[] }) {
-  const [dept, setDept]       = useState('');
-  const [muniName, setMuniName] = useState('');
-  const [metrics, setMetrics] = useState<MetricKey[]>(['presupuesto']);
-
-  const departments = useMemo(() =>
-    [...new Set(municipalities.map(m => m.department).filter(Boolean))].sort(),
-    [municipalities]
-  );
-
-  const muniList = useMemo(() =>
-    [...new Set(municipalities.filter(m => m.department === dept).map(m => m.name).filter(Boolean))].sort(),
-    [municipalities, dept]
-  );
-
-  const toggleMetric = (k: MetricKey) => {
-    setMetrics(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
-  };
-
-  const chartData = useMemo(() => {
-    if (!muniName) return [];
-    const recs = municipalities.filter(m => m.name === muniName && m.department === dept && YEARS.includes(m.year));
-    return YEARS.map(y => {
-      const rec = recs.find(m => m.year === y);
-      const row: any = { year: y };
-      if (rec && !sinLiquidacion(rec)) metrics.forEach(k => { row[k] = Math.round(getMetricValue(rec, k) * 10) / 10; });
-      return row;
-    });
-  }, [municipalities, muniName, dept, metrics]);
-
-  return (
-    <>
-      <div style={CARD}>
-        {/* Row 1 */}
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
-          <div style={{ flex: '0 0 220px' }}>
-            <span style={FLABEL}>DEPARTAMENTO</span>
-            <select
-              className="simho-select"
-              value={dept}
-              onChange={e => { setDept(e.target.value); setMuniName(''); }}
-            >
-              <option value="">— Selecciona —</option>
-              {departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <div style={{ flex: '0 0 220px' }}>
-            <span style={FLABEL}>MUNICIPIO</span>
-            <select
-              className="simho-select"
-              value={muniName}
-              onChange={e => setMuniName(e.target.value)}
-              disabled={!dept || !muniList.length}
-            >
-              <option value="">— Selecciona —</option>
-              {muniList.map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Row 2 */}
-        <div>
-          <span style={FLABEL}>MÉTRICAS (superponer en el mismo gráfico)</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {BASE_METRICS.map(m => (
-                <button
-                  key={m.key}
-                  className={metrics.includes(m.key) ? 'rk-pill rk-pill--active' : 'rk-pill'}
-                  onClick={() => toggleMetric(m.key)}
-                >{m.label}</button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{
-                fontSize: 8, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
-                letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-              }}>Cat. Fin. →</span>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {FIN_METRICS.map(m => (
-                  <button
-                    key={m.key}
-                    className={metrics.includes(m.key) ? 'rk-pill rk-pill--active' : 'rk-pill'}
-                    onClick={() => toggleMetric(m.key)}
-                  >{m.label}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Selected pills */}
-        {(muniName || metrics.length > 0) && (
-          <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {muniName && <SelectedPill label={muniName} onRemove={() => setMuniName('')} />}
-            {metrics.map(k => (
-              <SelectedPill key={k} label={getMetricLabel(k)} onRemove={() => toggleMetric(k)} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {!muniName && (
-        <div style={{ marginTop: 16, padding: '14px 18px', background: 'rgba(0,212,184,0.05)', borderLeft: '3px solid rgba(0,212,184,0.3)', borderRadius: 4 }}>
-          <span style={{ color: '#5eead4', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
-            Selecciona un municipio para ver su evolución histórica
-          </span>
-        </div>
-      )}
-
-      {muniName && metrics.length > 0 && (
-        <ChartCard
-          title={`${muniName.toUpperCase()} — EVOLUCIÓN ${RANGO_ANIOS}`}
-          data={chartData}
-          keys={metrics}
-        />
-      )}
     </>
   );
 }
@@ -1176,7 +1057,6 @@ export default function ComparativosPage() {
   const MODES: { key: CompMode; label: string }[] = [
     { key: 'municipios',    label: 'Municipios vs Municipios' },
     { key: 'departamentos', label: 'Departamentos' },
-    { key: 'historica',     label: 'Evolución Histórica' },
   ];
 
   if (loading) {
@@ -1241,7 +1121,6 @@ export default function ComparativosPage() {
         {/* ── ACTIVE MODE ── */}
         {mode === 'municipios'    && <ModeMusVsMus municipalities={municipalities} />}
         {mode === 'departamentos' && <ModeDepartamentos municipalities={municipalities} />}
-        {mode === 'historica'     && <ModeHistorica municipalities={municipalities} />}
 
       </div>
     </DashboardLayout>

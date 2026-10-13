@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDepartamento } from '../data/departamentos';
+import { getDepartamento, nombreDepartamento } from '../data/departamentos';
 import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
+import SelectorAnio from '../components/SelectorAnio';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
 import { indicadoresMunicipio, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION } from '../lib/indicadores';
@@ -73,7 +74,7 @@ export default function DetalleMunicipio() {
   }
 
   // Nombre del departamento con tildes (data/departamentos.ts).
-  const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? header.department ?? '';
+  const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? nombreDepartamento(header.department);
   const sinLiq = row ? sinLiquidacion(row) : false;
   const af = row && !sinLiq ? indicadoresMunicipio(row).autonomia : null;
 
@@ -98,7 +99,7 @@ export default function DetalleMunicipio() {
             letterSpacing: '0.06em', flexShrink: 0,
           }}
         >
-          ← {deptNombre.toUpperCase()}
+          ← {deptNombre}
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -112,7 +113,7 @@ export default function DetalleMunicipio() {
               borderRadius: 4, padding: '2px 7px',
               fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em',
             }}>
-              DEPTO. {deptNombre.toUpperCase()}
+              Depto. {deptNombre}
             </span>
             {header.code === 1 && (
               <span style={{
@@ -127,6 +128,7 @@ export default function DetalleMunicipio() {
           </div>
         </div>
 
+        <SelectorAnio />
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 600, color: '#5eead4', flexShrink: 0 }}>
           Autonomía: <strong style={{ color: '#2dd4bf' }}>{af === null ? '—' : `${af.toFixed(1)}%`}</strong>
           {row && notaDatoIncompleto(row) && (
@@ -154,20 +156,6 @@ export default function DetalleMunicipio() {
         </div>
       )}
 
-      {/* ── FOOTER ── */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '5px 22px',
-        borderTop: '1px solid rgba(0,212,184,0.08)',
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 7, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-          FUENTE: SEFIN
-        </span>
-        <span style={{ fontSize: 7, color: '#2d3d54', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em' }}>
-          SIMHO — SISTEMA DE INFORMACIÓN MUNICIPAL DE HONDURAS
-        </span>
-      </div>
     </div>
   );
 }

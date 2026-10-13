@@ -69,15 +69,15 @@ describe('aggregate', () => {
   it('excluye filas sin liquidación (egresos 0 y corrientes 0) de totales y conteo', () => {
     const a = aggregate([
       row({ presupuesto_municipal: 30, population: 7, ingresos_recaudados: 10 }),
-      row({ presupuesto_municipal: 100, population: 5, ingresos_tributarios: 50, ingresos_recaudados: 100, total_egresos: 80 }),
+      row({ presupuesto_municipal: 100, population: 5, ingresos_tributarios: 50, ingresos_recaudados: 100, transferencias_art91: 10, total_egresos: 80 }),
     ]);
     expect(a).toMatchObject({ count: 1, presupuesto: 100, poblacion: 5 });
     expect(a.autonomia).toBeCloseTo(50);
   });
   it('autonomía = razón de sumas, no media de razones', () => {
     const a = aggregate([
-      row({ ingresos_tributarios: 90, ingresos_recaudados: 100 }),
-      row({ ingresos_tributarios: 10, ingresos_recaudados: 900 }),
+      row({ ingresos_tributarios: 90, ingresos_recaudados: 100, transferencias_art91: 1 }),
+      row({ ingresos_tributarios: 10, ingresos_recaudados: 900, transferencias_art91: 1 }),
     ]);
     expect(a.autonomia).toBeCloseTo(10, 10);
   });

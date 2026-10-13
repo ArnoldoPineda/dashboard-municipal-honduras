@@ -70,6 +70,6 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
 
 ## 5. Pendientes para la Fase 2
 
-- **Regla de "dato incompleto":** cambiarla de "autonomía ≥ 99 %" a "Art. 91 + otras transferencias = 0" (`datoIncompleto()` en `src/lib/indicadores.ts`). Revisar Juticalpa 2025 (autonomía 98.7 %): hoy no lo marca el umbral de 99 %.
+- ~~**Regla de "dato incompleto"**~~ → hecho en la Fase 2: `sinArt91()` (Art. 91 + otras = 0, corrientes > 0). Juticalpa 2025 no entra (tiene Art. 91 por L 2.06 M). Ver `ATIPICOS.md` §5.
 - Código no enrutado (inventario §1.2): `Dashboard.tsx`, `Dashboard_MEJORADO.tsx` y similares, que todavía tienen años fijos y fórmulas antiguas.
 - `RENDICION_PARCIAL` es una lista fija: actualizarla con las notas al pie del Excel en cada importación.

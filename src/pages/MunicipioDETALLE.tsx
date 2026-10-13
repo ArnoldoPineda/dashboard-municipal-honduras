@@ -3,7 +3,9 @@ import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, UMBRAL_EJEC
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { DEPARTAMENTOS } from '../data/departamentos';
+import { DEPARTAMENTOS, codigoINE, nombreDepartamento } from '../data/departamentos';
+import { fmtL } from '../lib/formato';
+import SelectorAnio from '../components/SelectorAnio';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { muniKey, deptSlug, NO_DATA_MSG } from '../utils/sefin';
@@ -14,47 +16,14 @@ import { ANIOS_SEFIN } from '../data/anios';
 const SEFIN_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts).
-const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
+const ALL_DEPTS: { code: string; name: string }[] = [...(DEPARTAMENTOS as any[])]
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));
 
-const fmtC = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
-const fmtF = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
 const fmtP = new Intl.NumberFormat('es-HN');
 
-function L(n: number)  { return n > 0 ? `L ${fmtC.format(n)}` : '—'; }
-function LF(n: number) { return n > 0 ? `L ${fmtF.format(n)}` : 'L 0'; }
-
-function formatMoney(n: number): string {
-  if (n <= 0) return '—';
-  if (n >= 1_000_000_000) return `L ${(n / 1_000_000_000).toFixed(1)} mil M`;
-  if (n >= 1_000_000)     return `L ${(n / 1_000_000).toFixed(1)} M`;
-  return `L ${fmtF.format(n)}`;
-}
-
-const CATEGORIA_LABEL: Record<string, string> = {
-  A: 'Categoría A', B: 'Categoría B', C: 'Categoría C', D: 'Categoría D',
-};
-
-// Códigos INE de departamento (mismos que PresupuestarioPage). Antes estaban en orden
-// alfabético (Choluteca 02, Colón 03…), que no corresponde al código oficial.
-const DEPT_CODES: Record<string, string> = {
-  'atlantida': '01', 'colon': '02', 'comayagua': '03', 'copan': '04',
-  'cortes': '05', 'choluteca': '06', 'el-paraiso': '07', 'francisco-morazan': '08',
-  'gracias-a-dios': '09', 'intibuca': '10', 'islas-de-la-bahia': '11',
-  'la-paz': '12', 'lempira': '13', 'ocotepeque': '14', 'olancho': '15',
-  'santa-barbara': '16', 'valle': '17', 'yoro': '18',
-};
-
-function fmtSigned(n: number | null | undefined): string {
-  if (n === null || n === undefined) return '—';
-  if (n === 0) return 'L 0';
-  const abs = Math.abs(n);
-  const label = abs >= 1_000_000_000 ? `L ${(abs / 1_000_000_000).toFixed(1)} mil M`
-              : abs >= 1_000_000     ? `L ${(abs / 1_000_000).toFixed(1)} M`
-              : `L ${fmtF.format(abs)}`;
-  return n < 0 ? `−${label}` : label;
-}
+// Lempiras: siempre fmtL (lib/formato). "—" cuando no hay monto que mostrar.
+const L = (n: number) => (n > 0 ? fmtL(n) : '—');
 
 // ── Label span style ──────────────────────────────────────────────────────────
 
@@ -146,7 +115,7 @@ function AccordionItem({
               fontFamily: "'Barlow Condensed', sans-serif",
               marginTop: 3,
             }}>
-              {formatMoney(section.amount)}
+              {L(section.amount)}
             </div>
           )}
         </div>
@@ -212,7 +181,7 @@ function DonutTooltip({ active, payload }: any) {
     }}>
       <div style={{ color: '#e8eef6', marginBottom: 3, fontFamily: "'IBM Plex Mono', monospace" }}>{d.name}</div>
       <div style={{ color: d.fill, fontFamily: "'IBM Plex Mono', monospace" }}>
-        {d.pct}% · {LF(d.value)}
+        {d.pct}% · {fmtL(d.value)}
       </div>
     </div>
   );
@@ -221,7 +190,7 @@ function DonutTooltip({ active, payload }: any) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MunicipioDETALLE() {
-  const { fiscalYear, setFiscalYear } = useNavbar();
+  const { fiscalYear } = useNavbar();
   const [deptCode, setDeptCode] = useState<string>('');
   const [muniId,   setMuniId]   = useState<string>(''); // clave "DEPARTAMENTO|code"
   const [openSections, setOpenSections] = useState<Set<string>>(
@@ -250,7 +219,7 @@ export default function MunicipioDETALLE() {
   );
   const sb   = muniRows.find(m => m.year === fiscalYear) ?? null;
   const muni = muniRows[0] ?? null;
-  const deptNombre = ALL_DEPTS.find(d => d.code === deptCode)?.name ?? muni?.department ?? '';
+  const deptNombre = ALL_DEPTS.find(d => d.code === deptCode)?.name ?? nombreDepartamento(muni?.department);
 
   function handleDeptChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setDeptCode(e.target.value);
@@ -265,26 +234,18 @@ export default function MunicipioDETALLE() {
     });
   }
 
-  const fmZ     = (v: number | null | undefined): string => {
-    const n = Math.round(v ?? 0);
-    if (n === 0) return 'L 0';
-    if (n >= 1_000_000_000) return `L ${(n / 1_000_000_000).toFixed(1)} mil M`;
-    if (n >= 1_000_000)     return `L ${(n / 1_000_000).toFixed(1)} M`;
-    return `L ${fmtF.format(n)}`;
-  };
+  const fmZ     = (v: number | null | undefined): string => fmtL(v ?? 0);
 
-  const codDep = muni ? (DEPT_CODES[deptSlug(muni.department)] ?? '—') : '—';
   // Indicadores: única fuente lib/indicadores.
   // Sin liquidación (docs/ATIPICOS.md §2): no se calculan indicadores.
   const sinLiq = sb ? sinLiquidacion(sb) : false;
   const ind  = sb && !sinLiq ? indicadoresMunicipio(sb) : null;
   const notaSinLiq = sinLiq ? `${ROTULO_SIN_LIQUIDACION}: el municipio no reportó egresos ni ingresos corrientes; no se calculan indicadores.` : undefined;
   const fPct = (v: number | null | undefined) => (v == null ? '—' : `${v.toFixed(1)}%`);
-  const fPc  = (v: number | null | undefined) => (v == null ? '—' : `L ${fmtF.format(Math.round(v))}`);
-  const fM   = (v: number | null | undefined) => (v == null ? '—' : fmZ(v));
-  const fS   = (v: number | null | undefined) => (v == null ? '—' : fmtSigned(v));
+  const fPc  = (v: number | null | undefined) => fmtL(v);
+  const fM   = (v: number | null | undefined) => fmtL(v);
+  const fS   = (v: number | null | undefined) => fmtL(v);
   const fEje = (v: number | null | undefined) => (v == null ? '—' : `${v > UMBRAL_EJECUCION ? '⚠ ' : ''}${v.toFixed(1)}%`);
-  const codMun = muni?.code != null ? String(muni.code).padStart(2, '0') : '—';
   // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
   const g1 = sb
     ? (sb.impuesto_bi ?? 0) + (sb.impuesto_personal ?? 0)
@@ -315,17 +276,6 @@ export default function MunicipioDETALLE() {
   // nunca estimaciones. Área, densidad e IDH eliminados (no existen en Supabase).
 
   const sections: AccordionSection[] = !muni || !sb ? [] : [
-    {
-      key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
-      rows: [
-        { label: 'Cód. Departamento',   value: codDep },
-        { label: 'Cód. Municipio',      value: codMun },
-        { label: 'Departamento',        value: deptNombre },
-        { label: 'Municipio',           value: sb.name ?? '' },
-        { label: ROTULO_CATEGORIA,      value: CATEGORIA_LABEL[sb.category ?? ''] ?? '—' },
-        { label: ROTULO_POBLACION,      value: fmtP.format(Number(sb.population ?? 0)) + ' hab.' },
-      ],
-    },
     {
       key: 'resumen', title: 'Datos Presupuestarios', color: '#06b6d4',
       amount: sb.presupuesto_municipal ?? 0,
@@ -522,12 +472,7 @@ export default function MunicipioDETALLE() {
           }}>
             <label>
               <span style={LABEL}>AÑO</span>
-              <select className="simho-select" value={fiscalYear}
-                onChange={e => setFiscalYear(Number(e.target.value))}>
-                {ANIOS_SEFIN.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+              <SelectorAnio />
             </label>
 
             <label>
@@ -638,13 +583,16 @@ export default function MunicipioDETALLE() {
               </div>
 
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                <span style={{
-                  fontSize: 12, fontWeight: 600, color: '#5eead4',
-                  background: 'rgba(94,234,212,0.1)', border: '1px solid rgba(94,234,212,0.3)',
-                  borderRadius: 4, padding: '2px 7px',
-                  fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em',
+                {/* Identificación: departamento · código INE · categoría · población */}
+                <span title={`${ROTULO_CATEGORIA} · ${ROTULO_POBLACION}`} style={{
+                  fontSize: 13, color: '#9fb0c6', fontFamily: "'IBM Plex Mono', monospace",
                 }}>
-                  DEPTO. {deptNombre.toUpperCase()}
+                  {[
+                    deptNombre,
+                    `Cód. ${codigoINE(muni.department, muni.code)}`,
+                    sb?.category ? `Categoría ${sb.category}` : null,
+                    sb ? `${fmtP.format(Number(sb.population ?? 0))} hab.` : null,
+                  ].filter(Boolean).join(' · ')}
                 </span>
                 {muni.code === 1 && (
                   <span style={{

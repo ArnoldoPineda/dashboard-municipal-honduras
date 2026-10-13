@@ -4,10 +4,13 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { useNavigate } from 'react-router-dom';
 import { useNavbar } from '../context/NavbarContext';
-import { DEPARTAMENTOS, deptNameToId, getDepartamento } from '../data/departamentos';
+import { DEPARTAMENTOS, deptNameToId, getDepartamento, nombreDepartamento } from '../data/departamentos';
 import { Municipality } from '../hooks/useMunicipalities';
 import { useSefinYear, normName, aggregate, groupByDept, SefinAgg } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
+import SelectorAnio from '../components/SelectorAnio';
+import { fmtL } from '../lib/formato';
+import SelectorIndicador from '../components/SelectorIndicador';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
@@ -115,7 +118,7 @@ export default function MapaInteractivo() {
   const fmtIndicator = useCallback((v: number) => {
     if (indicator === 'autonomia') return `${v.toFixed(1)}%`;
     if (indicator === 'poblacion') return `${fmt.format(v)} hab.`;
-    return `L ${fmt.format(v)}`;
+    return fmtL(v);
   }, [indicator]);
 
   useEffect(() => {
@@ -275,7 +278,7 @@ export default function MapaInteractivo() {
       .attr('font-family', "'IBM Plex Mono', monospace")
       .attr('letter-spacing', '0.06em')
       .attr('pointer-events', 'none')
-      .text((f: any) => (f.properties?.name || '').toUpperCase());
+      .text((f: any) => nombreDepartamento(f.properties?.name));
 
   }, [topoData, deptStats, deptRows, geoCountByDept, indicator, getValue, maxVal, fmtIndicator, noDataMsg, hideFigures, containerSize, navigate]);
 
@@ -309,6 +312,10 @@ export default function MapaInteractivo() {
             {indicator === 'categorias'
               ? `${ROTULO_CATEGORIA}. Seleccione un departamento para ver el detalle.`
               : `Coropleta por presupuesto ${fiscalYear}. Seleccione un departamento para explorar sus municipios.`}
+          </div>
+          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <SelectorIndicador />
+            <SelectorAnio />
           </div>
         </div>
 
@@ -412,7 +419,7 @@ export default function MapaInteractivo() {
           fontFamily: "'IBM Plex Mono', monospace", pointerEvents: 'none',
         }}>
           <div style={{ fontSize: 10, color: '#4a5a73', letterSpacing: '0.06em' }}>
-            FUENTE: AMHON / SEFIN / INE · Límites: OCHA COD-AB / SINIT (CC BY-IGO)
+            Límites: OCHA COD-AB / SINIT (CC BY-IGO)
           </div>
           <div style={{ fontSize: 10, color: '#4a5a73', letterSpacing: '0.06em', marginTop: 2 }}>
             EJERCICIO FISCAL {fiscalYear}
@@ -501,7 +508,7 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#f59e0b',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-            }}>{hideFigures ? '—' : `L ${fmt.format(totals.presupuesto)}`}</div>
+            }}>{hideFigures ? '—' : fmtL(totals.presupuesto)}</div>
             <div style={{
               fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
             }}>suma de presupuestos municipales</div>

@@ -6,31 +6,24 @@ import {
 } from 'recharts';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
-import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, Indicadores } from '../lib/indicadores';
+import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, Indicadores } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
+import { fmtL, fmtLGrafico } from '../lib/formato';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const ALL_YEARS = ANIOS_SEFIN;
 
 // Lista de departamentos (data/departamentos.ts). Los municipios salen de Supabase.
-const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
+const ALL_DEPTS: { code: string; name: string }[] = [...(DEPARTAMENTOS as any[])]
   .sort((a: any, b: any) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
-const fmtInt = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
 
-function fmtM(n: number | null | undefined): string {
-  if (n == null || n === 0) return '—';
-  const abs = Math.abs(n);
-  let s: string;
-  if (abs >= 1_000_000_000) s = `${(abs / 1_000_000_000).toFixed(1)} mil M`;
-  else if (abs >= 1_000_000)  s = `${(abs / 1_000_000).toFixed(1)} M`;
-  else                         s = fmtInt.format(abs);
-  return n < 0 ? `−L ${s}` : `L ${s}`;
-}
+/** Lempiras de la tabla: fmtL; 0 o sin dato → "—". */
+const fmtM = (n: number | null | undefined) => (n == null || n === 0 ? '—' : fmtL(n));
 
 function fmtPct(n: number | null | undefined): string {
   if (n == null || n === 0) return '—';
@@ -148,7 +141,6 @@ const TABLE_ROWS: TRow[] = [
 
   { key: 'g_trans', label: 'TRANSFERENCIAS RECIBIDAS',       variant: 'group' },
   { key: 'tr91',    label: 'Transferencias Art. 91',         variant: 'main',      field: 'transferencias_art91' },
-  { key: 'tr_ot',   label: 'Otras Transferencias',           variant: 'main',      field: 'otras_transferencias' },
 
   { key: 'g_egr',   label: 'EGRESOS',                        variant: 'group' },
   { key: 'gf',      label: 'Gastos de Funcionamiento',       variant: 'main',      field: 'gastos_funcionamiento' },
@@ -160,7 +152,6 @@ const TABLE_ROWS: TRow[] = [
   { key: 'gc',      label: 'Gastos de Capital y Deuda',      variant: 'main',      field: 'gastos_capital_deuda' },
   { key: 'bc',      label: '↳ Bienes Capitalizables',        variant: 'sub',       field: 'bienes_capitalizables' },
   { key: 'tce',     label: '↳ Transferencias ejecutadas',    variant: 'sub',       field: 'transferencias_capital' },
-  { key: 'aff',     label: '↳ Activos Financieros',          variant: 'sub',       field: 'activos_financieros' },
   { key: 'sd',      label: '↳ Servicios de Deuda',           variant: 'sub',       field: 'servicios_deuda' },
   { key: 'ogc',     label: '↳ Otros Gastos',                 variant: 'sub',       field: 'otros_gastos_capital' },
   { key: 'ag',      label: '↳ Asignaciones Globales',        variant: 'sub',       field: 'asignaciones_globales' },
@@ -303,7 +294,7 @@ export default function AnalyticsPage() {
     const d = yearDataMap[year] ?? EMPTY_YEAR;
     const v = d[row.field];
     if (row.pct) return fmtPct(v);
-    if (row.lempiras) return v == null ? '—' : `L ${fmtInt.format(v)}`;
+    if (row.lempiras) return fmtL(v);
     return fmtM(v);
   }
 
@@ -504,7 +495,7 @@ export default function AnalyticsPage() {
                     }}>
                       {y}
                       {notaIncompleto.has(y) && (
-                        <div title={notaIncompleto.get(y)} style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600, cursor: 'help' }}>⚠ {ROTULO_DATO_INCOMPLETO}</div>
+                        <div title={notaIncompleto.get(y)} style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600, cursor: 'help', maxWidth: 140, whiteSpace: 'normal' }}>⚠ {notaIncompleto.get(y)}</div>
                       )}
                       {sinLiqYears.has(y) && (
                         <div style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>⚠ {ROTULO_SIN_LIQUIDACION}</div>
@@ -575,11 +566,8 @@ export default function AnalyticsPage() {
           <div style={{
             padding: '7px 18px',
             borderTop: '1px solid rgba(255,255,255,0.04)',
-            display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4,
+            display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 4,
           }}>
-            <span style={{ ...MONO, fontSize: 9, color: '#3d4d63', letterSpacing: '0.05em' }}>
-              FUENTE: SEFIN — Liquidación Presupuestaria Municipal. Elaboración SIMHO.
-            </span>
             <span style={{ ...MONO, fontSize: 9, color: '#3d4d63' }}>
               {loading ? 'Cargando…' : `${municipalities.length.toLocaleString()} registros`}
             </span>
@@ -602,8 +590,8 @@ export default function AnalyticsPage() {
               <BarChart data={chart1} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barGap={2} barCategoryGap="28%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={42} tickFormatter={v => `${v}M`} />
-                <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtLGrafico(v * 1e6)} />
+                <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <Legend formatter={LEG_FMT} iconSize={7} />
                 <Bar dataKey="Ing. Corrientes"   stackId="ing" fill={CHART_COLORS.teal}   maxBarSize={36} />
                 <Bar dataKey="Transferencias"    stackId="ing" fill={CHART_COLORS.amber}  maxBarSize={36} />
@@ -628,8 +616,6 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
                 <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={38} tickFormatter={v => `${v}%`} />
                 <RTooltip content={<DarkTooltip fmtVal={(v: number) => `${v.toFixed(1)}%`} />} wrapperStyle={TT_WRAP} />
-                <ReferenceLine y={25} stroke="rgba(245,158,11,0.45)" strokeDasharray="4 3"
-                  label={{ value: '25% meta', fill: '#f59e0b', fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", position: 'insideTopRight' }} />
                 <Line type="monotone" dataKey="Autonomía %"
                   stroke={CHART_COLORS.teal} strokeWidth={2}
                   dot={{ r: 4, fill: CHART_COLORS.teal, strokeWidth: 0 }}
@@ -651,8 +637,8 @@ export default function AnalyticsPage() {
               <BarChart data={chart3} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="38%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={42} tickFormatter={v => `${v}M`} />
-                <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtLGrafico(v * 1e6)} />
+                <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <Legend formatter={LEG_FMT} iconSize={7} />
                 <Bar dataKey="Funcionamiento"  stackId="egr" fill={CHART_COLORS.pink}   radius={[0,0,0,0]} maxBarSize={36} />
                 <Bar dataKey="Capital y Deuda" stackId="egr" fill={CHART_COLORS.violet} radius={[3,3,0,0]} maxBarSize={36} />
@@ -673,8 +659,8 @@ export default function AnalyticsPage() {
               <BarChart data={chart4} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="42%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={44} tickFormatter={v => `${v}M`} />
-                <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtLGrafico(v * 1e6)} />
+                <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
                 <Bar dataKey="value" name="Resultado sin balance" radius={[3,3,0,0]} maxBarSize={38}>
                   {chart4.map((entry, i) => (

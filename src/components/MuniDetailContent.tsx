@@ -1,5 +1,6 @@
 import React from 'react';
 import { ROTULO_POBLACION, insumos } from '../lib/indicadores';
+import { fmtL, fmtLGrafico } from '../lib/formato';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
@@ -9,10 +10,9 @@ import { Municipality } from '../hooks/useMunicipalities';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
-const fmt    = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
 const fmtPop = new Intl.NumberFormat('es-HN');
 
-function L(n: number) { return n > 0 ? `L ${fmt.format(n)}` : '—'; }
+const L = (n: number) => (n > 0 ? fmtL(n) : '—');
 
 // ── Shared styles ────────────────────────────────────────────────────────────
 
@@ -213,11 +213,11 @@ function EvoLineChart({ evolucion }: { evolucion: { year: number; presupuesto: n
               tickLine={false} axisLine={false}
             />
             <YAxis
-              tickFormatter={(v) => `L${fmt.format(v)}`}
+              tickFormatter={(v) => fmtLGrafico(v)}
               tick={{ fill: '#4a5a73', fontSize: 13, fontFamily: "'IBM Plex Mono', monospace" }}
-              tickLine={false} axisLine={false} width={52}
+              tickLine={false} axisLine={false} width={76}
             />
-            <RTooltip content={<DarkTooltip formatter={(v: number) => `L ${fmt.format(v)}`} />} />
+            <RTooltip content={<DarkTooltip formatter={(v: number) => fmtLGrafico(v)} />} />
             <Line
               type="monotone" dataKey="presupuesto" name="Presupuesto"
               stroke="#2dd4bf" strokeWidth={2}
@@ -245,13 +245,13 @@ function CompBarChart({ muni, deptAvg }: { muni: MuniFigures; deptAvg: MuniFigur
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data} layout="vertical"
-            margin={{ top: 4, right: 52, bottom: 4, left: 88 }}
+            margin={{ top: 4, right: 84, bottom: 4, left: 88 }}
             barCategoryGap="30%" barGap={3}
           >
             <CartesianGrid stroke="rgba(0,212,184,0.07)" strokeDasharray="3 4" horizontal={false} />
             <XAxis
               type="number"
-              tickFormatter={(v) => `L${fmt.format(v)}`}
+              tickFormatter={(v) => fmtLGrafico(v)}
               tick={{ fill: '#4a5a73', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}
               tickLine={false} axisLine={false}
             />
@@ -261,7 +261,7 @@ function CompBarChart({ muni, deptAvg }: { muni: MuniFigures; deptAvg: MuniFigur
               tickLine={false} axisLine={false} width={86}
             />
             <RTooltip
-              content={<DarkTooltip formatter={(v: number) => `L ${fmt.format(v)}`} />}
+              content={<DarkTooltip formatter={(v: number) => fmtLGrafico(v)} />}
               wrapperStyle={{ background: 'transparent', border: 'none', boxShadow: 'none' }}
             />
             <Legend
@@ -273,7 +273,7 @@ function CompBarChart({ muni, deptAvg }: { muni: MuniFigures; deptAvg: MuniFigur
             <Bar dataKey="municipio" name="Municipio" fill="#2dd4bf" radius={[0, 3, 3, 0]} maxBarSize={9}>
               <LabelList
                 dataKey="municipio" position="right"
-                formatter={(v: number) => `L${fmt.format(v)}`}
+                formatter={(v: number) => fmtLGrafico(v)}
                 style={{ fill: '#f9fafb', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}
               />
             </Bar>

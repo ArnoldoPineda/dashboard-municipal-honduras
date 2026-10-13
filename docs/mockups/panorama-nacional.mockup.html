@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panorama Nacional 2025</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&amp;family=Barlow:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0a0f1a}
+a{color:#3fd6c0}a:hover{color:#7fe8d8}
+button{font:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0a0f1a; color: #e6edf3; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-wrap: wrap;">
+
+  <nav aria-label="Navegación principal" style="flex: 1 1 220px; max-width: 260px; min-width: 200px; background: #0c1320; border-right: 1px solid #1c2a3d; padding: 22px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px;">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 0 6px 22px;">
+      <div style="width: 38px; height: 38px; border-radius: 10px; border: 2px solid #3fd6c0; display: flex; align-items: center; justify-content: center;"><div style="width: 14px; height: 14px; border-radius: 3px; background: #3fd6c0;"></div></div>
+      <div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 3px;">SIMHO</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: #8a9bb0;">INTELIGENCIA MUNICIPAL</div>
+      </div>
+    </div>
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #8a9bb0; padding: 0 8px 8px;">NAVEGACIÓN</div>
+    <a href="#" style="text-decoration: none; color: #c9d4e0; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 500; padding: 11px 12px; border-radius: 8px;">Mapa</a>
+    <a href="#" aria-current="page" style="text-decoration: none; color: #3fd6c0; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 600; padding: 11px 12px; border-radius: 8px; background: #10302d; border: 1px solid #1f5e55;">Panorama Nacional</a>
+    <a href="Main.dc.html" style="text-decoration: none; color: #c9d4e0; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 500; padding: 11px 12px; border-radius: 8px;">Ficha Municipal</a>
+    <a href="#" style="text-decoration: none; color: #c9d4e0; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 500; padding: 11px 12px; border-radius: 8px;">Análisis</a>
+    <a href="#" style="text-decoration: none; color: #c9d4e0; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 500; padding: 11px 12px; border-radius: 8px;">Comparar</a>
+    <a href="#" style="text-decoration: none; color: #c9d4e0; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 500; padding: 11px 12px; border-radius: 8px;">Rankings</a>
+    <a href="#" style="text-decoration: none; color: #c9d4e0; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 500; padding: 11px 12px; border-radius: 8px;">Base de Datos</a>
+  </nav>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 28px clamp(16px, 3vw, 40px) 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1240px;">
+
+    <header style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; justify-content: space-between;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 2px; color: #3fd6c0;">REPÚBLICA DE HONDURAS</div>
+        <h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 46px; line-height: 1;">Panorama Nacional</h1>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #a9b7c8;">295 municipios en estadísticas · 18 departamentos · 3 excluidos (sin liquidación o sin Art. 91 en la fuente)</div>
+      </div>
+      <div role="group" aria-label="Año fiscal" style="display: flex; gap: 4px; background: #0f1726; border: 1px solid #22334a; border-radius: 10px; padding: 4px;">
+        <sc-for list="{{years}}" as="y" hint-placeholder-count="5">
+          <button type="button" onClick="{{y.pick}}" style="{{y.style}}">{{y.label}}</button>
+        </sc-for>
+      </div>
+    </header>
+
+    <section aria-label="Lectura nacional" style="background: #13202f; border: 1px solid #2a3d55; border-radius: 14px; padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 2px; color: #f0a33a; flex: 0 0 auto;">LECTURA AUTOMÁTICA SIMHO · 2025</div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.5; flex: 1 1 520px; color: #dde6ef;">La mitad de los municipios financia menos del <strong style="color: #f0a33a;">17 %</strong> de su gasto anual con recursos propios, y <strong style="color: #f0a33a;">187 de 295 (63 %)</strong> no llegan al 25 %. El agregado nacional (60.1 %) lo sostienen las grandes ciudades: la categoría A recauda <strong style="color: #3fd6c0;">9 veces más por habitante</strong> que la D.</p>
+    </section>
+
+    <section aria-label="Indicadores nacionales" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+        <article style="background: #0f1726; border: 1px solid #1c2a3d; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.2px; color: #a9b7c8; text-transform: uppercase;">{{k.label}}</div>
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 40px; line-height: 1;">{{k.value}}</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8;">mediana municipal</div>
+          </div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #a9b7c8;">Agregado nacional: <span style="color: #e6edf3;">{{k.agg}}</span></div>
+          <div style="font-size: 13px; color: #a9b7c8; line-height: 1.4;">{{k.note}}</div>
+        </article>
+      </sc-for>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px;">
+      <section aria-label="Distribución de la autonomía" style="background: #0f1726; border: 1px solid #1c2a3d; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 600;">¿Cuánto se financian solos los municipios?</h2>
+          <div style="font-size: 13px; color: #a9b7c8; margin-top: 4px;">Número de municipios según su autonomía fiscal · 2025</div>
+        </div>
+        <div style="display: flex; align-items: flex-end; gap: 14px; height: 220px; border-bottom: 1px solid #22334a; padding: 0 4px;" role="img" aria-label="91 municipios con menos de 10 por ciento, 96 entre 10 y 25, 52 entre 25 y 50, 40 entre 50 y 75, 16 con 75 o más">
+          <sc-for list="{{bins}}" as="b" hint-placeholder-count="5">
+            <div style="flex: 1 1 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px;">
+              <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700;">{{b.n}}</div>
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8;">{{b.pct}}</div>
+              <div style="{{b.style}}"></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 14px; padding: 0 4px;">
+          <sc-for list="{{bins}}" as="b" hint-placeholder-count="5">
+            <div style="flex: 1 1 0; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #c9d4e0;">{{b.label}}</div>
+          </sc-for>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #c9d4e0;">En naranja, los 187 municipios que generan menos de una cuarta parte de sus ingresos del año.</p>
+      </section>
+
+      <section aria-label="Resumen por categoría" style="background: #0f1726; border: 1px solid #1c2a3d; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 600;">Por categoría municipal (SGJD 2020)</h2>
+          <div style="font-size: 13px; color: #a9b7c8; margin-top: 4px;">Medianas municipales · 2025</div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; min-width: 440px; font-size: 14px;">
+            <thead>
+              <tr>
+                <th scope="col" style="text-align: left; padding: 8px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8; font-weight: 500;">CAT.</th>
+                <th scope="col" style="text-align: right; padding: 8px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8; font-weight: 500;">MUNIC.</th>
+                <th scope="col" style="text-align: right; padding: 8px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8; font-weight: 500;">POBLACIÓN</th>
+                <th scope="col" style="text-align: left; padding: 8px 6px 8px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8; font-weight: 500;">AUTONOMÍA</th>
+                <th scope="col" style="text-align: right; padding: 8px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8; font-weight: 500;">PROPIOS / HAB.</th>
+                <th scope="col" style="text-align: right; padding: 8px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8; font-weight: 500;">DEPENDENCIA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+                <tr style="border-top: 1px solid #1c2a3d;">
+                  <th scope="row" style="text-align: left; padding: 12px 6px; font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: #3fd6c0;">{{c.cat}}</th>
+                  <td style="text-align: right; padding: 12px 6px; font-family: 'IBM Plex Mono', monospace;">{{c.n}}</td>
+                  <td style="text-align: right; padding: 12px 6px; font-family: 'IBM Plex Mono', monospace;">{{c.pop}}</td>
+                  <td style="padding: 12px 6px 12px 14px; min-width: 150px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="flex: 1 1 auto; height: 8px; border-radius: 4px; background: #1c2a3d;"><div style="{{c.bar}}"></div></div>
+                      <span style="font-family: 'IBM Plex Mono', monospace; min-width: 52px; text-align: right;">{{c.aut}}</span>
+                    </div>
+                  </td>
+                  <td style="text-align: right; padding: 12px 6px; font-family: 'IBM Plex Mono', monospace;">{{c.ppc}}</td>
+                  <td style="text-align: right; padding: 12px 6px; font-family: 'IBM Plex Mono', monospace;">{{c.dep}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #c9d4e0;">170 de los 295 municipios son categoría C: financian una séptima parte de su gasto y dependen de las transferencias en un 86 %.</p>
+      </section>
+    </div>
+
+    <section aria-label="Departamentos" style="background: #0f1726; border: 1px solid #1c2a3d; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 600;">Departamentos</h2>
+          <div style="font-size: 13px; color: #a9b7c8; margin-top: 4px;">{{metricNote}}</div>
+        </div>
+        <div role="group" aria-label="Métrica" style="display: flex; flex-wrap: wrap; gap: 4px; background: #0c1320; border: 1px solid #22334a; border-radius: 10px; padding: 4px;">
+          <sc-for list="{{metrics}}" as="m" hint-placeholder-count="4">
+            <button type="button" aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 22px; align-items: start;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px;" role="img" aria-label="Cartograma de los 18 departamentos coloreado por la métrica seleccionada">
+            <sc-for list="{{tiles}}" as="t" hint-placeholder-count="35">
+              <div style="{{t.style}}" title="{{t.title}}">
+                <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; line-height: 1.1;">{{t.short}}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px;">{{t.val}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8;">
+            <span>{{legendLo}}</span>
+            <sc-for list="{{scale}}" as="s" hint-placeholder-count="5"><div style="{{s}}"></div></sc-for>
+            <span>{{legendHi}}</span>
+          </div>
+          <div style="font-size: 12px; color: #8a9bb0;">Cartograma de posiciones aproximadas. En la app se usa el mapa real con los límites OCHA y un clic abre el departamento.</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 7px;">
+          <sc-for list="{{ranking}}" as="r" hint-placeholder-count="18">
+            <div style="display: grid; grid-template-columns: 22px minmax(120px, 1fr) minmax(80px, 2fr) 74px; gap: 10px; align-items: center; font-size: 14px;">
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #8a9bb0; text-align: right;">{{r.pos}}</span>
+              <span>{{r.name}}</span>
+              <div style="height: 10px; border-radius: 5px; background: #1c2a3d;"><div style="{{r.bar}}"></div></div>
+              <span style="font-family: 'IBM Plex Mono', monospace; text-align: right;">{{r.val}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Tendencia" style="background: #0f1726; border: 1px solid #1c2a3d; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+      <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 600;">Autonomía 2021–2025: municipio típico frente al agregado</h2>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 520px; font-size: 14px;">
+          <thead>
+            <tr>
+              <th scope="col" style="text-align: left; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9b7c8; font-weight: 500;">INDICADOR</th>
+              <sc-for list="{{yearsCols}}" as="c" hint-placeholder-count="5">
+                <th scope="col" style="text-align: right; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #3fd6c0; font-weight: 600;">{{c}}</th>
+              </sc-for>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{trend}}" as="e" hint-placeholder-count="2">
+              <tr style="border-top: 1px solid #1c2a3d;">
+                <th scope="row" style="text-align: left; padding: 10px; font-weight: 500;">{{e.label}}</th>
+                <sc-for list="{{e.vals}}" as="v" hint-placeholder-count="5">
+                  <td style="text-align: right; padding: 10px; font-family: 'IBM Plex Mono', monospace;">{{v}}</td>
+                </sc-for>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #a9b7c8;">La brecha entre ambas series (unos 40 puntos) es la diferencia entre las grandes ciudades y el resto del país.</p>
+    </section>
+
+    <footer style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #8a9bb0; line-height: 1.6; border-top: 1px solid #1c2a3d; padding-top: 14px;">Fuente: SEFIN — Liquidación Presupuestaria Municipal · Población: proyección (provisional) · Categoría SGJD 2020 · Excluidos de estadísticas: Pespire (sin liquidación), El Triunfo y San Juan Guarita (sin Art. 91 en la fuente).</footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { metric: 'autMed', year: 2025 }; }
+  renderVals() {
+    const years = [2021, 2022, 2023, 2024, 2025].map((y) => {
+      const on = this.state.year === y;
+      return { label: String(y), pick: () => this.setState({ year: y }),
+        style: 'min-height: 40px; min-width: 60px; border-radius: 7px; cursor: pointer; font-family: IBM Plex Mono, monospace; font-size: 13px; font-weight: 600; border: 0; ' + (on ? 'background: #3fd6c0; color: #062621;' : 'background: transparent; color: #a9b7c8;') };
+    });
+    const kpis = [
+      { label: 'Autonomía fiscal', value: '17.0 %', agg: '60.1 %', note: 'Ingresos corrientes ÷ ingresos del año. El agregado lo dominan las grandes ciudades.' },
+      { label: 'Ingresos propios por habitante', value: 'L 357', agg: 'L 1,381', note: 'Recaudación corriente por habitante del municipio típico.' },
+      { label: 'Dependencia de transferencias', value: '81.9 %', agg: '34.3 %', note: 'Parte de los ingresos del año que llega por Art. 91 y otras transferencias.' },
+      { label: 'Recursos de balance ÷ ingresos', value: '14.8 %', agg: '13.4 %', note: 'Caja de años anteriores que se incorpora al presupuesto.' }
+    ];
+    const total = 295;
+    const binDefs = [['< 10 %', 91, '#f0a33a'], ['10–25 %', 96, '#f0a33a'], ['25–50 %', 52, '#2aa896'], ['50–75 %', 40, '#3fd6c0'], ['≥ 75 %', 16, '#3fd6c0']];
+    const bins = binDefs.map(([label, n, c]) => ({ label, n: String(n), pct: Math.round(n / total * 100) + ' %',
+      style: 'width: 100%; max-width: 96px; border-radius: 6px 6px 0 0; height: ' + Math.round(n / 96 * 150) + 'px; background: ' + c + ';' }));
+    const catDefs = [['A', 43, '5,665,201', 68.3, 'L 1,183', '31.7 %'], ['B', 40, '1,491,307', 46.9, 'L 765', '53.1 %'], ['C', 170, '2,350,137', 13.4, 'L 312', '86.4 %'], ['D', 42, '453,352', 5.3, 'L 130', '94.5 %']];
+    const cats = catDefs.map(([cat, n, pop, aut, ppc, dep]) => ({ cat, n: String(n), pop, aut: aut.toFixed(1) + ' %', ppc, dep,
+      bar: 'height: 8px; border-radius: 4px; width: ' + aut + '%; background: ' + (aut < 25 ? '#f0a33a' : '#3fd6c0') + ';' }));
+    const D = {
+      'Atlántida': { s: 'Atlántida', autMed: 56.2, ppc: 1530, dep: 15.8, inv: 525 },
+      'Choluteca': { s: 'Choluteca', autMed: 17.5, ppc: 698, dep: 51.3, inv: 265 },
+      'Colón': { s: 'Colón', autMed: 37.3, ppc: 608, dep: 49.2, inv: 285 },
+      'Comayagua': { s: 'Comayagua', autMed: 19.2, ppc: 823, dep: 43.1, inv: 857 },
+      'Copán': { s: 'Copán', autMed: 22.0, ppc: 1297, dep: 48.2, inv: 905 },
+      'Cortés': { s: 'Cortés', autMed: 57.3, ppc: 2444, dep: 18.3, inv: 838 },
+      'El Paraíso': { s: 'El Paraíso', autMed: 12.7, ppc: 466, dep: 62.7, inv: 375 },
+      'Francisco Morazán': { s: 'F. Morazán', autMed: 23.0, ppc: 2153, dep: 15.5, inv: 553 },
+      'Gracias a Dios': { s: 'G. a Dios', autMed: 7.8, ppc: 122, dep: 89.6, inv: 477 },
+      'Intibucá': { s: 'Intibucá', autMed: 7.9, ppc: 472, dep: 71.0, inv: 538 },
+      'Islas de la Bahía': { s: 'Islas Bahía', autMed: 70.8, ppc: 6678, dep: 12.7, inv: 3897 },
+      'La Paz': { s: 'La Paz', autMed: 9.8, ppc: 491, dep: 76.1, inv: 1290 },
+      'Lempira': { s: 'Lempira', autMed: 8.0, ppc: 302, dep: 84.2, inv: 602 },
+      'Ocotepeque': { s: 'Ocotepeque', autMed: 15.4, ppc: 653, dep: 67.1, inv: 861 },
+      'Olancho': { s: 'Olancho', autMed: 14.9, ppc: 601, dep: 62.2, inv: 538 },
+      'Santa Bárbara': { s: 'Sta. Bárbara', autMed: 16.2, ppc: 559, dep: 70.2, inv: 505 },
+      'Valle': { s: 'Valle', autMed: 12.1, ppc: 744, dep: 72.7, inv: 776 },
+      'Yoro': { s: 'Yoro', autMed: 41.7, ppc: 866, dep: 31.3, inv: 205 }
+    };
+    const M = {
+      autMed: { label: 'Autonomía (mediana)', fmt: (v) => v.toFixed(1) + ' %', higher: true, cuts: [10, 15, 20, 40], note: 'Autonomía del municipio típico de cada departamento · 2025' },
+      ppc: { label: 'Propios por habitante', fmt: (v) => 'L ' + v.toLocaleString('en-US'), higher: true, cuts: [500, 650, 900, 1500], note: 'Ingresos corrientes ÷ población del departamento · 2025' },
+      dep: { label: 'Dependencia', fmt: (v) => v.toFixed(1) + ' %', higher: false, cuts: [30, 50, 65, 75], note: 'Transferencias ÷ ingresos del año (agregado departamental) · 2025' },
+      inv: { label: 'Inversión por habitante', fmt: (v) => 'L ' + v.toLocaleString('en-US'), higher: true, cuts: [400, 520, 600, 860], note: 'Bienes capitalizables ÷ población del departamento · 2025' }
+    };
+    const key = this.state.metric, m = M[key];
+    const ramp = ['#12302d', '#155e55', '#1f8f80', '#2fb3a0', '#3fd6c0'];
+    const ink = ['#e6edf3', '#e6edf3', '#e6edf3', '#062621', '#062621'];
+    const step = (v) => { let i = 0; for (const c of m.cuts) { if (v >= c) i++; } return m.higher ? i : 4 - i; };
+    const grid = [
+      [null, null, null, null, 'Islas de la Bahía', null, null],
+      ['Copán', 'Santa Bárbara', 'Cortés', 'Atlántida', 'Colón', 'Gracias a Dios', null],
+      ['Ocotepeque', 'Lempira', 'Comayagua', 'Yoro', 'Olancho', null, null],
+      [null, 'Intibucá', 'La Paz', 'Francisco Morazán', 'El Paraíso', null, null],
+      [null, null, 'Valle', 'Choluteca', null, null, null]
+    ];
+    const tiles = [];
+    grid.forEach((row) => row.forEach((name) => {
+      if (!name) { tiles.push({ short: '', val: '', title: '', style: 'min-height: 58px;' }); return; }
+      const d = D[name], v = d[key], i = step(v);
+      tiles.push({ short: d.s, val: m.fmt(v), title: name + ': ' + m.fmt(v),
+        style: 'min-height: 58px; border-radius: 8px; padding: 6px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; background: ' + ramp[i] + '; color: ' + ink[i] + ';' });
+    }));
+    const scale = ramp.map((c) => 'width: 26px; height: 12px; border-radius: 3px; background: ' + c + ';');
+    const names = Object.keys(D);
+    const sorted = names.slice().sort((a, b) => m.higher ? D[b][key] - D[a][key] : D[a][key] - D[b][key]);
+    const max = Math.max.apply(null, names.map((n) => D[n][key]));
+    const ranking = sorted.map((n, i) => ({ pos: String(i + 1), name: n, val: m.fmt(D[n][key]),
+      bar: 'height: 10px; border-radius: 5px; width: ' + (D[n][key] / max * 100).toFixed(1) + '%; background: #3fd6c0;' }));
+    const metrics = Object.keys(M).map((k) => {
+      const on = k === key;
+      return { label: M[k].label, pressed: on ? 'true' : 'false', pick: () => this.setState({ metric: k }),
+        style: 'min-height: 40px; padding: 0 14px; border-radius: 7px; cursor: pointer; font-family: Barlow Condensed, sans-serif; font-size: 16px; font-weight: 600; border: 0; ' + (on ? 'background: #3fd6c0; color: #062621;' : 'background: transparent; color: #c9d4e0;') };
+    });
+    return { years, kpis, bins, cats, tiles, scale, ranking, metrics,
+      metricNote: m.note, legendLo: m.higher ? 'Menor' : 'Mayor', legendHi: m.higher ? 'Mayor' : 'Menor',
+      yearsCols: ['2021', '2022', '2023', '2024', '2025'],
+      trend: [
+        { label: 'Autonomía — mediana municipal', vals: ['12.4 %', '13.7 %', '13.7 %', '11.4 %', '17.0 %'] },
+        { label: 'Autonomía — agregado nacional', vals: ['54.5 %', '59.8 %', '52.1 %', '52.9 %', '60.1 %'] }
+      ] };
+  }
+}
+</script>
+</body>
+</html>

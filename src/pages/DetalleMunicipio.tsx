@@ -5,7 +5,7 @@ import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
-import { indicadoresMunicipio } from '../lib/indicadores';
+import { indicadoresMunicipio, sinLiquidacion, ROTULO_SIN_LIQUIDACION } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 
 const SEFIN_YEARS = ANIOS_SEFIN;
@@ -32,7 +32,7 @@ export default function DetalleMunicipio() {
   const header = row ?? muniRows[muniRows.length - 1] ?? null; // nombre/depto aunque el año no tenga datos
 
   const deptAvg = useMemo(() => {
-    const yearRows = deptRowsAll.filter((m) => m.year === fiscalYear);
+    const yearRows = deptRowsAll.filter((m) => m.year === fiscalYear && !sinLiquidacion(m));
     if (!yearRows.length) return null;
     const figs = yearRows.map(toFigures);
     const avg = (k: keyof ReturnType<typeof toFigures>) => figs.reduce((s, f) => s + f[k], 0) / figs.length;
@@ -73,7 +73,8 @@ export default function DetalleMunicipio() {
 
   // Nombre del departamento con tildes (data/departamentos.ts).
   const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? header.department ?? '';
-  const af = row ? indicadoresMunicipio(row).autonomia : null;
+  const sinLiq = row ? sinLiquidacion(row) : false;
+  const af = row && !sinLiq ? indicadoresMunicipio(row).autonomia : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -131,7 +132,14 @@ export default function DetalleMunicipio() {
       </div>
 
       {/* ── KPI + CHARTS (shared) ── */}
-      {row ? (
+      {row && sinLiq ? (
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+          color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700,
+        }}>
+          ⚠ {ROTULO_SIN_LIQUIDACION} ({fiscalYear}): el municipio no reportó egresos ni ingresos corrientes.
+        </div>
+      ) : row ? (
         <MuniDetailContent row={row} deptAvg={deptAvg} evolucion={evolucion} />
       ) : (
         <div style={{

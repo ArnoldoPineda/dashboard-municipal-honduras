@@ -60,11 +60,19 @@ describe('aggregate', () => {
     });
   });
   it('campos null cuentan como 0, sin NaN', () => {
-    const a = aggregate([row(), row({ presupuesto_municipal: 100 })]);
+    const a = aggregate([row({ total_egresos: 1 }), row({ presupuesto_municipal: 100, total_egresos: 1 })]);
     expect(a.count).toBe(2);
     expect(a.presupuesto).toBe(100);
     expect(a.autonomia).toBeNull();
     Object.values(a).forEach((v) => expect(Number.isNaN(v)).toBe(false));
+  });
+  it('excluye filas sin liquidación (egresos 0 y corrientes 0) de totales y conteo', () => {
+    const a = aggregate([
+      row({ presupuesto_municipal: 30, population: 7, ingresos_recaudados: 10 }),
+      row({ presupuesto_municipal: 100, population: 5, ingresos_tributarios: 50, ingresos_recaudados: 100, total_egresos: 80 }),
+    ]);
+    expect(a).toMatchObject({ count: 1, presupuesto: 100, poblacion: 5 });
+    expect(a.autonomia).toBeCloseTo(50);
   });
   it('autonomía = razón de sumas, no media de razones', () => {
     const a = aggregate([
@@ -84,9 +92,9 @@ describe('aggregate', () => {
 
 describe('groupByDept / aggregateByDept', () => {
   const rows = [
-    row({ department: 'COMAYAGUA', code: 1, presupuesto_municipal: 10 }),
-    row({ department: 'Comayagua', code: 2, presupuesto_municipal: 5 }),
-    row({ department: 'CORTES', code: 1, presupuesto_municipal: 7 }),
+    row({ department: 'COMAYAGUA', code: 1, presupuesto_municipal: 10, total_egresos: 1 }),
+    row({ department: 'Comayagua', code: 2, presupuesto_municipal: 5, total_egresos: 1 }),
+    row({ department: 'CORTES', code: 1, presupuesto_municipal: 7, total_egresos: 1 }),
   ];
   it('fusiona COMAYAGUA y Comayagua', () => {
     const g = groupByDept(rows);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
-import { indicadoresMunicipio, indicadoresAgregados, mediana, atipicos } from './indicadores';
+import { indicadoresMunicipio, indicadoresAgregados, mediana, atipicos, sinLiquidacion, sumarInsumos } from './indicadores';
 
 const M = 1e6;
 const row = (o: Partial<Municipality>) => o as Municipality;
@@ -86,6 +86,22 @@ describe('Siguatepeque 2025 — fila exacta de Supabase', () => {
     expect(r.resultadoConBalance).toBeCloseTo(94507898.72, 1);
   });
   it('sin atípicos', () => expect(atipicos(siguatepequeExacta)).toEqual([]));
+});
+
+describe('sin liquidación', () => {
+  const sinLiq = row({ ingresos_recaudados: 10000, presupuesto_municipal: 500, population: 9 });
+  const normal = row({ ingresos_recaudados: 100, ingresos_tributarios: 40, total_egresos: 90, presupuesto_municipal: 80, population: 4 });
+  it('egresos 0 y corrientes 0 → sin liquidación; Siguatepeque no', () => {
+    expect(sinLiquidacion(sinLiq)).toBe(true);
+    expect(sinLiquidacion(normal)).toBe(false);
+    expect(sinLiquidacion(siguatepequeExacta)).toBe(false);
+    expect(sinLiquidacion(row({ total_egresos: 0, ingresos_tributarios: 5 }))).toBe(false);
+  });
+  it('fuera de totales y medianas', () => {
+    expect(sumarInsumos([sinLiq, normal])).toMatchObject({ presupuesto: 80, poblacion: 4, ingresosTotales: 100 });
+    expect(indicadoresAgregados([sinLiq, normal]).autonomia).toBeCloseTo(40);
+    expect(mediana([sinLiq, normal], 'autonomia')).toBeCloseTo(40);
+  });
 });
 
 describe('bordes', () => {

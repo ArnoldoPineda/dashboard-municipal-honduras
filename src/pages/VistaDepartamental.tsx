@@ -2,7 +2,7 @@ import React, {
   useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
-import { ROTULO_CATEGORIA, ROTULO_POBLACION, sumarInsumos, calcular } from '../lib/indicadores';
+import { ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
@@ -38,6 +38,7 @@ interface MuniStat {
   name:     string;
   budget:   number;
   category: string;
+  sinLiq:   boolean;       // docs/ATIPICOS.md §2
   path:     string;        // ruta del detalle: /municipio/<depto>/<code>
 }
 
@@ -278,6 +279,7 @@ export default function VistaDepartamental() {
       name:     m.name ?? '',
       budget:   m.presupuesto_municipal ?? 0,
       category: m.category ?? '',
+      sinLiq:   sinLiquidacion(m),
       path:     muniPath(m),
     })),
     [deptRows]
@@ -460,6 +462,14 @@ export default function VistaDepartamental() {
                         border: '1px solid rgba(245,158,11,0.3)', borderRadius: 3, padding: '1px 5px',
                       }}>
                         CAPITAL
+                      </span>
+                    )}
+                    {m.sinLiq && (
+                      <span style={{
+                        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#f59e0b',
+                        border: '1px solid #f59e0b55', borderRadius: 3, padding: '1px 5px',
+                      }}>
+                        {ROTULO_SIN_LIQUIDACION.toUpperCase()}
                       </span>
                     )}
                     {indicator === 'categorias' && (

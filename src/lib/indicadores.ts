@@ -2,12 +2,15 @@
 // Por municipio y año. Agregados (departamento, nación): suma de numeradores y denominadores.
 import type { Municipality } from '../hooks/useMunicipalities';
 
-/** Montos no finitos (NaN, ±Infinity, texto) se tratan como null, es decir, 0 en las sumas. */
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
 export const ROTULO_POBLACION = 'Población: proyección (provisional)';
 /** Rótulo único de la categoría A–D: columna SEFIN `category`, criterio oficial no documentado. */
 export const ROTULO_CATEGORIA = 'Categoría según base SEFIN — criterio por confirmar';
+export const ROTULO_SIN_LIQUIDACION = 'Sin liquidación';
+/** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
+export const UMBRAL_EJECUCION = 150;
 
+/** Montos no finitos (NaN, ±Infinity, texto) se tratan como null, es decir, 0 en las sumas. */
 const n = (v: number | string | null | undefined) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const fin = (x: number) => (Number.isFinite(x) ? x : null);
 const ratio = (num: number, den: number) => (den > 0 ? fin((num / den) * 100) : null);
@@ -51,9 +54,17 @@ export function insumos(m: Municipality): Insumos {
   };
 }
 
+/**
+ * Fila sin liquidación reportada: egresos ≤ 0 e ingresos corrientes en cero (docs/ATIPICOS.md §2).
+ * Se excluye de totales, medianas y rankings; la UI la muestra como "Sin liquidación".
+ */
+export const sinLiquidacion = (m: Municipality) =>
+  n(m.total_egresos) <= 0 && n(m.ingresos_tributarios) + n(m.ingresos_no_tributarios) === 0;
+
+/** Suma de insumos de un grupo (un año), sin las filas sin liquidación. */
 export function sumarInsumos(rows: Municipality[]): Insumos {
   const acc = insumos({} as Municipality);
-  rows.forEach((m) => {
+  rows.filter((m) => !sinLiquidacion(m)).forEach((m) => {
     const i = insumos(m);
     (Object.keys(acc) as (keyof Insumos)[]).forEach((k) => { acc[k] += i[k]; });
   });
@@ -94,6 +105,7 @@ export function calcular(i: Insumos): Indicadores {
     ahorroCorriente:               i.ingresosCorrientes - i.funcionamiento,
     servicioDeudaSobreCorrientes:  ratio(i.servicioDeuda, i.ingresosCorrientes),
     balanceSobreIngresos:          ratio(i.recursosBalance, i.ingresosTotales),
+    // Bug 5: la base solo trae superavit_deficit (con balance); SIMHO publica ambos resultados.
     resultadoConBalance:           i.ingresosTotales - i.totalEgresos,
     resultadoSinBalance:           i.ingresosDelAnio - i.totalEgresos,
     ejecucion:                     ratio(i.totalEgresos, i.presupuesto),
@@ -104,9 +116,9 @@ export const indicadoresMunicipio = (m: Municipality) => calcular(insumos(m));
 /** `rows` de un solo año: con varios años la población se suma entre años. */
 export const indicadoresAgregados = (rows: Municipality[]) => calcular(sumarInsumos(rows));
 
-/** Mediana municipal de un indicador; ignora null. */
+/** Mediana municipal de un indicador; ignora null y filas sin liquidación. */
 export function mediana(rows: Municipality[], k: keyof Indicadores): number | null {
-  const v = rows.map((m) => indicadoresMunicipio(m)[k]).filter((x): x is number => x != null).sort((a, b) => a - b);
+  const v = rows.filter((m) => !sinLiquidacion(m)).map((m) => indicadoresMunicipio(m)[k]).filter((x): x is number => x != null).sort((a, b) => a - b);
   if (!v.length) return null;
   const h = v.length >> 1;
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;

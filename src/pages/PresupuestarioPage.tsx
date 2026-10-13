@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, indicadoresMunicipio, insumos, Indicadores } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, indicadoresMunicipio, insumos, sinLiquidacion, Indicadores } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { muniKey } from '../utils/sefin';
@@ -371,7 +371,7 @@ const PresupuestarioPage = () => {
                   <td className={`text-right font-bold ${
                     indicadoresMunicipio(mun).resultadoSinBalance > 0 ? 'text-green-600' : 'text-red-600'
                   } ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
-                    {formatCurrency(indicadoresMunicipio(mun).resultadoSinBalance)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(indicadoresMunicipio(mun).resultadoSinBalance)}
                   </td>
                 </tr>
               ))}
@@ -660,6 +660,7 @@ const PresupuestarioPage = () => {
 
     const latestYear = selectedMunicipalityData[0];
     const latestInd  = indicadoresMunicipio(latestYear);
+    const latestSL   = sinLiquidacion(latestYear);
 
     const kpis = [
       {
@@ -671,14 +672,14 @@ const PresupuestarioPage = () => {
       },
       {
         title: 'Autonomía',
-        value: latestInd.autonomia === null ? '—' : `${latestInd.autonomia.toFixed(1)}%`,
+        value: latestSL ? ROTULO_SIN_LIQUIDACION : latestInd.autonomia === null ? '—' : `${latestInd.autonomia.toFixed(1)}%`,
         icon: '📈',
         color: 'bg-purple-50 border-purple-200',
         textColor: 'text-purple-700',
       },
       {
         title: 'Resultado sin balance',
-        value: formatCurrency(latestInd.resultadoSinBalance),
+        value: latestSL ? ROTULO_SIN_LIQUIDACION : formatCurrency(latestInd.resultadoSinBalance),
         icon: latestInd.resultadoSinBalance > 0 ? '✅' : '⚠️',
         color: latestInd.resultadoSinBalance > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200',
         textColor: latestInd.resultadoSinBalance > 0 ? 'text-emerald-700' : 'text-red-700',
@@ -903,7 +904,8 @@ const PresupuestarioPage = () => {
         {selectedMunicipalityData.length > 0 && (() => {
           const m = selectedMunicipalityData[0];
           const ind = indicadoresMunicipio(m);
-          const af = ind.autonomia;
+          const sl = sinLiquidacion(m);
+          const af = sl ? null : ind.autonomia;
           const fmtM = (n: number) => n >= 1_000_000_000
             ? `L ${(n / 1_000_000_000).toFixed(1)} mil M`
             : n >= 1_000_000
@@ -914,7 +916,7 @@ const PresupuestarioPage = () => {
             { title: 'Presupuesto',      value: fmtM(m.presupuesto_municipal ?? 0),             color: '#2dd4bf' },
             { title: 'Ingresos Corrientes', value: fmtM(ind.ingresosCorrientes),               color: '#2dd4bf' },
             { title: 'Transferencias',   value: fmtM(insumos(m).transferencias),                       color: '#f59e0b' },
-            { title: 'Autonomía',        value: af === null ? '—' : `${af.toFixed(1)}%`,        color: '#8b5cf6' },
+            { title: 'Autonomía',        value: sl ? ROTULO_SIN_LIQUIDACION : af === null ? '—' : `${af.toFixed(1)}%`, color: '#8b5cf6' },
             { title: ROTULO_POBLACION,    value: fmtPop.format(m.population ?? 0) + ' hab.',     color: '#e8eef6' },
           ];
           return (
@@ -1141,14 +1143,16 @@ const PresupuestarioPage = () => {
                             </td>
                           );
                         })}
-                        {SIMHO_COLUMNS.map(col => {
+                        {SIMHO_COLUMNS.map((col, ci) => {
                           const v = ind[col.key];
+                          const sl = sinLiquidacion(m);
                           return (
                             <td key={col.key} style={{
                               padding: '8px 10px', textAlign: 'right', whiteSpace: 'nowrap',
                               borderRight: '1px solid #1a2232', color: '#5eead4',
                             }}>
-                              {v === null ? '—' : v.toLocaleString('en-US', { maximumFractionDigits: col.pct ? 1 : 0 })}
+                              {sl ? (ci === 0 ? ROTULO_SIN_LIQUIDACION : '—')
+                                : v === null ? '—' : v.toLocaleString('en-US', { maximumFractionDigits: col.pct ? 1 : 0 })}
                             </td>
                           );
                         })}

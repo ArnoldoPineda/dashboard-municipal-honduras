@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, insumos, indicadoresMunicipio, indicadoresAgregados } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
@@ -141,10 +141,10 @@ function formatValue(metric: MetricKey, value: number): string {
   return `L ${value.toFixed(1)}M`;
 }
 
-/** Valor agregado de varias filas (un año): suma, salvo autonomía (Σ/Σ en lib/indicadores). */
+/** Valor agregado de varias filas (un año), sin filas sin liquidación: suma, salvo autonomía (Σ/Σ). */
 function getAggMetricValue(recs: any[], metric: MetricKey): number {
   if (metric === 'autonomia') return indicadoresAgregados(recs).autonomia ?? 0;
-  return recs.reduce((s, m) => s + getMetricValue(m, metric), 0);
+  return recs.filter(m => !sinLiquidacion(m)).reduce((s, m) => s + getMetricValue(m, metric), 0);
 }
 
 // Identidad de municipio = "DEPARTAMENTO|nombre": hay 24 nombres repetidos entre departamentos.
@@ -170,7 +170,7 @@ function getMetricLabel(metric: MetricKey): string {
 
 /** Montos SEFIN (millones) e indicadores de lib/indicadores para una o varias filas de un año. */
 function getAggFinCats(recs: any[]) {
-  const mill = (k: string) => Math.round(recs.reduce((t, m) => t + (Number(m[k]) || 0), 0) / 1_000_000);
+  const mill = (k: string) => Math.round(recs.filter(m => !sinLiquidacion(m)).reduce((t, m) => t + (Number(m[k]) || 0), 0) / 1_000_000);
   const ind  = indicadoresAgregados(recs);
   const r1   = (v: number | null) => (v === null ? 0 : Math.round(v * 10) / 10);
   return {
@@ -562,7 +562,7 @@ function FinancialChartsSection({
       const recs = mode === 'muni'
         ? municipalities.filter(m => muniId(m) === entity && m.year === effectiveFinYear)
         : municipalities.filter(m => m.department === entity && m.year === effectiveFinYear);
-      if (!recs.length) return null;
+      if (!recs.length || (mode === 'muni' && sinLiquidacion(recs[0]))) return null;
       const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
       return { name: mode === 'muni' ? labels[entity] : entity, ...fc };
     }).filter(Boolean) as any[];
@@ -688,7 +688,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
     const grouped: Record<number, any> = {};
     municipalities.forEach(m => {
       const id = muniId(m);
-      if (!selected.includes(id) || !years.includes(m.year)) return;
+      if (!selected.includes(id) || !years.includes(m.year) || sinLiquidacion(m)) return;
       if (!grouped[m.year]) grouped[m.year] = { year: m.year };
       grouped[m.year][labels[id]] = Math.round(getMetricValue(m, metric) * 10) / 10;
     });
@@ -700,7 +700,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
       const row: any = { label: labels[id] };
       years.forEach(y => {
         const rec = municipalities.find(m => muniId(m) === id && m.year === y);
-        row[`y_${y}`] = rec ? formatValue(metric, getMetricValue(rec, metric)) : null;
+        row[`y_${y}`] = !rec ? null : sinLiquidacion(rec) ? ROTULO_SIN_LIQUIDACION : formatValue(metric, getMetricValue(rec, metric));
       });
       return row;
     });
@@ -1066,7 +1066,7 @@ function ModeHistorica({ municipalities }: { municipalities: any[] }) {
     return YEARS.map(y => {
       const rec = recs.find(m => m.year === y);
       const row: any = { year: y };
-      if (rec) metrics.forEach(k => { row[k] = Math.round(getMetricValue(rec, k) * 10) / 10; });
+      if (rec && !sinLiquidacion(rec)) metrics.forEach(k => { row[k] = Math.round(getMetricValue(rec, k) * 10) / 10; });
       return row;
     });
   }, [municipalities, muniName, dept, metrics]);

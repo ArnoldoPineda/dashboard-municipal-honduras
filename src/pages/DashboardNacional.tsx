@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ROTULO_POBLACION, sumarInsumos, calcular, indicadoresMunicipio, mediana } from '../lib/indicadores';
+import { ROTULO_POBLACION, sumarInsumos, calcular, indicadoresMunicipio, mediana, sinLiquidacion } from '../lib/indicadores';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Area, AreaChart,
@@ -125,8 +125,10 @@ export default function DashboardNacional() {
   // Aggregate KPIs for selected year
   const kpis = useMemo(() => {
     if (byYear.length === 0) return null;
-    const totalMunis = byYear.length;
-    // Bug 5: la autonomía nacional era el promedio simple de autonomia_financiera; ahora Σ/Σ (lib/indicadores).
+    // Filas sin liquidación: fuera de totales, promedios y mediana (docs/ATIPICOS.md §2).
+    const sinLiq = byYear.filter(sinLiquidacion).length;
+    const totalMunis = byYear.length - sinLiq;
+    // Autonomía: cifra principal = mediana municipal; segunda línea = agregado nacional Σ/Σ.
     const ins = sumarInsumos(byYear);
     const pop = ins.poblacion;
     const presup = ins.presupuesto;
@@ -135,7 +137,7 @@ export default function DashboardNacional() {
     const autonomiaMediana = mediana(byYear, 'autonomia');
     const topMuni = [...byYear].sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
     const depts = new Set(byYear.map((m) => normDept(m.department))).size;
-    return { totalMunis, pop, presup, propios, autonomia, autonomiaMediana, depts, topMuni };
+    return { totalMunis, sinLiq, pop, presup, propios, autonomia, autonomiaMediana, depts, topMuni };
   }, [byYear]);
 
   // Department bar chart data
@@ -170,8 +172,8 @@ export default function DashboardNacional() {
         presup:  ins.presupuesto,
         propios: ins.ingresosCorrientes,
         pop:     ins.poblacion,
-        // Misma métrica que el KPI: Σ corrientes ÷ Σ ingresos del año.
-        autonomia: calcular(ins).autonomia ?? 0,
+        // Serie principal: mediana municipal, igual que el KPI.
+        autonomia: mediana(ym, 'autonomia') ?? 0,
         munis:   ym.length,
       };
     }).filter((t): t is NonNullable<typeof t> => t !== null);
@@ -190,6 +192,7 @@ export default function DashboardNacional() {
   const sparkPresup  = trendYears.map(t => t.presup);
   const sparkPropios = trendYears.map(t => t.propios);
   const sparkPop     = trendYears.map(t => t.pop);
+  const sparkAut     = trendYears.map(t => t.autonomia);
 
   const tickStyle = { fill: '#7c8aa3', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif" };
 
@@ -263,7 +266,7 @@ export default function DashboardNacional() {
         ) : (
           <>
             <KpiCard label="Municipios" value={`${kpis.totalMunis}`}
-              sub="registrados" />
+              sub={kpis.sinLiq ? `con liquidación · ${kpis.sinLiq} sin liquidación` : 'con liquidación'} />
             <KpiCard label={ROTULO_POBLACION} value={fmtNum(kpis.pop)}
               sub={`~${fmtNum(Math.round(kpis.pop / kpis.totalMunis))} prom`}
               {...pctChange(kpis.pop, prevYear?.pop)} sparkData={sparkPop} />
@@ -273,12 +276,13 @@ export default function DashboardNacional() {
             <KpiCard label="Ing. Corrientes" value={fmtB(kpis.propios)}
               sub={`${((kpis.propios / kpis.presup) * 100).toFixed(1)}% del presup`}
               {...pctChange(kpis.propios, prevYear?.propios)} sparkData={sparkPropios} />
-            <KpiCard label="Autonomía" value={`${kpis.autonomia.toFixed(1)}%`}
-              sub={kpis.autonomiaMediana === null ? 'nacional' : `nacional · mediana municipal ${kpis.autonomiaMediana.toFixed(1)}%`}
-              {...(prevYear ? {
-                trend: `${kpis.autonomia - prevYear.autonomia >= 0 ? '+' : ''}${(kpis.autonomia - prevYear.autonomia).toFixed(1)} pp`,
-                trendUp: kpis.autonomia >= prevYear.autonomia,
-              } : {})} />
+            <KpiCard label="Autonomía (mediana municipal)"
+              value={kpis.autonomiaMediana === null ? '—' : `${kpis.autonomiaMediana.toFixed(1)}%`}
+              sub={`Agregado nacional: ${kpis.autonomia.toFixed(1)} %`}
+              {...(prevYear && kpis.autonomiaMediana !== null ? {
+                trend: `${kpis.autonomiaMediana - prevYear.autonomia >= 0 ? '+' : ''}${(kpis.autonomiaMediana - prevYear.autonomia).toFixed(1)} pp`,
+                trendUp: kpis.autonomiaMediana >= prevYear.autonomia,
+              } : {})} sparkData={sparkAut} />
             <KpiCard label="Departamentos" value={`${kpis.depts}`}
               sub="con datos SEFIN" />
           </>
@@ -383,7 +387,7 @@ export default function DashboardNacional() {
                   </tr>
                 ))
               ) : (
-                [...byYear]
+                byYear.filter(m => !sinLiquidacion(m))
                   .sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))
                   .slice(0, 12)
                   .map((m, i) => (

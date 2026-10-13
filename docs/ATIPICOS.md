@@ -32,7 +32,22 @@ Aparecen en "corrientes en cero", "sin egresos" y, salvo Puerto Lempira, en "ing
 | 2024 | San Antonio de Flores (El Paraíso 11) | L 0.01 M | 0 | L 18.3 M |
 | 2025 | Pespire (Choluteca 11) | L 0.01 M | 0 | L 32.2 M |
 
-Efecto en SIMHO: autonomía 0 % o vacía, resultado ≈ 0, y la fila entra en los agregados departamentales y nacionales como si hubiera reportado. Decisión pendiente: `[PENDIENTE]` excluir estas filas de agregados y medianas, o mostrarlas con la etiqueta "sin liquidación".
+**Decisión (2026-10-13): se excluyen y se rotulan "Sin liquidación".**
+
+- Criterio único: `sinLiquidacion()` en `src/lib/indicadores.ts`, que exige egresos ≤ 0 **y** ingresos corrientes = 0. Marca exactamente estas 4 filas.
+- Quedan fuera de todos los totales (presupuesto, población, ingresos, egresos), de los agregados Σ/Σ, de las medianas, de los rankings y de la referencia departamental. `sumarInsumos()`, `mediana()` y `aggregate()` las filtran en un solo lugar.
+- Se muestran como "Sin liquidación" en la ficha municipal, en Detalle Municipio (sin indicadores), en Datos Financieros (tarjetas y columnas SIMHO), en Análisis (encabezado del año), en la lista de Vista Departamental, en Comparativos (celda de la tabla) y en Rankings (encabezado: "excluidos").
+- Efecto en el Dashboard Nacional: "Municipios" cuenta solo los que tienen liquidación (297 en 2021, 2023, 2024 y 2025; 298 en 2022).
+
+Autonomía municipal, sin estas filas:
+
+| Año | Mediana municipal | Agregado nacional (Σ/Σ) |
+|---|---|---|
+| 2021 | 12.4 % | 55.1 % |
+| 2022 | 13.9 % | 60.6 % |
+| 2023 | 13.8 % | 58.4 % |
+| 2024 | 11.4 % | 52.9 % |
+| 2025 | 17.4 % | 60.2 % |
 
 ## 3. Egresos mayores que el doble del presupuesto aprobado (19 filas)
 
@@ -57,6 +72,8 @@ Efecto en SIMHO: autonomía 0 % o vacía, resultado ≈ 0, y la fila entra en lo
 | 2024 | La Unión (Lempira 11) | L 68.0 M | L 24.3 M | 280 % |
 | 2024 | Belén Gualcho (Ocotepeque 02) | L 49.4 M | L 22.1 M | 223 % |
 | 2025 | La Unión (Copán 12) | L 194.8 M | L 93.7 M | 208 % |
+
+**Decisión:** la ejecución no se usa en Rankings ni en Comparativos (nunca estuvo en esas páginas) hasta tener el presupuesto vigente. En Detalle Municipio se muestra como "Ejecución (vs. presupuesto aprobado)", con ⚠ por encima de 150 % (`UMBRAL_EJECUCION`).
 
 Lectura probable: la base trae solo el presupuesto **aprobado**; las ampliaciones del año (transferencias extraordinarias, donaciones, recursos de balance incorporados) no están. Por eso la ejecución se rotula "vs. presupuesto aprobado". La Unión (Lempira) se repite cuatro años seguidos.
 

@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
-import { sumarInsumos, calcular, Indicadores } from '../lib/indicadores';
+import { sumarInsumos, calcular, sinLiquidacion, ROTULO_SIN_LIQUIDACION, Indicadores } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -77,7 +77,9 @@ interface YearData extends Indicadores {
   superavit_deficit:        number;
 }
 
-function aggregate(rows: Municipality[]): YearData {
+/** Agregado del ámbito, sin filas sin liquidación (docs/ATIPICOS.md §2). */
+function aggregate(all: Municipality[]): YearData {
+  const rows = all.filter(m => !sinLiquidacion(m));
   const s = (k: keyof Municipality) => sumField(rows, k);
   const ins = sumarInsumos(rows);
   return {
@@ -241,6 +243,8 @@ export default function AnalyticsPage() {
   }, [municipalities, deptName]);
   const muniName  = useMemo(() => deptMunis.find(m => m.id === muniId)?.name ?? '', [deptMunis, muniId]);
 
+  // Años en que el municipio elegido no tiene liquidación (sus columnas se rotulan así).
+  const sinLiqYears = new Set<number>();
   const yearDataMap = useMemo(() => {
     const map: Record<number, YearData> = {};
     for (const year of activeYears) {
@@ -261,6 +265,12 @@ export default function AnalyticsPage() {
     }
     return map;
   }, [municipalities, scope, deptName, muniName, activeYears]);
+  if (scope === 'municipio') {
+    municipalities.forEach(m => {
+      if (sinLiquidacion(m) && m.department && m.name && norm(m.department) === norm(deptName)
+        && norm(m.name) === norm(muniName)) sinLiqYears.add(Number(m.year));
+    });
+  }
 
   const scopeLabel = useMemo(() => {
     if (scope === 'municipio' && muniName) return `${muniName} — ${deptName}`;
@@ -491,6 +501,9 @@ export default function AnalyticsPage() {
                       minWidth: 108,
                     }}>
                       {y}
+                      {sinLiqYears.has(y) && (
+                        <div style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>⚠ {ROTULO_SIN_LIQUIDACION}</div>
+                      )}
                     </th>
                   ))}
                 </tr>

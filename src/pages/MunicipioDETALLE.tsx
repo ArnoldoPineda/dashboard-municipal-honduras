@@ -354,14 +354,12 @@ export default function MunicipioDETALLE() {
     },
     {
       key: 'ing_no_tributarios',
-      title: 'G2 — Ingresos No Tributarios Propios',
+      title: 'G2 — Ingresos No Tributarios',
       color: '#f59e0b',
       amount: g2,
-      note: 'Tasas por Servicios y Derechos se muestran aquí solo como referencia cruzada — ya están contabilizados en G1.',
+      note: 'Tasas por Servicios y Derechos son tributarios: se cuentan una sola vez, en G1.',
       rows: [
-        { label: 'Tasas por Servicios (→ G1)',     value: fmZ(sb.tasas_servicios) },
-        { label: 'Derechos (→ G1)',                 value: fmZ(sb.derechos)        },
-        { label: 'Otros (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios ?? 0) },
+        { label: 'Ingresos No Tributarios (multas, mora, recargos)', value: fmZ(sb.ingresos_no_tributarios ?? 0) },
       ],
     },
     {

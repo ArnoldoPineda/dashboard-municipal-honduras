@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, indicadoresMunicipio, insumos, sinLiquidacion, Indicadores } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout.tsx';
-import { DEPARTAMENTOS, nombreDepartamento } from '../data/departamentos';
+import { DEPARTAMENTOS, nombreDepartamento, codigoINE } from '../data/departamentos';
 import { muniKey } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
@@ -28,17 +28,8 @@ import {
 const normalize = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-const COD_DEP_MAP: Record<string, string> = {
-  'atlantida': '01', 'colon': '02', 'comayagua': '03', 'copan': '04',
-  'cortes': '05', 'choluteca': '06', 'el paraiso': '07', 'francisco morazan': '08',
-  'gracias a dios': '09', 'intibuca': '10', 'islas de la bahia': '11', 'la paz': '12',
-  'lempira': '13', 'ocotepeque': '14', 'olancho': '15', 'santa barbara': '16',
-  'valle': '17', 'yoro': '18',
-};
-
 const SEFIN_COLUMNS: { key: string; header: string; isText?: boolean }[] = [
-  { key: 'cod_dep',                    header: 'COD. DEP',                          isText: true },
-  { key: 'cod_mun',                    header: 'COD. MUN.',                         isText: true },
+  { key: 'cod_ine',                    header: 'COD. INE',                          isText: true },
   { key: 'department',                 header: 'DEPARTAMENTO',                      isText: true },
   { key: 'name',                       header: 'MUNICIPIO',                         isText: true },
   { key: 'categoria',                  header: ROTULO_CATEGORIA.toUpperCase(),       isText: true },
@@ -1012,12 +1003,10 @@ const PresupuestarioPage = () => {
                 <tbody>
                   {sefinTableData.map((m) => {
                     const cat = m.category ?? '';
-                    const codDep = COD_DEP_MAP[normalize(m.department || '')] || '';
                     const catColor: Record<string, string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
                     const ind = indicadoresMunicipio(m);
                     const row: Record<string, any> = {
-                      cod_dep: codDep,
-                      cod_mun: m.code != null ? String(m.code) : '',
+                      cod_ine: codigoINE(m.department, m.code),
                       department: nombreDepartamento(m.department),
                       name: m.name || '',
                       categoria: cat,

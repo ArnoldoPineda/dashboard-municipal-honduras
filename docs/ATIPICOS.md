@@ -11,6 +11,7 @@ Reglas: `atipicos()` en `src/lib/indicadores.ts`. Una señal no corrige ni exclu
 | Ingresos corrientes en cero | G1 + G2 = 0 con ingresos totales > 0 | 4 |
 | Ingresos del año ≤ 0 | totales − balance − préstamos − bonos ≤ 0, con totales > 0 | 3 |
 | Autonomía > 100 % | corrientes > ingresos del año | 0 |
+| Autonomía ≥ 99 % (dato incompleto) | `datoIncompleto()`: con liquidación y autonomía ≥ 99 % | 5 |
 | Sin población | `population` ≤ 0 o nula | 0 |
 | Sin egresos reportados | `total_egresos` ≤ 0 | 4 |
 | Sin ingresos reportados | `ingresos_recaudados` ≤ 0 | 0 |
@@ -82,3 +83,35 @@ Otro caso para revisar fuera de reglas: Las Vegas (Santa Bárbara) 2021 tiene tr
 ## 4. Siguatepeque 2025
 
 Sin señales.
+
+## 5. Autonomía ≥ 99 %: dato incompleto (5 filas)
+
+En las cinco filas, Art. 91 y otras transferencias valen 0, **tanto en Supabase como en el Excel fuente** (hoja del año, columnas 34 y 35). No es un error de importación: la fuente SEFIN no trae las transferencias. El Excel no tiene notas sobre estos municipios.
+
+| Año | Municipio | Autonomía | Ingresos totales | Egresos | Art. 91 del año anterior | Lectura |
+|---|---|---|---|---|---|---|
+| 2022 | La Ceiba (Atlántida 01) | 99.1 % | L 385.0 M | L 360.3 M | 0 (2021) | Art. 91 en 0 también en 2021; desde 2023 trae Art. 91 (L 3.4 M, L 10.4 M, L 2.3 M). |
+| 2022 | Santa Fé (Ocotepeque 14) | 100.0 % | L 2.4 M | L 17.8 M | — | Ingresos solo corrientes; egresos 7.6 × ingresos. |
+| 2024 | Esquipulas del Norte (Olancho 07) | 100.0 % | L 1.8 M | L 31.5 M | — | Ingresos solo corrientes; egresos 17 × ingresos. |
+| 2025 | El Triunfo (Choluteca 06) | 100.0 % | L 17.8 M | L 17.4 M | L 17.0 M (2024) | Recibió entre L 17.0 M y L 28.5 M de Art. 91 en 2021–2024. |
+| 2025 | San Juan Guarita (Lempira 18) | 100.0 % | L 0.9 M | L 19.1 M | L 31.4 M (2024) | Ingresos solo corrientes; egresos 22 × ingresos. |
+
+**Decisión (2026-10-13):** se muestran con ⚠ y tooltip ("Dato incompleto") en Rankings, Comparativos (tabla de autonomía), la ficha del mapa y Detalle Municipio, y se excluyen **del ranking de autonomía** y de su referencia departamental. En las demás métricas siguen en el ranking, con el ⚠ junto al nombre.
+
+Se mantienen en la mediana y en el agregado nacional, porque la instrucción fue excluirlos del ranking. Su efecto en la mediana municipal es menor: 2025 pasa de 17.4 % a 17.0 % si se excluyen, 2022 de 13.9 % a 13.8 % y 2024 de 11.4 % a 11.4 %. `[PENDIENTE]` decidir si también salen de mediana y agregado.
+
+## 6. Rendiciones parciales según las notas del Excel fuente
+
+Las hojas 2021, 2022, 2024 y 2025 traen notas al pie que la base no conserva:
+
+| Año | Nota del Excel | Tratamiento en SIMHO |
+|---|---|---|
+| 2021 | Puerto Lempira: rendición al tercer trimestre | Sin liquidación (§2) |
+| 2021 | Wampusirpe: rendición al tercer trimestre | **Sin marca**: ingresos L 20.4 M, egresos L 10.3 M; cifras de 9 meses tratadas como año completo |
+| 2022 | San Antonio de Flores: rendición al primer trimestre | **Sin marca**: ingresos L 0.43 M, egresos L 0.48 M; cifras de 3 meses |
+| 2024 | San Antonio de Flores: información al tercer trimestre con datos en cero | Sin liquidación (§2) |
+| 2025 | Pespire: información al primer trimestre | Sin liquidación (§2) |
+
+`[PENDIENTE]` decidir si Wampusirpe 2021 y San Antonio de Flores 2022 se marcan como "Dato incompleto" (rendición parcial).
+
+Las hojas 2021 y 2022 también dicen: "Categoría Municipal establecida por la SGJD 2020". Es la fuente de la columna `category` que la app usa hoy.

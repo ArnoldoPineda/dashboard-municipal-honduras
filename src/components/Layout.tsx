@@ -71,7 +71,7 @@ const NAV_ITEMS = [
   { to: '/',             label: 'Mapa Interactivo',  icon: <IconMap />,      exact: true },
   { to: '/dashboard',    label: 'Panorama Nacional', icon: <IconDashboard />, exact: false },
   { to: '/muni-detalle', label: 'Ficha Municipal',    icon: <IconBuilding />,  exact: false, alias: '/municipio/' },
-  { to: '/financiero',   label: 'Datos Financieros',  icon: <IconDollar />,    exact: false },
+  { to: '/financiero',   label: 'Base de Datos',  icon: <IconDollar />,    exact: false },
   { to: '/analisis',     label: 'Análisis',            icon: <IconTrend />,     exact: false },
   { to: '/comparativos', label: 'Comparativos',        icon: <IconScale />,     exact: false },
   { to: '/rankings',     label: 'Rankings',            icon: <IconTrophy />,    exact: false },

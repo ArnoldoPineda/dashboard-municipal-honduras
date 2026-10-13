@@ -8,6 +8,7 @@ export type Municipality = {
   code: number | null;
   name: string | null;
   department: string | null;
+  category: string | null;
   year: number;
   population: number | null;
   presupuesto_municipal: number | null;

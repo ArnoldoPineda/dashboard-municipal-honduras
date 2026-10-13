@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA } from '../lib/indicadores';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { muniKey, deptSlug, categoryOf, NO_DATA_MSG } from '../utils/sefin';
+import { muniKey, deptSlug, NO_DATA_MSG } from '../utils/sefin';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -32,10 +32,7 @@ function formatMoney(n: number): string {
 }
 
 const CATEGORIA_LABEL: Record<string, string> = {
-  A: 'Categoría A — Municipio Grande',
-  B: 'Categoría B — Municipio Mediano',
-  C: 'Categoría C — Municipio Intermedio',
-  D: 'Categoría D — Municipio Pequeño',
+  A: 'Categoría A', B: 'Categoría B', C: 'Categoría C', D: 'Categoría D',
 };
 
 // Códigos INE de departamento (mismos que PresupuestarioPage). Antes estaban en orden
@@ -314,7 +311,7 @@ export default function MunicipioDETALLE() {
         { label: 'Cód. Municipio',      value: codMun },
         { label: 'Departamento',        value: deptNombre },
         { label: 'Municipio',           value: sb.name ?? '' },
-        { label: 'Categoría Municipal', value: CATEGORIA_LABEL[categoryOf(sb.presupuesto_municipal ?? 0)] },
+        { label: ROTULO_CATEGORIA,      value: CATEGORIA_LABEL[sb.category ?? ''] ?? '—' },
         { label: ROTULO_POBLACION,      value: fmtP.format(Number(sb.population ?? 0)) + ' hab.' },
       ],
     },

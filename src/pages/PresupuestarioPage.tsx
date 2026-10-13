@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { DEPARTAMENTOS } from '../data/departamentos';
-import { muniKey, categoryOf, autonomia } from '../utils/sefin';
+import { muniKey, autonomia } from '../utils/sefin';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -39,7 +39,7 @@ const SEFIN_COLUMNS: { key: string; header: string; isText?: boolean }[] = [
   { key: 'cod_mun',                    header: 'COD. MUN.',                         isText: true },
   { key: 'department',                 header: 'DEPARTAMENTO',                      isText: true },
   { key: 'name',                       header: 'MUNICIPIO',                         isText: true },
-  { key: 'categoria',                  header: 'CATEGORIA',                         isText: true },
+  { key: 'categoria',                  header: ROTULO_CATEGORIA.toUpperCase(),       isText: true },
   { key: 'population',                 header: ROTULO_POBLACION.toUpperCase() },
   { key: 'presupuesto_municipal',      header: 'PRESUPUESTO MUNICIPAL' },
   { key: 'gastos_presupuestados',      header: 'GASTOS PRESUPUESTADOS' },
@@ -152,7 +152,7 @@ const PresupuestarioPage = () => {
         if (m.year !== year) return false;
         if (deptNorm && normalize(m.department || '') !== deptNorm) return false;
         if (muniSearch.trim() && !normalize(m.name || '').includes(normalize(muniSearch))) return false;
-        if (selectedCategoria && categoryOf(m.presupuesto_municipal ?? 0) !== selectedCategoria) return false;
+        if (selectedCategoria && m.category !== selectedCategoria) return false;
         if (presupuestoMin > 0 && (m.presupuesto_municipal || 0) < presupuestoMin) return false;
         return true;
       })
@@ -835,7 +835,7 @@ const PresupuestarioPage = () => {
 
             {/* CATEGORÍA pills */}
             <div>
-              <span style={FLABEL}>CATEGORÍA</span>
+              <span style={FLABEL} title={ROTULO_CATEGORIA}>CATEGORÍA (SEFIN)</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {['Todas', 'A', 'B', 'C', 'D'].map(cat => {
                   const isActive = cat === 'Todas' ? selectedCategoria === '' : selectedCategoria === cat;
@@ -1004,7 +1004,7 @@ const PresupuestarioPage = () => {
                 </thead>
                 <tbody>
                   {sefinTableData.map((m, i) => {
-                    const cat = categoryOf(m.presupuesto_municipal ?? 0);
+                    const cat = m.category ?? '';
                     const codDep = COD_DEP_MAP[normalize(m.department || '')] || '';
                     const catColor: Record<string, string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
                     const row: Record<string, any> = {

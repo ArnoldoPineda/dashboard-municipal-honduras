@@ -5,7 +5,7 @@ jest.mock('../hooks/useMunicipalities', () => ({ useMunicipalitiesMultiYear: () 
 import type { Municipality } from '../hooks/useMunicipalities';
 import {
   normName, muniKey, deptSlug, muniPath, sumField, autonomia,
-  categoryOf, aggregate, groupByDept, aggregateByDept,
+  aggregate, groupByDept, aggregateByDept,
 } from './sefin';
 
 // Fábrica: todo null salvo lo que se pasa.
@@ -59,14 +59,6 @@ describe('autonomia', () => {
   it('recaudados 0 → null', () => expect(autonomia(5, 0)).toBeNull());
   it('recaudados negativo → null', () => expect(autonomia(5, -10)).toBeNull());
   it('propios 0 con recaudados > 0 → 0', () => expect(autonomia(0, 100)).toBe(0));
-});
-
-describe('categoryOf', () => {
-  it.each([
-    [500_000_001, 'A'], [500_000_000, 'B'], [150_000_001, 'B'], [150_000_000, 'C'],
-    [50_000_001, 'C'], [50_000_000, 'D'], [0, 'D'],
-  ])('%d → %s', (v, c) => expect(categoryOf(v as number)).toBe(c));
-  it('negativo → D', () => expect(categoryOf(-1)).toBe('D'));
 });
 
 describe('aggregate', () => {

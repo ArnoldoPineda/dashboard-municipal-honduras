@@ -2,12 +2,13 @@ import React, {
   useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
+import { ROTULO_CATEGORIA } from '../lib/indicadores';
 import { ROTULO_POBLACION } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
-import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, categoryOf, muniPath } from '../utils/sefin';
+import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
@@ -277,7 +278,7 @@ export default function VistaDepartamental() {
       code:     m.code ?? 0,
       name:     m.name ?? '',
       budget:   m.presupuesto_municipal ?? 0,
-      category: categoryOf(m.presupuesto_municipal ?? 0), // Supabase no trae categoría
+      category: m.category ?? '',
       path:     muniPath(m),
     })),
     [deptRows]
@@ -471,7 +472,7 @@ export default function VistaDepartamental() {
                       </span>
                     )}
                     {indicator === 'categorias' && (
-                      <span style={{
+                      <span title={ROTULO_CATEGORIA} style={{
                         fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
                         color: CAT_COLORS[cat], background: CAT_COLORS[cat] + '18',
                         border: `1px solid ${CAT_COLORS[cat]}30`, borderRadius: 3, padding: '1px 5px',

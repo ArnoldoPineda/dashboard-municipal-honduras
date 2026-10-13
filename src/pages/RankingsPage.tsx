@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
@@ -10,13 +10,6 @@ import { NO_DATA_MSG, muniKey } from '../utils/sefin';
 type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'gastosCapital' | 'superavit';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getCategory(budget: number): string {
-  if (budget > 3_000_000_000) return 'A';
-  if (budget > 1_200_000_000) return 'B';
-  if (budget > 400_000_000)   return 'C';
-  return 'D';
-}
 
 const CAT_COLORS: Record<string, string> = {
   A: '#00d4b8', B: '#3a9bd6', C: '#f59e0b', D: '#7c8aa3',
@@ -61,6 +54,7 @@ function toRow(m: Municipality) {
     departamentoId: deptId,
     poblacion:     m.population ?? 0,
     presupuesto:   m.presupuesto_municipal ?? 0,
+    categoria:     m.category ?? '',
     ingresosPropios: m.ingresos_propios ?? 0,
     ingresosRecaudados: m.ingresos_recaudados ?? 0,
     otros:         m.gastos_capital_deuda ?? 0,
@@ -280,7 +274,7 @@ export default function RankingsPage() {
           {/* Header row */}
           <div style={{ display: 'grid', gridTemplateColumns: GRID }}>
             {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'vs DEPTO', 'RELATIVO'].map(h => (
-              <div key={h} style={{ ...TH, textAlign: h === 'VALOR' || h === 'vs DEPTO' ? 'right' : 'left' }}>
+              <div key={h} title={h === 'CAT.' ? ROTULO_CATEGORIA : undefined} style={{ ...TH, textAlign: h === 'VALOR' || h === 'vs DEPTO' ? 'right' : 'left' }}>
                 {h}
               </div>
             ))}
@@ -295,7 +289,7 @@ export default function RankingsPage() {
             const barPct     = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
             const prevRank   = prevRankMap[muni.id];
             const movement   = prevRank ? prevRank - globalRank : null;
-            const cat        = getCategory(muni.presupuesto);
+            const cat        = muni.categoria;
 
             const rowBg = globalRank === 1
               ? 'rgba(245,196,81,0.06)'

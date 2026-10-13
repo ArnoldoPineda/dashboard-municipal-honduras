@@ -5,6 +5,8 @@ import type { Municipality } from '../hooks/useMunicipalities';
 /** Montos no finitos (NaN, ±Infinity, texto) se tratan como null, es decir, 0 en las sumas. */
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
 export const ROTULO_POBLACION = 'Población: proyección (provisional)';
+/** Rótulo único de la categoría A–D: columna SEFIN `category`, criterio oficial no documentado. */
+export const ROTULO_CATEGORIA = 'Categoría según base SEFIN — criterio por confirmar';
 
 const n = (v: number | string | null | undefined) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const fin = (x: number) => (Number.isFinite(x) ? x : null);

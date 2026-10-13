@@ -27,14 +27,6 @@ export function autonomia(propios: number, recaudados: number): number | null {
   return recaudados > 0 ? (propios / recaudados) * 100 : null;
 }
 
-/** Categoría por presupuesto (regla de la app, no la categoría oficial de la SGJD). */
-export function categoryOf(budget: number): 'A' | 'B' | 'C' | 'D' {
-  if (budget > 500_000_000) return 'A';
-  if (budget > 150_000_000) return 'B';
-  if (budget >  50_000_000) return 'C';
-  return 'D';
-}
-
 export interface SefinAgg {
   count:              number;
   presupuesto:        number;

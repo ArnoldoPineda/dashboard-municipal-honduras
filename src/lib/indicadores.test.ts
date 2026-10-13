@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
-import { indicadoresMunicipio, indicadoresAgregados, mediana, atipicos, sinLiquidacion, sumarInsumos, datoIncompleto } from './indicadores';
+import { indicadoresMunicipio, indicadoresAgregados, mediana, atipicos, sinLiquidacion, sumarInsumos, datoIncompleto, excluirDeEstadisticas, notaDatoIncompleto } from './indicadores';
 
 const M = 1e6;
 const row = (o: Partial<Municipality>) => o as Municipality;
@@ -112,6 +112,23 @@ describe('dato incompleto', () => {
     expect(datoIncompleto(row({ ingresos_recaudados: 100 }))).toBe(false);
     expect(datoIncompleto(siguatepequeExacta)).toBe(false);
     expect(atipicos(r(1000))).toContain('Autonomía ≥ 99 % (dato incompleto)');
+  });
+  it('rendición parcial (Wampusirpe 2021, San Antonio de Flores 2022) → incompleto; otro año no', () => {
+    const w = (year: number) => row({ department: 'GRACIAS A DIOS', code: 6, year, ingresos_recaudados: 100, ingresos_tributarios: 10, total_egresos: 50 });
+    expect(datoIncompleto(w(2021))).toBe(true);
+    expect(notaDatoIncompleto(w(2021))).toMatch(/rendición parcial/);
+    expect(datoIncompleto(w(2022))).toBe(false);
+    expect(notaDatoIncompleto(w(2022))).toBeNull();
+    expect(datoIncompleto(row({ department: 'EL PARAISO', code: 11, year: 2022, ingresos_recaudados: 1, ingresos_tributarios: 0.5, total_egresos: 1 }))).toBe(true);
+  });
+  it('excluirDeEstadisticas: fuera de sumas, agregados y medianas', () => {
+    const inc = row({ ingresos_recaudados: 1000, ingresos_tributarios: 1000, total_egresos: 900, population: 7 });
+    const ok = row({ ingresos_recaudados: 100, ingresos_tributarios: 20, total_egresos: 90, population: 3 });
+    expect(excluirDeEstadisticas(inc)).toBe(true);
+    expect(excluirDeEstadisticas(ok)).toBe(false);
+    expect(sumarInsumos([inc, ok]).poblacion).toBe(3);
+    expect(indicadoresAgregados([inc, ok]).autonomia).toBeCloseTo(20);
+    expect(mediana([inc, ok], 'autonomia')).toBeCloseTo(20);
   });
 });
 

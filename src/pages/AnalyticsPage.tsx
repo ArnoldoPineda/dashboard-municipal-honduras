@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
-import { sumarInsumos, calcular, sinLiquidacion, ROTULO_SIN_LIQUIDACION, Indicadores } from '../lib/indicadores';
+import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, Indicadores } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -77,11 +77,14 @@ interface YearData extends Indicadores {
   superavit_deficit:        number;
 }
 
-/** Agregado del ámbito, sin filas sin liquidación (docs/ATIPICOS.md §2). */
-function aggregate(all: Municipality[]): YearData {
-  const rows = all.filter(m => !sinLiquidacion(m));
+/**
+ * Agregado del ámbito, sin filas excluidas de estadísticas (docs/ATIPICOS.md §2, §5, §6).
+ * `unMunicipio`: vista de un solo municipio; no excluye, muestra sus cifras (la UI marca el ⚠).
+ */
+function aggregate(all: Municipality[], unMunicipio = false): YearData {
+  const rows = unMunicipio ? all : all.filter(m => !excluirDeEstadisticas(m));
   const s = (k: keyof Municipality) => sumField(rows, k);
-  const ins = sumarInsumos(rows);
+  const ins = unMunicipio && rows.length === 1 ? insumos(rows[0]) : sumarInsumos(rows);
   return {
     ...calcular(ins),
     presupuesto_municipal:     s('presupuesto_municipal'),
@@ -259,15 +262,17 @@ export default function AnalyticsPage() {
         );
       }
 
-      map[year] = aggregate(rows);
+      map[year] = aggregate(rows, scope === 'municipio');
     }
     return map;
   }, [municipalities, scope, deptName, muniName, activeYears]);
-  // Años en que el municipio elegido no tiene liquidación (sus columnas se rotulan así).
-  const sinLiqYears = useMemo(() => new Set<number>(scope !== 'municipio' ? [] : municipalities
-    .filter(m => sinLiquidacion(m) && m.department && m.name
-      && norm(m.department) === norm(deptName) && norm(m.name) === norm(muniName))
-    .map(m => Number(m.year))), [municipalities, scope, deptName, muniName]);
+  // Filas del municipio elegido: años sin liquidación (sin cifras) y con dato incompleto (⚠).
+  const muniFilas = useMemo(() => (scope !== 'municipio' ? [] : municipalities
+    .filter(m => m.department && m.name && norm(m.department) === norm(deptName) && norm(m.name) === norm(muniName))),
+    [municipalities, scope, deptName, muniName]);
+  const sinLiqYears = useMemo(() => new Set<number>(muniFilas.filter(sinLiquidacion).map(m => Number(m.year))), [muniFilas]);
+  const notaIncompleto = useMemo(() => new Map<number, string>(muniFilas
+    .flatMap(m => { const t = notaDatoIncompleto(m); return t ? [[Number(m.year), t] as [number, string]] : []; })), [muniFilas]);
 
   const scopeLabel = useMemo(() => {
     if (scope === 'municipio' && muniName) return `${muniName} — ${deptName}`;
@@ -498,6 +503,9 @@ export default function AnalyticsPage() {
                       minWidth: 108,
                     }}>
                       {y}
+                      {notaIncompleto.has(y) && (
+                        <div title={notaIncompleto.get(y)} style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600, cursor: 'help' }}>⚠ {ROTULO_DATO_INCOMPLETO}</div>
+                      )}
                       {sinLiqYears.has(y) && (
                         <div style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>⚠ {ROTULO_SIN_LIQUIDACION}</div>
                       )}

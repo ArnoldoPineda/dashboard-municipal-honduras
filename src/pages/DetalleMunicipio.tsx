@@ -5,7 +5,7 @@ import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
-import { indicadoresMunicipio, sinLiquidacion, datoIncompleto, ROTULO_SIN_LIQUIDACION, NOTA_DATO_INCOMPLETO } from '../lib/indicadores';
+import { indicadoresMunicipio, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 
 const SEFIN_YEARS = ANIOS_SEFIN;
@@ -32,7 +32,7 @@ export default function DetalleMunicipio() {
   const header = row ?? muniRows[muniRows.length - 1] ?? null; // nombre/depto aunque el año no tenga datos
 
   const deptAvg = useMemo(() => {
-    const yearRows = deptRowsAll.filter((m) => m.year === fiscalYear && !sinLiquidacion(m));
+    const yearRows = deptRowsAll.filter((m) => m.year === fiscalYear && !excluirDeEstadisticas(m));
     if (!yearRows.length) return null;
     const figs = yearRows.map(toFigures);
     const avg = (k: keyof ReturnType<typeof toFigures>) => figs.reduce((s, f) => s + f[k], 0) / figs.length;
@@ -129,8 +129,8 @@ export default function DetalleMunicipio() {
 
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 600, color: '#5eead4', flexShrink: 0 }}>
           Autonomía: <strong style={{ color: '#2dd4bf' }}>{af === null ? '—' : `${af.toFixed(1)}%`}</strong>
-          {row && datoIncompleto(row) && (
-            <span title={NOTA_DATO_INCOMPLETO} style={{ color: '#f59e0b', marginLeft: 6, cursor: 'help' }}>⚠</span>
+          {row && notaDatoIncompleto(row) && (
+            <span title={notaDatoIncompleto(row)!} style={{ color: '#f59e0b', marginLeft: 6, cursor: 'help' }}>⚠</span>
           )}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, NOTA_DATO_INCOMPLETO, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
@@ -141,10 +141,10 @@ function formatValue(metric: MetricKey, value: number): string {
   return `L ${value.toFixed(1)}M`;
 }
 
-/** Valor agregado de varias filas (un año), sin filas sin liquidación: suma, salvo autonomía (Σ/Σ). */
+/** Valor agregado de varias filas (un año), sin filas excluidas de estadísticas: suma, salvo autonomía (Σ/Σ). */
 function getAggMetricValue(recs: any[], metric: MetricKey): number {
   if (metric === 'autonomia') return indicadoresAgregados(recs).autonomia ?? 0;
-  return recs.filter(m => !sinLiquidacion(m)).reduce((s, m) => s + getMetricValue(m, metric), 0);
+  return recs.filter(m => !excluirDeEstadisticas(m)).reduce((s, m) => s + getMetricValue(m, metric), 0);
 }
 
 // Identidad de municipio = "DEPARTAMENTO|nombre": hay 24 nombres repetidos entre departamentos.
@@ -168,10 +168,14 @@ function getMetricLabel(metric: MetricKey): string {
 
 // ── Financial category helpers ────────────────────────────────────────────────
 
-/** Montos SEFIN (millones) e indicadores de lib/indicadores para una o varias filas de un año. */
-function getAggFinCats(recs: any[]) {
-  const mill = (k: string) => Math.round(recs.filter(m => !sinLiquidacion(m)).reduce((t, m) => t + (Number(m[k]) || 0), 0) / 1_000_000);
-  const ind  = indicadoresAgregados(recs);
+/**
+ * Montos SEFIN (millones) e indicadores de lib/indicadores para una o varias filas de un año.
+ * Varias filas: sin las excluidas de estadísticas. Un municipio: sus cifras tal cual.
+ */
+function getAggFinCats(recs: any[], unMunicipio = false) {
+  const base = unMunicipio ? recs : recs.filter(m => !excluirDeEstadisticas(m));
+  const mill = (k: string) => Math.round(base.reduce((t, m) => t + (Number(m[k]) || 0), 0) / 1_000_000);
+  const ind  = unMunicipio ? indicadoresMunicipio(recs[0]) : indicadoresAgregados(recs);
   const r1   = (v: number | null) => (v === null ? 0 : Math.round(v * 10) / 10);
   return {
     ingTributarios:       mill('ingresos_tributarios'),
@@ -186,7 +190,7 @@ function getAggFinCats(recs: any[]) {
   };
 }
 
-const getFinCats = (m: any) => getAggFinCats([m]);
+const getFinCats = (m: any) => getAggFinCats([m], true);
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -332,7 +336,7 @@ function ComparisonTable({ rows, years, metric }: { rows: any[]; years: number[]
                     color: '#2dd4bf', fontSize: 12,
                     fontFamily: "'IBM Plex Mono', monospace",
                     borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  }} title={String(row[`y_${y}`] ?? '').endsWith('⚠') ? NOTA_DATO_INCOMPLETO : undefined}>
+                  }} title={String(row[`y_${y}`] ?? '').endsWith('⚠') ? 'Dato incompleto: ver la ficha del municipio. Excluido de rankings, medianas y agregados.' : undefined}>
                     {row[`y_${y}`] ?? '—'}
                   </td>
                 ))}
@@ -701,7 +705,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
       years.forEach(y => {
         const rec = municipalities.find(m => muniId(m) === id && m.year === y);
         row[`y_${y}`] = !rec ? null : sinLiquidacion(rec) ? ROTULO_SIN_LIQUIDACION
-          : formatValue(metric, getMetricValue(rec, metric)) + (metric === 'autonomia' && datoIncompleto(rec) ? ' ⚠' : '');
+          : formatValue(metric, getMetricValue(rec, metric)) + (datoIncompleto(rec) ? ' ⚠' : '');
       });
       return row;
     });

@@ -4,14 +4,21 @@ import type { Municipality } from '../hooks/useMunicipalities';
 
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
 export const ROTULO_POBLACION = 'Población: proyección (provisional)';
-/** Rótulo único de la categoría A–D: columna SEFIN `category`, criterio oficial no documentado. */
-export const ROTULO_CATEGORIA = 'Categoría según base SEFIN — criterio por confirmar';
+/** Rótulo único de la categoría A–D: columna `category`; nota del Excel SEFIN 2021–2022 (docs/ATIPICOS.md §6). */
+export const ROTULO_CATEGORIA = 'Categoría SGJD 2020 (según nota del Excel SEFIN)';
 export const ROTULO_SIN_LIQUIDACION = 'Sin liquidación';
 export const ROTULO_DATO_INCOMPLETO = 'Dato incompleto';
 /** Autonomía desde la que se presume que faltan las transferencias (docs/ATIPICOS.md §5). */
 export const UMBRAL_AUTONOMIA_INCOMPLETA = 99;
-export const NOTA_DATO_INCOMPLETO =
-  'Autonomía ≥ 99 %: Art. 91 y otras transferencias vienen en 0 en la fuente SEFIN; probable dato faltante. Excluido del ranking de autonomía.';
+const NOTA_AUTONOMIA_INCOMPLETA =
+  'Dato incompleto: autonomía ≥ 99 % porque Art. 91 y otras transferencias vienen en 0 en la fuente SEFIN. Excluido de rankings, medianas y agregados.';
+const NOTA_RENDICION_PARCIAL =
+  'Dato incompleto (rendición parcial): el Excel SEFIN indica que el municipio no rindió el año completo. Excluido de rankings, medianas y agregados.';
+/**
+ * Rendiciones parciales según las notas al pie del Excel SEFIN que no caen en "sin liquidación"
+ * (docs/ATIPICOS.md §6). Clave: "DEPARTAMENTO|code|año".
+ */
+const RENDICION_PARCIAL = new Set(['GRACIAS A DIOS|6|2021', 'EL PARAISO|11|2022']);
 /** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
 export const UMBRAL_EJECUCION = 150;
 
@@ -66,10 +73,26 @@ export function insumos(m: Municipality): Insumos {
 export const sinLiquidacion = (m: Municipality) =>
   n(m.total_egresos) <= 0 && n(m.ingresos_tributarios) + n(m.ingresos_no_tributarios) === 0;
 
-/** Suma de insumos de un grupo (un año), sin las filas sin liquidación. */
+const rendicionParcial = (m: Municipality) => RENDICION_PARCIAL.has(`${m.department}|${m.code}|${m.year}`);
+
+/**
+ * Dato incompleto: tiene liquidación, pero autonomía ≥ 99 % (transferencias ausentes en la fuente)
+ * o rendición parcial según el Excel. Se muestra con ⚠ y se excluye de las estadísticas.
+ */
+export const datoIncompleto = (m: Municipality) =>
+  !sinLiquidacion(m) && (rendicionParcial(m) || (indicadoresMunicipio(m).autonomia ?? 0) >= UMBRAL_AUTONOMIA_INCOMPLETA);
+
+/** Texto del ⚠ (tooltip) de una fila incompleta; null si no lo es. */
+export const notaDatoIncompleto = (m: Municipality): string | null =>
+  !datoIncompleto(m) ? null : rendicionParcial(m) ? NOTA_RENDICION_PARCIAL : NOTA_AUTONOMIA_INCOMPLETA;
+
+/** Criterio único: fuera de totales, agregados, medianas y rankings (sin liquidación o dato incompleto). */
+export const excluirDeEstadisticas = (m: Municipality) => sinLiquidacion(m) || datoIncompleto(m);
+
+/** Suma de insumos de un grupo (un año), sin las filas excluidas de estadísticas. */
 export function sumarInsumos(rows: Municipality[]): Insumos {
   const acc = insumos({} as Municipality);
-  rows.filter((m) => !sinLiquidacion(m)).forEach((m) => {
+  rows.filter((m) => !excluirDeEstadisticas(m)).forEach((m) => {
     const i = insumos(m);
     (Object.keys(acc) as (keyof Insumos)[]).forEach((k) => { acc[k] += i[k]; });
   });
@@ -121,17 +144,13 @@ export const indicadoresMunicipio = (m: Municipality) => calcular(insumos(m));
 /** `rows` de un solo año: con varios años la población se suma entre años. */
 export const indicadoresAgregados = (rows: Municipality[]) => calcular(sumarInsumos(rows));
 
-/** Mediana municipal de un indicador; ignora null y filas sin liquidación. */
+/** Mediana municipal de un indicador; ignora null y filas excluidas de estadísticas. */
 export function mediana(rows: Municipality[], k: keyof Indicadores): number | null {
-  const v = rows.filter((m) => !sinLiquidacion(m)).map((m) => indicadoresMunicipio(m)[k]).filter((x): x is number => x != null).sort((a, b) => a - b);
+  const v = rows.filter((m) => !excluirDeEstadisticas(m)).map((m) => indicadoresMunicipio(m)[k]).filter((x): x is number => x != null).sort((a, b) => a - b);
   if (!v.length) return null;
   const h = v.length >> 1;
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
 }
-
-/** Fila con liquidación pero autonomía ≥ 99 %: transferencias probablemente faltantes en la fuente. */
-export const datoIncompleto = (m: Municipality) =>
-  !sinLiquidacion(m) && (indicadoresMunicipio(m).autonomia ?? 0) >= UMBRAL_AUTONOMIA_INCOMPLETA;
 
 /** Diferencia tolerada entre un subtotal SEFIN y la suma de sus renglones (lempiras). */
 const TOL = 1;
@@ -146,7 +165,7 @@ export function atipicos(m: Municipality): string[] {
   if (i.ingresosCorrientes === 0 && i.ingresosTotales > 0) out.push('Ingresos corrientes en cero');
   if (i.ingresosTotales > 0 && i.ingresosDelAnio <= 0) out.push('Ingresos del año ≤ 0 (balance y financiamiento ≥ total)');
   if (r.autonomia !== null && r.autonomia > 100) out.push('Autonomía > 100 %');
-  if (datoIncompleto(m)) out.push('Autonomía ≥ 99 % (dato incompleto)');
+  if (datoIncompleto(m)) out.push(rendicionParcial(m) ? 'Dato incompleto (rendición parcial)' : 'Autonomía ≥ 99 % (dato incompleto)');
   if (i.poblacion <= 0) out.push('Sin población');
   if (i.totalEgresos <= 0) out.push('Sin egresos reportados');
   if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');

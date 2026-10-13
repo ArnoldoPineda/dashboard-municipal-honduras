@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ROTULO_POBLACION, sumarInsumos, calcular, indicadoresMunicipio, mediana, sinLiquidacion } from '../lib/indicadores';
+import { ROTULO_POBLACION, sumarInsumos, calcular, indicadoresMunicipio, mediana, excluirDeEstadisticas } from '../lib/indicadores';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Area, AreaChart,
@@ -125,9 +125,9 @@ export default function DashboardNacional() {
   // Aggregate KPIs for selected year
   const kpis = useMemo(() => {
     if (byYear.length === 0) return null;
-    // Filas sin liquidación: fuera de totales, promedios y mediana (docs/ATIPICOS.md §2).
-    const sinLiq = byYear.filter(sinLiquidacion).length;
-    const totalMunis = byYear.length - sinLiq;
+    // Sin liquidación o dato incompleto: fuera de totales, promedios y mediana (docs/ATIPICOS.md).
+    const excluidos = byYear.filter(excluirDeEstadisticas).length;
+    const totalMunis = byYear.length - excluidos;
     // Autonomía: cifra principal = mediana municipal; segunda línea = agregado nacional Σ/Σ.
     const ins = sumarInsumos(byYear);
     const pop = ins.poblacion;
@@ -135,16 +135,16 @@ export default function DashboardNacional() {
     const propios = ins.ingresosCorrientes;
     const autonomia = calcular(ins).autonomia ?? 0;
     const autonomiaMediana = mediana(byYear, 'autonomia');
-    const topMuni = byYear.filter(m => !sinLiquidacion(m)).sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
+    const topMuni = byYear.filter(m => !excluirDeEstadisticas(m)).sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
     const depts = new Set(byYear.map((m) => normDept(m.department))).size;
-    return { totalMunis, sinLiq, pop, presup, propios, autonomia, autonomiaMediana, depts, topMuni };
+    return { totalMunis, excluidos, pop, presup, propios, autonomia, autonomiaMediana, depts, topMuni };
   }, [byYear]);
 
   // Department bar chart data
   const deptBars = useMemo(() => {
     const map = new Map<string, { presup: number; propios: number }>();
     byYear.forEach((m: any) => {
-      if (!isValidDept(m.department) || sinLiquidacion(m)) return;
+      if (!isValidDept(m.department) || excluirDeEstadisticas(m)) return;
       const d: string = m.department;
       const prev = map.get(d) || { presup: 0, propios: 0 };
       map.set(d, {
@@ -267,7 +267,7 @@ export default function DashboardNacional() {
         ) : (
           <>
             <KpiCard label="Municipios" value={`${kpis.totalMunis}`}
-              sub={kpis.sinLiq ? `con liquidación · ${kpis.sinLiq} sin liquidación` : 'con liquidación'} />
+              sub={kpis.excluidos ? `en estadísticas · ${kpis.excluidos} excluidos (sin liquidación o dato incompleto)` : 'en estadísticas'} />
             <KpiCard label={ROTULO_POBLACION} value={fmtNum(kpis.pop)}
               sub={`~${fmtNum(Math.round(prom(kpis.pop)))} prom`}
               {...pctChange(kpis.pop, prevYear?.pop)} sparkData={sparkPop} />
@@ -388,7 +388,7 @@ export default function DashboardNacional() {
                   </tr>
                 ))
               ) : (
-                byYear.filter(m => !sinLiquidacion(m))
+                byYear.filter(m => !excluirDeEstadisticas(m))
                   .sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))
                   .slice(0, 12)
                   .map((m, i) => (

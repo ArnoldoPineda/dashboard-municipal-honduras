@@ -58,7 +58,9 @@ export function LecturaSimho({ fila, comps, excluida }: { fila: Municipality; co
         LECTURA AUTOMÁTICA SIMHO · {fila.year}
       </div>
       <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, flex: '1 1 320px', color: '#dde6ef' }}>
-        {lecturaSimho(fila, excluida ? {} : comps)}
+        {excluida
+          ? `Sin lectura comparativa: el municipio está excluido de estadísticas en ${fila.year}.`
+          : lecturaSimho(fila, comps)}
       </p>
     </section>
   );
@@ -71,7 +73,8 @@ export function TarjetasIndicadores({ fila, comps, excluida }: { fila: Municipal
       {TARJETAS.map((k) => {
         const c = comps[k];
         const valor = r[k] as number | null;
-        const s = semaforo(k, valor, excluida ? null : c?.percentil ?? null);
+        // Excluido: sin juicio de semáforo (ni alertas), solo el valor.
+        const s = excluida ? { etiqueta: 'SIN COMPARACIÓN', tono: 'gris' as const } : semaforo(k, valor, c?.percentil ?? null);
         const color = TONO_COLOR[s.tono];
         return (
           <article key={k} style={{ ...panel, display: 'flex', flexDirection: 'column', gap: 10 }}>

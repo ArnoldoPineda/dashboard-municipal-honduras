@@ -52,9 +52,11 @@ export default function FichaMunicipal() {
     return Object.fromEntries(CLAVES.map((k) => [k, comparacionPares(delAnio, fila, k)]));
   }, [municipalities, fila]);
 
+  const existe = filasMuni.length > 0;
   useEffect(() => {
+    if (!existe) return; // no recordar URLs de municipios inexistentes
     try { localStorage.setItem(CLAVE_ULTIMA_FICHA, `/municipio/${deptId}/${code}`); } catch { /* sin almacenamiento */ }
-  }, [deptId, code]);
+  }, [deptId, code, existe]);
 
   if (loading) return <Mensaje>Cargando datos SEFIN…</Mensaje>;
   if (!filasMuni.length) return <BuscarFicha filas={municipalities} mensaje="Municipio no encontrado." />;

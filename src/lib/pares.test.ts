@@ -3,7 +3,7 @@ import type { Municipality } from '../hooks/useMunicipalities';
 import {
   comparacionPares, semaforo, lecturaSimho, indicadoresMunicipio, ClaveSemaforo, Comparacion,
 } from './indicadores';
-import { opcionesMunicipios, ineDeEtiqueta, filasPorINE } from './municipios';
+import { opcionesMunicipios, ineDeEtiqueta, filasPorINE, rutaFicha } from './municipios';
 import catA from './__fixtures__/catA2025.json';
 
 // 43 municipios de categoría A 2025 (Supabase, leído 2026-10-13), recortados a los campos de los indicadores.
@@ -108,5 +108,11 @@ describe('buscador por código INE — homónimos', () => {
     expect(ineDeEtiqueta('Concepción — Intibucá', ops)).toBe('1003');
     expect(ineDeEtiqueta('Concepción', ops)).toBeNull();
     expect(filasPorINE(homonimos, '1003')).toHaveLength(2);
+  });
+
+  it('rutaFicha: solo 4 dígitos con departamento válido y código ≥ 1', () => {
+    expect(rutaFicha('0318')).toBe('/municipio/comayagua/18');
+    expect(rutaFicha('1003')).toBe('/municipio/intibuca/3');
+    ['9999', '03', 'abcd', '03 1', '03-1', '03.5', '0300', '1900'].forEach((v) => expect(rutaFicha(v)).toBeNull());
   });
 });

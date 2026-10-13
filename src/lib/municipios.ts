@@ -27,7 +27,8 @@ export const filasPorINE = (filas: Municipality[], ine: string) =>
 
 /** Ruta de la ficha a partir del código INE: "0318" → "/municipio/comayagua/18". */
 export function rutaFicha(ine: string): string | null {
+  if (!/^\d{4}$/.test(ine)) return null;
   const d = DEPARTAMENTOS.find((x) => x.cod === ine.slice(0, 2));
   const code = Number(ine.slice(2));
-  return d && Number.isFinite(code) && ine.length === 4 ? `/municipio/${d.id}/${code}` : null;
+  return d && code >= 1 ? `/municipio/${d.id}/${code}` : null;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, notaDatoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
@@ -656,13 +656,15 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
   // Preselección desde la Ficha Municipal: /comparativos?municipio=0318 (código INE).
   const [params] = useSearchParams();
   const ineInicial = params.get('municipio');
+  const preseleccionado = useRef(false); // se aplica una sola vez: el usuario puede quitarlo después
   useEffect(() => {
-    if (!ineInicial || selected.length) return;
+    if (!ineInicial || preseleccionado.current) return;
     const m = municipalities.find(x => codigoINE(x.department, x.code) === ineInicial);
     if (!m) return;
+    preseleccionado.current = true;
     setDeptSections([m.department]);
     setSelected([muniId(m)]);
-  }, [ineInicial, municipalities, selected.length]);
+  }, [ineInicial, municipalities]);
 
   const departments = useMemo(() =>
     [...new Set(municipalities.map(m => m.department).filter(Boolean))].sort(),

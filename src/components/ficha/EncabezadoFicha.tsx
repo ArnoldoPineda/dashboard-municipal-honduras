@@ -25,7 +25,7 @@ export default function EncabezadoFicha({ fila, filas }: { fila: Municipality; f
         <MiniMapaDepto department={fila.department} claveMunicipio={muniKey(fila)} nombre={fila.name ?? ''} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
           <Link to={`/departamento/${deptSlug(fila.department)}`}
-            style={{ fontFamily: MONO, fontSize: 12, letterSpacing: 1, color: C.turquesa, textDecoration: 'none', minHeight: 24 }}>
+            style={{ fontFamily: MONO, fontSize: 12, letterSpacing: 1, color: C.turquesa, textDecoration: 'none', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>
             ← DEPTO. {depto.toUpperCase()}
           </Link>
           <h1 style={{ margin: 0, fontFamily: COND, fontWeight: 700, fontSize: 'clamp(32px, 6vw, 46px)', lineHeight: 1, color: C.texto }}>

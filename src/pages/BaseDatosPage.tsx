@@ -289,7 +289,7 @@ export default function BaseDatosPage() {
                   </tr>
                 )}
                 <tr>
-                  <th scope="col" aria-sort={ariaSort('name')} style={{ ...thBase, ...fija(C.panel2, 4), textAlign: 'left', minWidth: 190 }}>
+                  <th scope="col" aria-sort={ariaSort('name')} className="col-fija" style={{ ...thBase, ...fija(C.panel2, 4), textAlign: 'left', minWidth: 190 }}>
                     <button type="button" style={botonOrden} onClick={() => ordenar('name')}>MUNICIPIO{flecha('name')}</button>
                   </th>
                   {cols.map((c) => (
@@ -306,7 +306,7 @@ export default function BaseDatosPage() {
                   const ruta = rutaFicha(codigoINE(m.department, m.code));
                   return (
                     <tr key={m.id ?? `${m.department}|${m.code}`} style={{ background: bg }}>
-                      <th scope="row" style={{ ...fija(bg), textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontFamily: SANS, fontSize: 14 }}>
+                      <th scope="row" className="col-fija" style={{ ...fija(bg), textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontFamily: SANS, fontSize: 14 }}>
                         {ruta ? <Link to={ruta} style={{ color: C.texto }}>{m.name}</Link> : m.name}
                         {nota && <span title={nota} aria-label={`Excluido: ${nota}`} style={{ color: C.ambar, marginLeft: 6, cursor: 'help' }}>⚠</span>}
                       </th>

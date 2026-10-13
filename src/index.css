@@ -323,3 +323,6 @@ input[type="range"].simho-slider::-moz-range-thumb {
   .vista-depto-lista .simho-scroll { overflow: visible !important; }
   .vista-depto-rotulos { display: none; }
 }
+
+/* Análisis y Base de Datos: en celular la primera columna (fija) se angosta y parte en líneas. */
+@media (max-width: 600px) { .col-fija { min-width: 132px !important; max-width: 150px; white-space: normal !important; } }

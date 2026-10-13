@@ -8,7 +8,7 @@ import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, Indicadores } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
-import { fmtL } from '../lib/formato';
+import { fmtL, fmtLGrafico } from '../lib/formato';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -590,7 +590,7 @@ export default function AnalyticsPage() {
               <BarChart data={chart1} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barGap={2} barCategoryGap="28%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtL(v * 1e6)} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtLGrafico(v * 1e6)} />
                 <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <Legend formatter={LEG_FMT} iconSize={7} />
                 <Bar dataKey="Ing. Corrientes"   stackId="ing" fill={CHART_COLORS.teal}   maxBarSize={36} />
@@ -637,7 +637,7 @@ export default function AnalyticsPage() {
               <BarChart data={chart3} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="38%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtL(v * 1e6)} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtLGrafico(v * 1e6)} />
                 <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <Legend formatter={LEG_FMT} iconSize={7} />
                 <Bar dataKey="Funcionamiento"  stackId="egr" fill={CHART_COLORS.pink}   radius={[0,0,0,0]} maxBarSize={36} />
@@ -659,7 +659,7 @@ export default function AnalyticsPage() {
               <BarChart data={chart4} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="42%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtL(v * 1e6)} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtLGrafico(v * 1e6)} />
                 <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
                 <Bar dataKey="value" name="Resultado sin balance" radius={[3,3,0,0]} maxBarSize={38}>

@@ -18,3 +18,6 @@ export function fmtL(n: number | string | null | undefined, opts: { completo?: b
     : `${millones.toFixed(1)} M`;
   return `${v < 0 && Math.round(a) > 0 ? '−' : ''}L ${cuerpo}`;
 }
+
+/** fmtL para ejes y etiquetas de gráficos: espacios no separables, para que Recharts no parta "L 150.0 M". */
+export const fmtLGrafico = (n: number | string | null | undefined) => fmtL(n).replace(/ /g, ' ');

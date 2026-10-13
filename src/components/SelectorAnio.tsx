@@ -11,7 +11,7 @@ export default function SelectorAnio() {
       aria-label="Año fiscal"
       value={fiscalYear}
       onChange={(e) => setFiscalYear(Number(e.target.value))}
-      style={{ fontSize: 11, padding: '4px 10px' }}
+      style={{ fontSize: 11, padding: '4px 30px 4px 10px', width: 'auto', flexShrink: 0 }}
     >
       {ANIOS_SEFIN.map((y) => <option key={y} value={y}>{y}</option>)}
     </select>

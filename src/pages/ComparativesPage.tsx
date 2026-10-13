@@ -6,7 +6,7 @@ import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
 import { nombreDepartamento } from '../data/departamentos';
-import { fmtL } from '../lib/formato';
+import { fmtL, fmtLGrafico } from '../lib/formato';
 import {
   LineChart,
   Line,
@@ -365,7 +365,7 @@ function IncomeBarCard({ title, data }: { title: string; data: any[] }) {
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
             tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
-            tickFormatter={(v: number) => fmtL(v * 1e6)}
+            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
@@ -398,7 +398,7 @@ function GastosBarCard({ title, data }: { title: string; data: any[] }) {
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
             tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
-            tickFormatter={(v: number) => fmtL(v * 1e6)}
+            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
@@ -449,7 +449,7 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
             axisLine={false}
             tickLine={false}
             width={84}
-            tickFormatter={(v: number) => fmtL(v * 1e6)}
+            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
@@ -468,7 +468,7 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
                 dataKey={b.key}
                 position="top"
                 style={{ fontSize: 7.5, fill: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-                formatter={(v: any) => v > 0 ? fmtL(Number(v) * 1e6) : ''}
+                formatter={(v: any) => v > 0 ? fmtLGrafico(Number(v) * 1e6) : ''}
               />
             </Bar>
           ))}

@@ -2,7 +2,7 @@ import React, {
   useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
-import { ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion } from '../lib/indicadores';
+import { ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion, notaDatoIncompleto } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
@@ -39,6 +39,7 @@ interface MuniStat {
   budget:   number;
   category: string;
   sinLiq:   boolean;       // docs/ATIPICOS.md §2
+  incompleto: string | null; // tooltip del ⚠ (docs/ATIPICOS.md §5–6)
   path:     string;        // ruta del detalle: /municipio/<depto>/<code>
 }
 
@@ -280,6 +281,7 @@ export default function VistaDepartamental() {
       budget:   m.presupuesto_municipal ?? 0,
       category: m.category ?? '',
       sinLiq:   sinLiquidacion(m),
+      incompleto: notaDatoIncompleto(m),
       path:     muniPath(m),
     })),
     [deptRows]
@@ -463,6 +465,9 @@ export default function VistaDepartamental() {
                       }}>
                         CAPITAL
                       </span>
+                    )}
+                    {m.incompleto && (
+                      <span title={m.incompleto} style={{ color: '#f59e0b', fontSize: 12, cursor: 'help' }}>⚠</span>
                     )}
                     {m.sinLiq && (
                       <span style={{

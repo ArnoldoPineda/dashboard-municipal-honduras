@@ -5,6 +5,7 @@ import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
+import { fmtL } from '../lib/formato';
 import {
   LineChart,
   Line,
@@ -139,7 +140,7 @@ function getMetricValue(m: any, metric: MetricKey): number {
 function formatValue(metric: MetricKey, value: number): string {
   if (metric === 'autonomia') return `${value.toFixed(1)}%`;
   if (metric === 'poblacion') return new Intl.NumberFormat('es-HN').format(Math.round(value));
-  return `L ${value.toFixed(1)}M`;
+  return fmtL(value * 1e6); // montos de getMetricValue vienen en millones
 }
 
 /** Valor agregado de varias filas (un año), sin filas excluidas de estadísticas: suma, salvo autonomía (Σ/Σ). */
@@ -363,13 +364,13 @@ function IncomeBarCard({ title, data }: { title: string; data: any[] }) {
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
             tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
-            tickFormatter={(v: number) => `L${v}M`}
+            tickFormatter={(v: number) => fmtL(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
             labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
             itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
           />
           <Legend
             wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
@@ -396,13 +397,13 @@ function GastosBarCard({ title, data }: { title: string; data: any[] }) {
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
             tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
-            tickFormatter={(v: number) => `L${v}M`}
+            tickFormatter={(v: number) => fmtL(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
             labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
             itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
           />
           <Legend
             wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
@@ -447,13 +448,13 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
             axisLine={false}
             tickLine={false}
             width={52}
-            tickFormatter={(v: number) => `L${v}M`}
+            tickFormatter={(v: number) => fmtL(v * 1e6)}
           />
           <Tooltip
             contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
             labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
             itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [`L ${Number(v).toFixed(1)}M`, '']}
+            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
           />
           <Legend
             wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
@@ -466,7 +467,7 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
                 dataKey={b.key}
                 position="top"
                 style={{ fontSize: 7.5, fill: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-                formatter={(v: any) => v > 0 ? `L${Number(v).toFixed(0)}M` : ''}
+                formatter={(v: any) => v > 0 ? fmtL(Number(v) * 1e6) : ''}
               />
             </Bar>
           ))}

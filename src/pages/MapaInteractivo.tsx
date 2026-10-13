@@ -9,6 +9,7 @@ import { Municipality } from '../hooks/useMunicipalities';
 import { useSefinYear, normName, aggregate, groupByDept, SefinAgg } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 import SelectorAnio from '../components/SelectorAnio';
+import { fmtL } from '../lib/formato';
 import SelectorIndicador from '../components/SelectorIndicador';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
@@ -117,7 +118,7 @@ export default function MapaInteractivo() {
   const fmtIndicator = useCallback((v: number) => {
     if (indicator === 'autonomia') return `${v.toFixed(1)}%`;
     if (indicator === 'poblacion') return `${fmt.format(v)} hab.`;
-    return `L ${fmt.format(v)}`;
+    return fmtL(v);
   }, [indicator]);
 
   useEffect(() => {
@@ -507,7 +508,7 @@ export default function MapaInteractivo() {
             <div style={{
               fontSize: 22, fontWeight: 700, color: '#f59e0b',
               fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1,
-            }}>{hideFigures ? '—' : `L ${fmt.format(totals.presupuesto)}`}</div>
+            }}>{hideFigures ? '—' : fmtL(totals.presupuesto)}</div>
             <div style={{
               fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3,
             }}>suma de presupuestos municipales</div>

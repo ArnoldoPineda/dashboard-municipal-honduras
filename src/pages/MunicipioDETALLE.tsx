@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
+import { fmtL } from '../lib/formato';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { muniKey, deptSlug, NO_DATA_MSG } from '../utils/sefin';
@@ -18,29 +19,10 @@ const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
   .map((d: any) => ({ code: d.id, name: d.nombre }));
 
-const fmtC = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
-const fmtF = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
 const fmtP = new Intl.NumberFormat('es-HN');
 
-function L(n: number)  { return n > 0 ? `L ${fmtC.format(n)}` : '—'; }
-function LF(n: number) { return n > 0 ? `L ${fmtF.format(n)}` : 'L 0'; }
-
-function formatMoney(n: number): string {
-  if (n <= 0) return '—';
-  if (n >= 1_000_000_000) return `L ${(n / 1_000_000_000).toFixed(1)} mil M`;
-  if (n >= 1_000_000)     return `L ${(n / 1_000_000).toFixed(1)} M`;
-  return `L ${fmtF.format(n)}`;
-}
-
-function fmtSigned(n: number | null | undefined): string {
-  if (n === null || n === undefined) return '—';
-  if (n === 0) return 'L 0';
-  const abs = Math.abs(n);
-  const label = abs >= 1_000_000_000 ? `L ${(abs / 1_000_000_000).toFixed(1)} mil M`
-              : abs >= 1_000_000     ? `L ${(abs / 1_000_000).toFixed(1)} M`
-              : `L ${fmtF.format(abs)}`;
-  return n < 0 ? `−${label}` : label;
-}
+// Lempiras: siempre fmtL (lib/formato). "—" cuando no hay monto que mostrar.
+const L = (n: number) => (n > 0 ? fmtL(n) : '—');
 
 // ── Label span style ──────────────────────────────────────────────────────────
 
@@ -132,7 +114,7 @@ function AccordionItem({
               fontFamily: "'Barlow Condensed', sans-serif",
               marginTop: 3,
             }}>
-              {formatMoney(section.amount)}
+              {L(section.amount)}
             </div>
           )}
         </div>
@@ -198,7 +180,7 @@ function DonutTooltip({ active, payload }: any) {
     }}>
       <div style={{ color: '#e8eef6', marginBottom: 3, fontFamily: "'IBM Plex Mono', monospace" }}>{d.name}</div>
       <div style={{ color: d.fill, fontFamily: "'IBM Plex Mono', monospace" }}>
-        {d.pct}% · {LF(d.value)}
+        {d.pct}% · {fmtL(d.value)}
       </div>
     </div>
   );
@@ -251,13 +233,7 @@ export default function MunicipioDETALLE() {
     });
   }
 
-  const fmZ     = (v: number | null | undefined): string => {
-    const n = Math.round(v ?? 0);
-    if (n === 0) return 'L 0';
-    if (n >= 1_000_000_000) return `L ${(n / 1_000_000_000).toFixed(1)} mil M`;
-    if (n >= 1_000_000)     return `L ${(n / 1_000_000).toFixed(1)} M`;
-    return `L ${fmtF.format(n)}`;
-  };
+  const fmZ     = (v: number | null | undefined): string => fmtL(v ?? 0);
 
   // Indicadores: única fuente lib/indicadores.
   // Sin liquidación (docs/ATIPICOS.md §2): no se calculan indicadores.
@@ -265,9 +241,9 @@ export default function MunicipioDETALLE() {
   const ind  = sb && !sinLiq ? indicadoresMunicipio(sb) : null;
   const notaSinLiq = sinLiq ? `${ROTULO_SIN_LIQUIDACION}: el municipio no reportó egresos ni ingresos corrientes; no se calculan indicadores.` : undefined;
   const fPct = (v: number | null | undefined) => (v == null ? '—' : `${v.toFixed(1)}%`);
-  const fPc  = (v: number | null | undefined) => (v == null ? '—' : `L ${fmtF.format(Math.round(v))}`);
-  const fM   = (v: number | null | undefined) => (v == null ? '—' : fmZ(v));
-  const fS   = (v: number | null | undefined) => (v == null ? '—' : fmtSigned(v));
+  const fPc  = (v: number | null | undefined) => fmtL(v);
+  const fM   = (v: number | null | undefined) => fmtL(v);
+  const fS   = (v: number | null | undefined) => fmtL(v);
   const fEje = (v: number | null | undefined) => (v == null ? '—' : `${v > UMBRAL_EJECUCION ? '⚠ ' : ''}${v.toFixed(1)}%`);
   // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
   const g1 = sb

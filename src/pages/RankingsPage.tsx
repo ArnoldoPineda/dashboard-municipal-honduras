@@ -6,6 +6,7 @@ import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipali
 import { NO_DATA_MSG, muniKey } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
+import { fmtL } from '../lib/formato';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -17,18 +18,12 @@ const CAT_COLORS: Record<string, string> = {
   A: '#00d4b8', B: '#3a9bd6', C: '#f59e0b', D: '#7c8aa3',
 };
 
-const fmt = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
 const fmtInt = new Intl.NumberFormat('es-HN');
 
 function formatValue(metric: Metric, value: number): string {
   if (metric === 'autonomia')  return `${value.toFixed(1)}%`;
   if (metric === 'poblacion')  return fmtInt.format(Math.round(value));
-  if (metric === 'propiosPc')  return `L ${fmtInt.format(Math.round(value))}`;
-  if (metric === 'superavit' || metric === 'resultadoConBalance') {
-    const abs = Math.abs(value);
-    return (value >= 0 ? '+' : '−') + `L ${fmt.format(abs)}`;
-  }
-  return `L ${fmt.format(value)}`;
+  return fmtL(value);
 }
 
 function getMetricValue(m: any, metric: Metric): number {

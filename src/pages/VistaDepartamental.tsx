@@ -10,14 +10,13 @@ import { useNavbar } from '../context/NavbarContext';
 import { useSefinYear, normName as normalizeName, muniKey, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 import SelectorAnio from '../components/SelectorAnio';
+import { fmtL } from '../lib/formato';
 import SelectorIndicador from '../components/SelectorIndicador';
 import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
 const fmt     = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 1 });
-const fmtLegend = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFractionDigits: 2 });
-const fmtFull = new Intl.NumberFormat('es-HN', { style: 'currency', currency: 'HNL', maximumFractionDigits: 0 });
 
 // ── Category helpers ─────────────────────────────────────────────────────────
 
@@ -190,13 +189,13 @@ function DeptMuniMap({
       const rowH = 13, lgX = W - 128, lgY = H - 10 - rowH * 5;
       const lg = svg.append('g').attr('pointer-events', 'none')
         .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 8);
-      lg.append('text').attr('x', lgX).attr('y', lgY - 5).attr('fill', '#4a5a73').text('PRESUPUESTO (L)');
+      lg.append('text').attr('x', lgX).attr('y', lgY - 5).attr('fill', '#4a5a73').text('PRESUPUESTO');
       QUANT_COLORS.forEach((col, i) => {
         const y = lgY + i * rowH;
         lg.append('rect').attr('x', lgX).attr('y', y).attr('width', 12).attr('height', 9).attr('rx', 2)
           .attr('fill', col).attr('stroke', BORDER);
         lg.append('text').attr('x', lgX + 17).attr('y', y + 8).attr('fill', '#7c8aa3')
-          .text(`${fmtLegend.format(cuts[i])} – ${fmtLegend.format(cuts[i + 1])}`);
+          .text(`${fmtL(cuts[i])} – ${fmtL(cuts[i + 1])}`);
       });
     }
 
@@ -234,7 +233,7 @@ function DeptMuniMap({
           <div style={{ fontSize: 11, color: '#7c8aa3' }}>
             Presupuesto:{' '}
             <span style={{ color: '#00d4b8', fontFamily: "'IBM Plex Mono', monospace" }}>
-              {tooltip.budget === null ? 'sin datos' : fmtFull.format(tooltip.budget)}
+              {tooltip.budget === null ? 'sin datos' : fmtL(tooltip.budget)}
             </span>
           </div>
         </div>
@@ -332,10 +331,10 @@ export default function VistaDepartamental() {
   const kpis = [
     { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
     { label: ROTULO_POBLACION.toUpperCase(), value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
-    { label: 'PRESUPUESTO',    value: na(`L ${fmt.format(deptYear.presupuesto)}`),     color: '#f59e0b' },
-    { label: 'ING. CORRIENTES', value: na(`L ${fmt.format(deptYear.ingresosCorrientes)}`), color: '#f59e0b' },
+    { label: 'PRESUPUESTO',    value: na(fmtL(deptYear.presupuesto)),     color: '#f59e0b' },
+    { label: 'ING. CORRIENTES', value: na(fmtL(deptYear.ingresosCorrientes)), color: '#f59e0b' },
     { label: 'AUTONOMÍA',      value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
-    { label: 'TRANSFERENCIAS', value: na(`L ${fmt.format(deptYear.transferencias)}`),   color: '#f59e0b' },
+    { label: 'TRANSFERENCIAS', value: na(fmtL(deptYear.transferencias)),   color: '#f59e0b' },
   ];
 
   return (

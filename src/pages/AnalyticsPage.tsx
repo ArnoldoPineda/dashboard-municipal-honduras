@@ -8,6 +8,7 @@ import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, Indicadores } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
+import { fmtL } from '../lib/formato';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -20,17 +21,9 @@ const ALL_DEPTS: { code: string; name: string }[] = (DEPARTAMENTOS as any[])
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
-const fmtInt = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
 
-function fmtM(n: number | null | undefined): string {
-  if (n == null || n === 0) return '—';
-  const abs = Math.abs(n);
-  let s: string;
-  if (abs >= 1_000_000_000) s = `${(abs / 1_000_000_000).toFixed(1)} mil M`;
-  else if (abs >= 1_000_000)  s = `${(abs / 1_000_000).toFixed(1)} M`;
-  else                         s = fmtInt.format(abs);
-  return n < 0 ? `−L ${s}` : `L ${s}`;
-}
+/** Lempiras de la tabla: fmtL; 0 o sin dato → "—". */
+const fmtM = (n: number | null | undefined) => (n == null || n === 0 ? '—' : fmtL(n));
 
 function fmtPct(n: number | null | undefined): string {
   if (n == null || n === 0) return '—';
@@ -301,7 +294,7 @@ export default function AnalyticsPage() {
     const d = yearDataMap[year] ?? EMPTY_YEAR;
     const v = d[row.field];
     if (row.pct) return fmtPct(v);
-    if (row.lempiras) return v == null ? '—' : `L ${fmtInt.format(v)}`;
+    if (row.lempiras) return fmtL(v);
     return fmtM(v);
   }
 
@@ -600,8 +593,8 @@ export default function AnalyticsPage() {
               <BarChart data={chart1} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barGap={2} barCategoryGap="28%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={42} tickFormatter={v => `${v}M`} />
-                <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtL(v * 1e6)} />
+                <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <Legend formatter={LEG_FMT} iconSize={7} />
                 <Bar dataKey="Ing. Corrientes"   stackId="ing" fill={CHART_COLORS.teal}   maxBarSize={36} />
                 <Bar dataKey="Transferencias"    stackId="ing" fill={CHART_COLORS.amber}  maxBarSize={36} />
@@ -647,8 +640,8 @@ export default function AnalyticsPage() {
               <BarChart data={chart3} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="38%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={42} tickFormatter={v => `${v}M`} />
-                <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtL(v * 1e6)} />
+                <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <Legend formatter={LEG_FMT} iconSize={7} />
                 <Bar dataKey="Funcionamiento"  stackId="egr" fill={CHART_COLORS.pink}   radius={[0,0,0,0]} maxBarSize={36} />
                 <Bar dataKey="Capital y Deuda" stackId="egr" fill={CHART_COLORS.violet} radius={[3,3,0,0]} maxBarSize={36} />
@@ -669,8 +662,8 @@ export default function AnalyticsPage() {
               <BarChart data={chart4} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="42%">
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
-                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={44} tickFormatter={v => `${v}M`} />
-                <RTooltip content={<DarkTooltip fmtVal={(v: number) => `L ${v.toFixed(1)} M`} />} wrapperStyle={TT_WRAP} />
+                <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={72} tickFormatter={v => fmtL(v * 1e6)} />
+                <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtL(v * 1e6)} />} wrapperStyle={TT_WRAP} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
                 <Bar dataKey="value" name="Resultado sin balance" radius={[3,3,0,0]} maxBarSize={38}>
                   {chart4.map((entry, i) => (

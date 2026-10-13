@@ -5,6 +5,7 @@ import { DEPARTAMENTOS } from '../data/departamentos';
 import { muniKey } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
+import { fmtL } from '../lib/formato';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -110,27 +111,8 @@ const SIMHO_COLUMNS: { key: keyof Indicadores; header: string; pct?: true }[] = 
   { key: 'ejecucion',                     header: 'SIMHO · Ejecución vs. presupuesto aprobado (%)', pct: true },
 ];
 
-// 👇 AJUSTE: aceptar number | string | null para evitar error con ValueType
-const formatNumber = (
-  num: number | string | null | undefined,
-  decimals: number = 0
-): string => {
-  const n = Number(num);
-  if (!isFinite(n)) return '0';
-
-  return n.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-};
-
-// 👇 AJUSTE: igual, aceptar number | string | null
-const formatCurrency = (num: number | string | null | undefined): string => {
-  const n = Number(num);
-  if (!isFinite(n)) return 'L 0M';
-  const millions = n / 1_000_000;
-  return `L ${formatNumber(millions, 1)}M`;
-};
+// Columnas de la tabla que no son lempiras (población y porcentaje SEFIN).
+const NO_LEMPIRAS = new Set(['population', 'autonomia_financiera']);
 
 const PresupuestarioPage = () => {
   const { isMobile, isTablet } = useMediaQuery();
@@ -245,7 +227,7 @@ const PresupuestarioPage = () => {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
             <YAxis />
-            <Tooltip formatter={(value: string | number) => `L ${formatNumber(value, 0)}M`} />
+            <Tooltip formatter={(value: string | number) => fmtL(Number(value) * 1e6)} />
             {!isMobile && <Legend />}
             <Bar dataKey="Presupuesto" fill="#0088FE" />
             <Bar dataKey="Egresos" fill="#00C49F" />
@@ -273,7 +255,7 @@ const PresupuestarioPage = () => {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
             <YAxis />
-            <Tooltip formatter={(value: string | number) => `L ${formatNumber(value, 0)}M`} />
+            <Tooltip formatter={(value: string | number) => fmtL(Number(value) * 1e6)} />
             {!isMobile && <Legend />}
             <Line type="monotone" dataKey="Propios" name="Propios (SEFIN, incluye capital propio)" stroke="#8884d8" strokeWidth={2} />
             <Line type="monotone" dataKey="Corrientes" stroke="#82ca9d" strokeWidth={2} />
@@ -318,7 +300,7 @@ const PresupuestarioPage = () => {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: string | number) => formatCurrency(value)} />
+            <Tooltip formatter={(value: string | number) => fmtL(value)} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -357,22 +339,22 @@ const PresupuestarioPage = () => {
                 <tr key={idx} className="hover:bg-gray-50">
                   <td className={`font-bold text-blue-700 ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>{mun.year}</td>
                   <td className={`text-right ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
-                    {formatCurrency(mun.presupuesto_municipal)}
+                    {fmtL(mun.presupuesto_municipal)}
                   </td>
                   <td className={`text-right ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
-                    {formatCurrency(mun.total_egresos)}
+                    {fmtL(mun.total_egresos)}
                   </td>
                   <td
                     className={`text-right font-bold ${
                       mun.superavit_deficit > 0 ? 'text-green-600' : 'text-red-600'
                     } ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}
                   >
-                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(mun.superavit_deficit)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : fmtL(mun.superavit_deficit)}
                   </td>
                   <td className={`text-right font-bold ${
                     indicadoresMunicipio(mun).resultadoSinBalance > 0 ? 'text-green-600' : 'text-red-600'
                   } ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}>
-                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(indicadoresMunicipio(mun).resultadoSinBalance)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : fmtL(indicadoresMunicipio(mun).resultadoSinBalance)}
                   </td>
                 </tr>
               ))}
@@ -414,13 +396,13 @@ const PresupuestarioPage = () => {
                   <tr>
                     <td className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>Presupuesto</td>
                     <td className={`text-right ${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>
-                      {formatCurrency(mun.presupuesto_municipal)}
+                      {fmtL(mun.presupuesto_municipal)}
                     </td>
                   </tr>
                   <tr className="bg-gray-50">
                     <td className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>Ingresos Propios (SEFIN)</td>
                     <td className={`text-right ${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>
-                      {formatCurrency(mun.ingresos_propios)}
+                      {fmtL(mun.ingresos_propios)}
                     </td>
                   </tr>
                 </React.Fragment>
@@ -463,7 +445,7 @@ const PresupuestarioPage = () => {
                   <tr>
                     <td className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>Impuesto BI</td>
                     <td className={`text-right ${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>
-                      {formatCurrency(mun.impuesto_bi)}
+                      {fmtL(mun.impuesto_bi)}
                     </td>
                   </tr>
                 </React.Fragment>
@@ -497,7 +479,7 @@ const PresupuestarioPage = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <YAxis />
-                  <Tooltip formatter={(value: string | number) => `L ${formatNumber(value, 0)}M`} />
+                  <Tooltip formatter={(value: string | number) => fmtL(Number(value) * 1e6)} />
                   {!isMobile && <Legend />}
                   <Bar dataKey="Personales" fill="#0088FE" />
                   <Bar dataKey="No Personales" fill="#00C49F" />
@@ -527,7 +509,7 @@ const PresupuestarioPage = () => {
                   <tr>
                     <td className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>Total Funcionamiento</td>
                     <td className={`text-right ${isMobile ? 'px-2 py-1' : 'px-3 py-1'}`}>
-                      {formatCurrency(mun.gastos_funcionamiento)}
+                      {fmtL(mun.gastos_funcionamiento)}
                     </td>
                   </tr>
                 </React.Fragment>
@@ -554,7 +536,7 @@ const PresupuestarioPage = () => {
             <p className={`font-bold text-blue-900 ${isMobile ? 'text-base' : 'text-lg'}`}>Año {mun.year}</p>
             <p className={`text-gray-600 mt-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>Total Capital</p>
             <p className={`font-bold text-blue-700 mt-1 ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              {formatCurrency(mun.ingresos_capital)}
+              {fmtL(mun.ingresos_capital)}
             </p>
           </div>
         ))}
@@ -577,7 +559,7 @@ const PresupuestarioPage = () => {
             <p className={`font-bold text-purple-900 ${isMobile ? 'text-base' : 'text-lg'}`}>Año {mun.year}</p>
             <p className={`text-gray-600 mt-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>Total Capital y Deuda</p>
             <p className={`font-bold text-purple-700 mt-1 ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              {formatCurrency(mun.gastos_capital_deuda)}
+              {fmtL(mun.gastos_capital_deuda)}
             </p>
           </div>
         ))}
@@ -609,7 +591,7 @@ const PresupuestarioPage = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <YAxis />
-                  <Tooltip formatter={(value: string | number) => `L ${formatNumber(value, 0)}M`} />
+                  <Tooltip formatter={(value: string | number) => fmtL(Number(value) * 1e6)} />
                   {!isMobile && <Legend />}
                   <Bar dataKey="Total Egresos" fill="#0088FE" />
                   <Bar dataKey="Superávit/Déficit (con balance)" fill="#82ca9d" />
@@ -639,14 +621,14 @@ const PresupuestarioPage = () => {
                 <tr key={idx} className={mun.superavit_deficit > 0 ? 'bg-green-50' : 'bg-red-50'}>
                   <td className={`font-bold text-blue-700 ${isMobile ? 'px-2 py-2' : 'px-3 py-2'}`}>{mun.year}</td>
                   <td className={`text-right ${isMobile ? 'px-2 py-2' : 'px-3 py-2'}`}>
-                    {formatCurrency(mun.total_egresos)}
+                    {fmtL(mun.total_egresos)}
                   </td>
                   <td
                     className={`text-right font-bold ${
                       mun.superavit_deficit > 0 ? 'text-green-600' : 'text-red-600'
                     } ${isMobile ? 'px-2 py-2' : 'px-3 py-2'}`}
                   >
-                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(mun.superavit_deficit)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : fmtL(mun.superavit_deficit)}
                   </td>
                 </tr>
               ))}
@@ -667,7 +649,7 @@ const PresupuestarioPage = () => {
     const kpis = [
       {
         title: 'Presupuesto Total',
-        value: formatCurrency(latestYear.presupuesto_municipal),
+        value: fmtL(latestYear.presupuesto_municipal),
         icon: '💰',
         color: 'bg-blue-50 border-blue-200',
         textColor: 'text-blue-700',
@@ -681,14 +663,14 @@ const PresupuestarioPage = () => {
       },
       {
         title: 'Resultado sin balance',
-        value: latestSL ? ROTULO_SIN_LIQUIDACION : formatCurrency(latestInd.resultadoSinBalance),
+        value: latestSL ? ROTULO_SIN_LIQUIDACION : fmtL(latestInd.resultadoSinBalance),
         icon: latestInd.resultadoSinBalance > 0 ? '✅' : '⚠️',
         color: latestInd.resultadoSinBalance > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200',
         textColor: latestInd.resultadoSinBalance > 0 ? 'text-emerald-700' : 'text-red-700',
       },
       {
         title: ROTULO_POBLACION,
-        value: formatNumber(latestYear.population, 0),
+        value: Number(latestYear.population ?? 0).toLocaleString('en-US'),
         icon: '👥',
         color: 'bg-orange-50 border-orange-200',
         textColor: 'text-orange-700',
@@ -890,11 +872,7 @@ const PresupuestarioPage = () => {
           const ind = indicadoresMunicipio(m);
           const sl = sinLiquidacion(m);
           const af = sl ? null : ind.autonomia;
-          const fmtM = (n: number) => n >= 1_000_000_000
-            ? `L ${(n / 1_000_000_000).toFixed(1)} mil M`
-            : n >= 1_000_000
-              ? `L ${(n / 1_000_000).toFixed(1)} M`
-              : n > 0 ? `L ${n.toLocaleString('es-HN')}` : '—';
+          const fmtM = (n: number) => (n > 0 ? fmtL(n) : '—');
           const fmtPop = new Intl.NumberFormat('es-HN');
           const kpis = [
             { title: 'Presupuesto',      value: fmtM(m.presupuesto_municipal ?? 0),             color: '#2dd4bf' },
@@ -1122,7 +1100,9 @@ const PresupuestarioPage = () => {
                                 ? (num >= 0 ? '#2dd4bf' : '#f87171')
                                 : '#9ca3af',
                             }}>
-                              {num.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                              {NO_LEMPIRAS.has(col.key)
+                                ? num.toLocaleString('en-US', { maximumFractionDigits: col.key === 'population' ? 0 : 1 })
+                                : fmtL(num, { completo: true })}
                             </td>
                           );
                         })}
@@ -1135,7 +1115,7 @@ const PresupuestarioPage = () => {
                               borderRight: '1px solid #1a2232', color: '#5eead4',
                             }}>
                               {sl ? (ci === 0 ? ROTULO_SIN_LIQUIDACION : '—')
-                                : v === null ? '—' : v.toLocaleString('en-US', { maximumFractionDigits: col.pct ? 1 : 0 })}
+                                : v === null ? '—' : col.pct ? v.toFixed(1) : fmtL(v, { completo: true })}
                             </td>
                           );
                         })}

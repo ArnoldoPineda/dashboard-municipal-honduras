@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
+import { fmtL } from '../lib/formato';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 
@@ -30,10 +31,7 @@ function pctChange(cur: number, prev: number | undefined): { trend?: string; tre
   return { trend: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`, trendUp: pct >= 0 };
 }
 
-const fmtB = (v: number) => `L ${(v / 1e9).toFixed(2)}B`;
-const fmtM = (v: number) => `L ${(v / 1e6).toFixed(0)}M`;
-const fmtNum = (v: number) =>
-  v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}K` : `${v}`;
+const fmtNum = (v: number) => Math.round(v).toLocaleString('en-US');
 
 // ─── Dark tooltip ────────────────────────────────────────────────────────────
 const DarkTooltip = ({ active, payload, label, formatter }: any) => {
@@ -270,10 +268,10 @@ export default function DashboardNacional() {
             <KpiCard label={ROTULO_POBLACION} value={fmtNum(kpis.pop)}
               sub={`~${fmtNum(Math.round(prom(kpis.pop)))} prom`}
               {...pctChange(kpis.pop, prevYear?.pop)} sparkData={sparkPop} />
-            <KpiCard label="Presupuesto" value={fmtB(kpis.presup)}
-              sub={`${fmtM(prom(kpis.presup))} prom`}
+            <KpiCard label="Presupuesto" value={fmtL(kpis.presup)}
+              sub={`${fmtL(prom(kpis.presup))} prom`}
               {...pctChange(kpis.presup, prevYear?.presup)} sparkData={sparkPresup} />
-            <KpiCard label="Ing. Corrientes" value={fmtB(kpis.propios)}
+            <KpiCard label="Ing. Corrientes" value={fmtL(kpis.propios)}
               sub={kpis.presup > 0 ? `${((kpis.propios / kpis.presup) * 100).toFixed(1)}% del presup` : '—'}
               {...pctChange(kpis.propios, prevYear?.propios)} sparkData={sparkPropios} />
             <KpiCard label="Autonomía (mediana municipal)"
@@ -293,14 +291,14 @@ export default function DashboardNacional() {
         {/* Bar chart — departments */}
         {!noData && <div className="simho-card" style={{ padding: '16px 12px 12px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em', marginBottom: 12 }}>
-            PRESUPUESTO POR DEPARTAMENTO · {selectedYear} · (M HNL)
+            PRESUPUESTO POR DEPARTAMENTO · {selectedYear} · (millones de L)
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={deptBars} margin={{ top: 0, right: 4, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,212,184,0.08)" vertical={false} />
               <XAxis dataKey="name" tick={tickStyle} axisLine={false} tickLine={false} />
               <YAxis tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v => `${v}`} />
-              <Tooltip content={<DarkTooltip formatter={(v: number) => `L ${v}M`} />} />
+              <Tooltip content={<DarkTooltip formatter={(v: number) => fmtL(v * 1e6)} />} />
               <Bar dataKey="Presupuesto" fill="#00d4b8" radius={[3, 3, 0, 0]} />
               <Bar dataKey="Ing. Corrientes" fill="rgba(0,212,184,0.3)" radius={[3, 3, 0, 0]} />
             </BarChart>
@@ -310,7 +308,7 @@ export default function DashboardNacional() {
         {/* Area chart — year-over-year trend */}
         <div className="simho-card" style={{ padding: '16px 12px 12px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em', marginBottom: 12 }}>
-            {`TENDENCIA NACIONAL 2021–${YEARS[YEARS.length - 1]} · (B HNL)`}
+            {`TENDENCIA NACIONAL 2021–${YEARS[YEARS.length - 1]} · (miles de millones de L)`}
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={trendData} margin={{ top: 0, right: 4, left: -10, bottom: 0 }}>
@@ -327,7 +325,7 @@ export default function DashboardNacional() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,212,184,0.08)" vertical={false} />
               <XAxis dataKey="year" tick={tickStyle} axisLine={false} tickLine={false} />
               <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-              <Tooltip content={<DarkTooltip formatter={(v: number) => `L ${v}B`} />} />
+              <Tooltip content={<DarkTooltip formatter={(v: number) => fmtL(v * 1e9)} />} />
               <Area type="monotone" dataKey="Presupuesto" stroke="#00d4b8" strokeWidth={2}
                 fill="url(#presupGrad)" dot={{ fill: '#00d4b8', r: 3 }} />
               <Area type="monotone" dataKey="Ing. Corrientes" stroke="#f59e0b" strokeWidth={1.5}

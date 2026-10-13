@@ -148,7 +148,6 @@ const TABLE_ROWS: TRow[] = [
 
   { key: 'g_trans', label: 'TRANSFERENCIAS RECIBIDAS',       variant: 'group' },
   { key: 'tr91',    label: 'Transferencias Art. 91',         variant: 'main',      field: 'transferencias_art91' },
-  { key: 'tr_ot',   label: 'Otras Transferencias',           variant: 'main',      field: 'otras_transferencias' },
 
   { key: 'g_egr',   label: 'EGRESOS',                        variant: 'group' },
   { key: 'gf',      label: 'Gastos de Funcionamiento',       variant: 'main',      field: 'gastos_funcionamiento' },
@@ -160,7 +159,6 @@ const TABLE_ROWS: TRow[] = [
   { key: 'gc',      label: 'Gastos de Capital y Deuda',      variant: 'main',      field: 'gastos_capital_deuda' },
   { key: 'bc',      label: '↳ Bienes Capitalizables',        variant: 'sub',       field: 'bienes_capitalizables' },
   { key: 'tce',     label: '↳ Transferencias ejecutadas',    variant: 'sub',       field: 'transferencias_capital' },
-  { key: 'aff',     label: '↳ Activos Financieros',          variant: 'sub',       field: 'activos_financieros' },
   { key: 'sd',      label: '↳ Servicios de Deuda',           variant: 'sub',       field: 'servicios_deuda' },
   { key: 'ogc',     label: '↳ Otros Gastos',                 variant: 'sub',       field: 'otros_gastos_capital' },
   { key: 'ag',      label: '↳ Asignaciones Globales',        variant: 'sub',       field: 'asignaciones_globales' },
@@ -628,8 +626,6 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="year" tick={TICK_STYLE} tickLine={false} axisLine={false} />
                 <YAxis tick={TICK_SM} tickLine={false} axisLine={false} width={38} tickFormatter={v => `${v}%`} />
                 <RTooltip content={<DarkTooltip fmtVal={(v: number) => `${v.toFixed(1)}%`} />} wrapperStyle={TT_WRAP} />
-                <ReferenceLine y={25} stroke="rgba(245,158,11,0.45)" strokeDasharray="4 3"
-                  label={{ value: '25% meta', fill: '#f59e0b', fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", position: 'insideTopRight' }} />
                 <Line type="monotone" dataKey="Autonomía %"
                   stroke={CHART_COLORS.teal} strokeWidth={2}
                   dot={{ r: 4, fill: CHART_COLORS.teal, strokeWidth: 0 }}

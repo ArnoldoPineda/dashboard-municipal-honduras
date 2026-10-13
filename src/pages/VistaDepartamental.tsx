@@ -2,7 +2,10 @@ import React, {
   useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
-import { ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion, notaDatoIncompleto } from '../lib/indicadores';
+import {
+  ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion, notaDatoIncompleto,
+  excluirDeEstadisticas, indicadoresMunicipio, clasesQuintil, mediana, CLAVE_METRICA, MetricaMapa, Clases,
+} from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
@@ -11,7 +14,9 @@ import { useSefinYear, normName as normalizeName, muniKey, muniPath } from '../u
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 import SelectorAnio from '../components/SelectorAnio';
 import { fmtL } from '../lib/formato';
-import SelectorIndicador from '../components/SelectorIndicador';
+import SelectorMetrica from '../components/SelectorMetrica';
+import { LeyendaMetrica } from '../components/panorama/MapaDepartamentos';
+import { colorMetrica, textoClase, METRICAS, CATEGORICA, SIN_DATO, ID_TRAMA, ETIQUETA_METRICA } from '../lib/colorMetrica';
 import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
 // ── Formatters ───────────────────────────────────────────────────────────────
@@ -20,16 +25,17 @@ const fmt     = new Intl.NumberFormat('es-HN', { notation: 'compact', maximumFra
 
 // ── Category helpers ─────────────────────────────────────────────────────────
 
-const CAT_COLORS: Record<string, string> = {
-  A: '#2dd4bf',
-  B: '#3a9bd6',
-  C: '#f59e0b',
-  D: '#64748b',
-};
-
-const NO_DATA_FILL = '#142030';
+const CAT_COLORS = CATEGORICA;
+const NO_DATA_FILL = SIN_DATO;
 const BORDER       = '#0a0f1e'; // fondo oscuro: separa municipios sobre cualquier relleno
-const QUANT_COLORS = d3.quantize(d3.interpolate('#0f3a44', '#00d4b8'), 5);
+
+/** Valor del municipio en la métrica (null en categoría o sin dato). */
+const valorMetrica = (m: Parameters<typeof indicadoresMunicipio>[0], metrica: MetricaMapa): number | null =>
+  metrica === 'categoria' ? null : (indicadoresMunicipio(m)[CLAVE_METRICA[metrica]] as number | null);
+const textoValor = (metrica: MetricaMapa, m: { valor: number | null; category: string; excluida: boolean }) =>
+  m.excluida ? 'Sin dato comparable'
+    : metrica === 'categoria' ? (m.category ? `Cat. ${m.category}` : '—')
+      : m.valor == null ? '—' : METRICAS[metrica].formato(m.valor);
 
 // ── Municipal choropleth map (límites oficiales OCHA COD-AB) ─────────────────
 
@@ -38,22 +44,25 @@ interface MuniStat {
   code:     number;
   name:     string;
   budget:   number;
+  valor:    number | null; // métrica seleccionada
+  excluida: boolean;       // fuera de estadísticas: trama "Sin dato comparable"
   category: string;
   sinLiq:   boolean;       // docs/ATIPICOS.md §2
   incompleto: string | null; // tooltip del ⚠ (docs/ATIPICOS.md §5–6)
   path:     string;        // ruta del detalle: /municipio/<depto>/<code>
 }
 
-interface TooltipState { x: number; y: number; name: string; budget: number | null }
+interface TooltipState { x: number; y: number; name: string; valor: string; clase: string }
 
 function DeptMuniMap({
-  topoData, deptName, municipalities, onSelectMuni, indicator, message,
+  topoData, deptName, municipalities, onSelectMuni, indicator, clases, message,
 }: {
   topoData: any;
   deptName: string;
   municipalities: MuniStat[];
   onSelectMuni: (id: string) => void;
-  indicator: string;
+  indicator: MetricaMapa;
+  clases?: Clases; // quintiles nacionales del año: el color es comparable entre departamentos
   message: string | null; // "Sin datos SEFIN…" o error de carga: mapa en gris neutro
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -101,10 +110,11 @@ function DeptMuniMap({
 
     const byKey = new Map(municipalities.map((m) => [m.key, m]));
 
-    // `municipalities` ya viene filtrado al departamento: dominio y cuantiles son locales.
-    const colorScale = d3.scaleQuantile<string>()
-      .domain(municipalities.map((m) => m.budget))
-      .range(QUANT_COLORS);
+    // Trama "Sin dato comparable" (municipios fuera de estadísticas).
+    const trama = svg.append('defs').append('pattern').attr('id', ID_TRAMA)
+      .attr('width', 6).attr('height', 6).attr('patternUnits', 'userSpaceOnUse').attr('patternTransform', 'rotate(45)');
+    trama.append('rect').attr('width', 6).attr('height', 6).attr('fill', SIN_DATO);
+    trama.append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 6).attr('stroke', '#8a9bb0').attr('stroke-width', 2);
 
     const cellsG = svg.append('g');
 
@@ -125,23 +135,17 @@ function DeptMuniMap({
         cell.attr('fill', NO_DATA_FILL)
           .on('mouseenter', (event) => {
             const [mx, my] = d3.pointer(event, svgRef.current);
-            setTooltip({ x: mx, y: my, name: NOMBRES_OFICIALES[f.properties.key] ?? f.properties.name, budget: null });
+            setTooltip({ x: mx, y: my, name: NOMBRES_OFICIALES[f.properties.key] ?? f.properties.name, valor: 'sin datos', clase: '' });
           })
           .on('mousemove', moveTooltip)
           .on('mouseleave', () => setTooltip(null));
         return;
       }
 
-      let baseFill: string;
-      let hoverFill: string;
-      if (indicator === 'categorias') {
-        const catColor = CAT_COLORS[muni.category] ?? CAT_COLORS.D;
-        baseFill   = d3.color(catColor)!.darker(0.35).formatHex();
-        hoverFill  = catColor;
-      } else {
-        baseFill   = colorScale(muni.budget);
-        hoverFill  = d3.color(baseFill)?.brighter(0.55)?.formatHex() ?? '#00d4b8';
-      }
+      const baseFill  = colorMetrica(indicator, { valor: muni.valor, categoria: muni.category, excluida: muni.excluida }, clases);
+      const hoverFill = baseFill.startsWith('#') ? d3.color(baseFill)!.brighter(0.5).formatHex() : baseFill;
+      const clase = muni.excluida ? 'Fuera de estadísticas (ver la ficha)'
+        : indicator === 'categoria' ? ROTULO_CATEGORIA : textoClase(clases?.clase(muni.valor) ?? null);
 
       cell
         .attr('fill', baseFill)
@@ -152,7 +156,7 @@ function DeptMuniMap({
             .attr('stroke', '#00d4b8')
             .attr('stroke-width', 1.8);
           const [mx, my] = d3.pointer(event, svgRef.current);
-          setTooltip({ x: mx, y: my, name: muni.name, budget: muni.budget });
+          setTooltip({ x: mx, y: my, name: muni.name, valor: `${ETIQUETA_METRICA[indicator]}: ${textoValor(indicator, muni)}`, clase });
         })
         .on('mousemove', moveTooltip)
         .on('mouseleave', function () {
@@ -168,8 +172,8 @@ function DeptMuniMap({
       .attr('pointer-events', 'none');
 
     // Nombres en el centroide; si el municipio mide < 25 px de ancho, solo queda en el tooltip.
-    const labelsG = svg.append('g').attr('pointer-events', 'none')
-      .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 10)
+    const labelsG = svg.append('g').attr('class', 'vista-depto-rotulos').attr('pointer-events', 'none')
+      .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 11)
       .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
       .attr('fill', '#c8d6e5').attr('stroke', BORDER).attr('stroke-width', 3)
       .attr('stroke-linejoin', 'round').style('paint-order', 'stroke');
@@ -182,24 +186,7 @@ function DeptMuniMap({
       t.attr('x', Math.max(half, Math.min(W - half, c[0])));
     });
 
-    if (indicator !== 'categorias' && !noData) {
-      // Leyenda por cuantiles: 5 clases con sus rangos (L)
-      const [lo, hi] = d3.extent(municipalities, (m) => m.budget) as [number, number];
-      const cuts = [lo, ...colorScale.quantiles(), hi];
-      const rowH = 13, lgX = W - 128, lgY = H - 10 - rowH * 5;
-      const lg = svg.append('g').attr('pointer-events', 'none')
-        .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 8);
-      lg.append('text').attr('x', lgX).attr('y', lgY - 5).attr('fill', '#4a5a73').text('PRESUPUESTO');
-      QUANT_COLORS.forEach((col, i) => {
-        const y = lgY + i * rowH;
-        lg.append('rect').attr('x', lgX).attr('y', y).attr('width', 12).attr('height', 9).attr('rx', 2)
-          .attr('fill', col).attr('stroke', BORDER);
-        lg.append('text').attr('x', lgX + 17).attr('y', y + 8).attr('fill', '#7c8aa3')
-          .text(`${fmtL(cuts[i])} – ${fmtL(cuts[i + 1])}`);
-      });
-    }
-
-  }, [topoData, deptName, municipalities, onSelectMuni, indicator, size, message]);
+  }, [topoData, deptName, municipalities, onSelectMuni, indicator, clases, size, message]);
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -218,24 +205,20 @@ function DeptMuniMap({
       {tooltip && (
         <div style={{
           position: 'absolute',
-          left: Math.min(tooltip.x + 12, size.w - 180),
+          left: Math.max(4, Math.min(tooltip.x + 12, size.w - 230)),
           top: Math.max(tooltip.y - 48, 4),
           pointerEvents: 'none',
           background: 'rgba(8,12,24,0.96)',
           border: '1px solid rgba(0,212,184,0.4)',
           borderRadius: 8, padding: '8px 12px',
-          fontSize: 12, zIndex: 20, minWidth: 160,
+          fontSize: 12, zIndex: 20, minWidth: 160, maxWidth: 226,
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
         }}>
           <div style={{ fontWeight: 600, fontSize: 13, color: '#e8eef6', marginBottom: 4 }}>
             {tooltip.name}
           </div>
-          <div style={{ fontSize: 11, color: '#7c8aa3' }}>
-            Presupuesto:{' '}
-            <span style={{ color: '#00d4b8', fontFamily: "'IBM Plex Mono', monospace" }}>
-              {tooltip.budget === null ? 'sin datos' : fmtL(tooltip.budget)}
-            </span>
-          </div>
+          <div style={{ fontSize: 12, color: '#e8eef6', fontFamily: "'IBM Plex Mono', monospace" }}>{tooltip.valor}</div>
+          {tooltip.clase && <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 }}>{tooltip.clase}</div>}
         </div>
       )}
     </div>
@@ -247,7 +230,7 @@ function DeptMuniMap({
 export default function VistaDepartamental() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fiscalYear, indicator } = useNavbar();
+  const { fiscalYear, indicator, setIndicator } = useNavbar();
   const topoData = useMunicipiosTopo();
   const [search,   setSearch]   = useState('');
 
@@ -280,41 +263,44 @@ export default function VistaDepartamental() {
       code:     m.code ?? 0,
       name:     m.name ?? '',
       budget:   m.presupuesto_municipal ?? 0,
+      valor:    valorMetrica(m, indicator),
+      excluida: excluirDeEstadisticas(m),
       category: m.category ?? '',
       sinLiq:   sinLiquidacion(m),
       incompleto: notaDatoIncompleto(m),
       path:     muniPath(m),
     })),
-    [deptRows]
+    [deptRows, indicator]
   );
+
+  // Cortes por quintiles de TODOS los municipios del año (sin excluidos), no solo del departamento.
+  const clases = useMemo(() => indicator === 'categoria' ? undefined
+    : clasesQuintil(yearRows.filter((m) => !excluirDeEstadisticas(m)).map((m) => valorMetrica(m, indicator)), METRICAS[indicator].direccion),
+  [yearRows, indicator]);
 
   // Agregados del departamento (lib/indicadores: Σ numeradores ÷ Σ denominadores).
   const deptYear = useMemo(() => sumarInsumos(deptRows), [deptRows]);
-  const autonomiaSb: number | null = useMemo(
+  // Autonomía como en el Panorama: mediana municipal (cifra principal) y agregado Σ/Σ (segunda línea).
+  const autonomiaAgregado: number | null = useMemo(
     () => (deptRows.length === 0 ? null : calcular(deptYear).autonomia),
     [deptRows, deptYear]
   );
+  const autonomiaMediana = useMemo(() => mediana(deptRows, 'autonomia'), [deptRows]);
+  const nExcluidos = deptRows.filter(excluirDeEstadisticas).length;
 
   // Capital = municipio con code 1 (cabecera departamental)
   const capital = dept?.capital ?? '';
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
+    // Mejor primero según la métrica; excluidos y sin dato al final. En categoría: A, B, C, D.
+    const signo = indicator !== 'categoria' && METRICAS[indicator].direccion === 'menor' ? 1 : -1;
+    const v = (m: MuniStat) => (m.excluida ? null : m.valor);
     return [...munis]
-      .sort((a, b) => b.budget - a.budget)
+      .sort((a, b) => indicator === 'categoria' ? ((a.excluida ? 'Z' : a.category || 'Y').localeCompare(b.excluida ? 'Z' : b.category || 'Y') || a.name.localeCompare(b.name))
+        : v(a) == null ? 1 : v(b) == null ? -1 : signo * (v(a)! - v(b)!))
       .filter((m) => !q || m.name.toLowerCase().includes(q));
-  }, [munis, search]);
-
-  // Verificación temporal (solo desarrollo): Supabase ↔ geometría por department|code, todo el país.
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development' || !topoData || !loaded || yearRows.length === 0) return;
-    const geoKeys = new Set<string>(topoData.objects.municipios.geometries.map((g: any) => g.properties.key));
-    const sbKeys  = new Set(yearRows.map(muniKey));
-    const sbSinGeo = Array.from(sbKeys).filter((k) => !geoKeys.has(k));
-    const geoSinSb = Array.from(geoKeys).filter((k) => !sbKeys.has(k));
-    console.warn(`[SIMHO ${fiscalYear}] Supabase sin geometría: ${sbSinGeo.length}`, sbSinGeo,
-                 `| Geometrías sin Supabase: ${geoSinSb.length}`, geoSinSb);
-  }, [topoData, yearRows, loaded, fiscalYear]);
+  }, [munis, search, indicator]);
 
   const onSelectMuni = useCallback((path: string) => navigate(path), [navigate]);
 
@@ -328,19 +314,23 @@ export default function VistaDepartamental() {
   }
 
   const na = (v: string) => (noData || !loaded ? '—' : v); // mientras carga: '—', nunca 0
-  const kpis = [
-    { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
+  const pct = (v: number | null) => (v == null ? '—' : `${v.toFixed(1)} %`);
+  // Montos: totales del departamento (Σ sin excluidos). Autonomía: mediana + agregado, como el Panorama.
+  const kpis: { label: string; value: string; color: string; sub?: string }[] = [
+    { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8',
+      sub: loaded && !noData ? `${deptRows.length - nExcluidos} en estadísticas${nExcluidos ? ` · ${nExcluidos} excluido${nExcluidos > 1 ? 's' : ''}` : ''}` : undefined },
     { label: ROTULO_POBLACION.toUpperCase(), value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
     { label: 'PRESUPUESTO',    value: na(fmtL(deptYear.presupuesto)),     color: '#f59e0b' },
     { label: 'ING. CORRIENTES', value: na(fmtL(deptYear.ingresosCorrientes)), color: '#f59e0b' },
-    { label: 'AUTONOMÍA',      value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
+    { label: 'AUTONOMÍA · MEDIANA MUNICIPAL', value: na(pct(autonomiaMediana)), color: '#5eead4',
+      sub: loaded && !noData ? `Agregado: ${pct(autonomiaAgregado)}` : undefined },
     { label: 'TRANSFERENCIAS', value: na(fmtL(deptYear.transferencias)),   color: '#f59e0b' },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+    <div className="vista-depto" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{
+      <div className="vista-depto-cab" style={{
         display: 'flex', alignItems: 'center', gap: 16,
         padding: '13px 24px',
         borderBottom: '1px solid rgba(0,212,184,0.14)',
@@ -370,38 +360,40 @@ export default function VistaDepartamental() {
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <SelectorIndicador />
+          <SelectorMetrica valor={indicator} onCambio={setIndicator} />
           <SelectorAnio />
         </div>
       </div>
 
       {/* Main: left = choropleth, right = KPIs + list */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="vista-depto-cuerpo" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* LEFT: municipal choropleth */}
-        <div style={{
+        <div className="vista-depto-mapa" style={{
           flex: '0 0 60%', borderRight: '1px solid rgba(0,212,184,0.10)',
           padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden',
         }}>
-          <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
             MAPA MUNICIPAL — clic para ver detalle
           </div>
-          <div style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
+          <div className="vista-depto-lienzo" style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
             <DeptMuniMap
               topoData={topoData}
               deptName={dept.nombre}
               municipalities={munis}
               onSelectMuni={onSelectMuni}
               indicator={indicator}
+              clases={clases}
               message={mapMessage}
             />
           </div>
-          <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', flexShrink: 0 }}>
+          {!mapMessage && <LeyendaMetrica metrica={indicator} clases={clases} sinDato={munis.some((m) => m.excluida)} />}
+          <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', flexShrink: 0 }}>
             Límites: OCHA COD-AB / SINIT (CC BY-IGO)
           </div>
         </div>
 
         {/* RIGHT: KPI cards + searchable list */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16, gap: 12 }}>
+        <div className="vista-depto-lista" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16, gap: 12 }}>
           {/* KPI grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, flexShrink: 0 }}>
             {kpis.map((k) => (
@@ -411,7 +403,7 @@ export default function VistaDepartamental() {
                 borderRadius: 8, padding: '9px 11px',
               }}>
                 <div style={{
-                  fontSize: 8, color: '#4a5a73',
+                  fontSize: 11, color: '#a9b7c8',
                   fontFamily: "'IBM Plex Mono', monospace",
                   letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4,
                 }}>
@@ -420,13 +412,14 @@ export default function VistaDepartamental() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: k.color, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {k.value}
                 </div>
+                {k.sub && <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3 }}>{k.sub}</div>}
               </div>
             ))}
           </div>
 
           <div style={{ height: 1, background: 'rgba(0,212,184,0.1)', flexShrink: 0 }} />
 
-          <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
             MUNICIPIOS ({geoCount ?? '—'})
           </div>
 
@@ -445,7 +438,10 @@ export default function VistaDepartamental() {
               return (
                 <div
                   key={m.key}
+                  role="link"
+                  tabIndex={0}
                   onClick={() => navigate(m.path)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(m.path); }}
                   style={{
                     padding: '10px 10px', borderRadius: 7, cursor: 'pointer',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -476,15 +472,15 @@ export default function VistaDepartamental() {
                     )}
                     {m.sinLiq && (
                       <span style={{
-                        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#f59e0b',
+                        fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: '#f59e0b',
                         border: '1px solid #f59e0b55', borderRadius: 3, padding: '1px 5px',
                       }}>
                         {ROTULO_SIN_LIQUIDACION.toUpperCase()}
                       </span>
                     )}
-                    {indicator === 'categorias' && (
+                    {indicator === 'categoria' && (
                       <span title={ROTULO_CATEGORIA} style={{
-                        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
                         color: CAT_COLORS[cat], background: CAT_COLORS[cat] + '18',
                         border: `1px solid ${CAT_COLORS[cat]}30`, borderRadius: 3, padding: '1px 5px',
                       }}>
@@ -493,7 +489,7 @@ export default function VistaDepartamental() {
                     )}
                   </div>
                   <span style={{ fontSize: 15, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
-                    {fmtL(m.budget)}
+                    {textoValor(indicator, m)}
                   </span>
                 </div>
               );

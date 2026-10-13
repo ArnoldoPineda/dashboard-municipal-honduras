@@ -15,6 +15,7 @@ create table if not exists public.categoria_municipal (
 
 alter table public.categoria_municipal enable row level security;
 
+-- Lectura pública (dato abierto); escritura solo con service_role, que omite RLS.
 create policy "categoria_municipal_lectura_publica" on public.categoria_municipal
   for select to anon, authenticated using (true);
 

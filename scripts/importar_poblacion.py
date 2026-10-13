@@ -31,7 +31,7 @@ with open(args.csv, encoding="utf-8-sig", newline="") as f:
         except (KeyError, ValueError) as e:
             errores.append(f"línea {i}: {e}")
             continue
-        if not (1 <= fila["cod_depto"] <= 18 and fila["cod_muni"] > 0 and fila["poblacion"] > 0):
+        if not (1 <= fila["cod_depto"] <= 18 and fila["cod_muni"] > 0 and 2000 <= fila["anio"] <= 2050 and fila["poblacion"] > 0):
             errores.append(f"línea {i}: fuera de rango {fila}")
             continue
         filas.append(fila)

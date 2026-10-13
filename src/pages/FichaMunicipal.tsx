@@ -12,6 +12,7 @@ import BuscadorMunicipio from '../components/ficha/BuscadorMunicipio';
 import { LecturaSimho, TarjetasIndicadores, FranjaResultado, Comparaciones } from '../components/ficha/TarjetasIndicadores';
 import PestanasFicha from '../components/ficha/PestanasFicha';
 import DetalleContable from '../components/ficha/DetalleContable';
+import FranjaExcluido from '../components/ficha/FranjaExcluido';
 import { C, SANS, MONO, h2 } from '../components/ficha/estilo';
 
 /** Última ficha consultada (para /muni-detalle). */
@@ -69,6 +70,7 @@ export default function FichaMunicipal() {
           <Mensaje>⚠ {NO_DATA_MSG} ({fiscalYear})</Mensaje>
         ) : (
           <>
+            {excluida && <FranjaExcluido fila={fila} />}
             <LecturaSimho fila={fila} comps={comps} excluida={excluida} />
             <TarjetasIndicadores fila={fila} comps={comps} excluida={excluida} />
             <FranjaResultado fila={fila} />

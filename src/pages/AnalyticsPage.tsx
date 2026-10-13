@@ -135,8 +135,8 @@ const TABLE_ROWS: TRow[] = [
   // Jerarquía SEFIN: Corrientes = Tributarios (G1, ya incluye Tasas y Derechos) + No Tributarios (G2).
   { key: 'ing_c',   label: 'Ingresos Corrientes',            variant: 'main',      field: 'ingresosCorrientes' },
   { key: 'ing_t',   label: '↳ Ingresos Tributarios (G1)',    variant: 'sub',       field: 'ingresos_tributarios' },
-  { key: 'tasas',   label: '    ↳ de los cuales: Tasas por Servicios', variant: 'sub', field: 'tasas_servicios' },
-  { key: 'derech',  label: '    ↳ de los cuales: Derechos', variant: 'sub', field: 'derechos' },
+  { key: 'tasas',   label: '\u00a0\u00a0\u00a0\u00a0↳ de los cuales: Tasas por Servicios', variant: 'sub', field: 'tasas_servicios' },
+  { key: 'derech',  label: '\u00a0\u00a0\u00a0\u00a0↳ de los cuales: Derechos', variant: 'sub', field: 'derechos' },
   { key: 'ing_nt',  label: '↳ Ingresos No Tributarios (G2)', variant: 'sub',       field: 'ingresos_no_tributarios' },
   { key: 'ing_cap', label: 'Ingresos de Capital',            variant: 'main',      field: 'ingresos_capital' },
 

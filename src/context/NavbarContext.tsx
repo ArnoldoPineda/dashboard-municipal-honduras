@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState } from 'react';
 import { ANIO_ACTUAL } from '../data/anios';
+import type { MetricaMapa } from '../lib/indicadores';
 
-export type IndicatorKey = 'presupuesto' | 'poblacion' | 'autonomia' | 'categorias';
+/** Métrica compartida por el Panorama, el Mapa nacional y la Vista Departamental. */
+export type IndicatorKey = MetricaMapa;
 
 interface NavbarContextValue {
   indicator:    IndicatorKey;
@@ -11,14 +13,14 @@ interface NavbarContextValue {
 }
 
 const NavbarContext = createContext<NavbarContextValue>({
-  indicator:    'presupuesto',
+  indicator:    'autonomia',
   setIndicator: () => {},
   fiscalYear:   ANIO_ACTUAL,
   setFiscalYear: () => {},
 });
 
 export function NavbarProvider({ children }: { children: React.ReactNode }) {
-  const [indicator,  setIndicator]  = useState<IndicatorKey>('presupuesto');
+  const [indicator,  setIndicator]  = useState<IndicatorKey>('autonomia');
   const [fiscalYear, setFiscalYear] = useState(ANIO_ACTUAL);
 
   return (

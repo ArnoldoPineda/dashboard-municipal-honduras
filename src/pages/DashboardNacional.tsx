@@ -1,8 +1,8 @@
 // Panorama Nacional (mockup aprobado: docs/mockups/panorama-nacional.mockup.html).
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
-import { resumenNacional, MetricaMapa } from '../lib/indicadores';
+import { resumenNacional } from '../lib/indicadores';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import SelectorAnio from '../components/SelectorAnio';
@@ -18,8 +18,7 @@ const columna: React.CSSProperties = {
 };
 
 export default function DashboardNacional() {
-  const { fiscalYear } = useNavbar();
-  const [metrica, setMetrica] = useState<MetricaMapa>('autonomia');
+  const { fiscalYear, indicator, setIndicator } = useNavbar();
   const { municipalities, loading } = useMunicipalitiesMultiYear(ANIOS_SEFIN);
   const filasAnio = useMemo(() => municipalities.filter((m) => m.year === fiscalYear), [municipalities, fiscalYear]);
   const r = useMemo(() => resumenNacional(municipalities, fiscalYear), [municipalities, fiscalYear]);
@@ -47,7 +46,7 @@ export default function DashboardNacional() {
             <TarjetasNacionales r={r} />
             <DistribucionAutonomia r={r} />
             <TablaCategorias r={r} />
-            <SeccionDepartamentos filasAnio={filasAnio} metrica={metrica} onMetrica={setMetrica} anio={fiscalYear} />
+            <SeccionDepartamentos filasAnio={filasAnio} metrica={indicator} onMetrica={setIndicator} anio={fiscalYear} />
             <TendenciaAutonomia filas={municipalities} anios={ANIOS_SEFIN} />
           </>
         )}

@@ -28,7 +28,7 @@ export const valorTexto = (metrica: MetricaMapa, d: ResumenDepartamento) =>
     ? (d.categoria ? `Cat. ${d.categoria}` : '—')
     : d.valor == null ? '—' : METRICAS[metrica].formato(d.valor);
 
-export function LeyendaMetrica({ metrica, clases }: { metrica: MetricaMapa; clases?: Clases }) {
+export function LeyendaMetrica({ metrica, clases, sinDato = false }: { metrica: MetricaMapa; clases?: Clases; sinDato?: boolean }) {
   const items = metrica === 'categoria'
     ? Object.entries(CATEGORICA).map(([c, color]) => ({ color, texto: `Categoría ${c}` }))
     : (clases?.rangos ?? []).map((r) => ({
@@ -42,12 +42,17 @@ export function LeyendaMetrica({ metrica, clases }: { metrica: MetricaMapa; clas
           <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: 3, background: it.color, display: 'inline-block' }} />{it.texto}
         </span>
       ))}
+      {sinDato && (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: 3, display: 'inline-block', background: `repeating-linear-gradient(45deg, ${SIN_DATO} 0 3px, #8a9bb0 3px 5px)` }} />Sin dato comparable
+        </span>
+      )}
       {metrica !== 'categoria' && <span style={{ color: '#8a9bb0' }}>Más claro = mejor</span>}
     </div>
   );
 }
 
-export default function MapaDepartamentos({ filasAnio, metrica }: { filasAnio: Municipality[]; metrica: MetricaMapa }) {
+export default function MapaDepartamentos({ filasAnio, metrica, maxAlto = 420 }: { filasAnio: Municipality[]; metrica: MetricaMapa; maxAlto?: number | string }) {
   const topo = useMunicipiosTopo();
   const navigate = useNavigate();
   const [hover, setHover] = useState<{ x: number; y: number; d: ResumenDepartamento } | null>(null);
@@ -70,7 +75,7 @@ export default function MapaDepartamentos({ filasAnio, metrica }: { filasAnio: M
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img"
         aria-label={`Mapa de los 18 departamentos coloreado por ${ETIQUETA_METRICA[metrica]}; clic para abrir el departamento`}
-        style={{ display: 'block', maxHeight: 420 }} onMouseLeave={() => setHover(null)}>
+        style={{ display: 'block', maxHeight: maxAlto, minHeight: 220 }} onMouseLeave={() => setHover(null)}>
         {formas.map((f: any) => {
           const d = porDepto.get(f.department);
           const fill = d ? colorMetrica(metrica, d, datos.clases) : SIN_DATO;

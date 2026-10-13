@@ -6,7 +6,7 @@ import { fmtL } from './formato';
 export const SECUENCIAL = ['#12302d', '#1d5a52', '#25766b', '#34ad9b', '#3fd6c0']; // el medio, ajustado para contraste AA del rótulo
 /** Categorías SGJD 2020 (paleta categórica, distinguible sobre fondo oscuro). */
 export const CATEGORICA: Record<string, string> = { A: '#3fd6c0', B: '#6ba6f2', C: '#f0a33a', D: '#b591f2' };
-/** "Sin dato comparable" (excluidos de estadísticas): gris con trama (ver PATRON_SIN_DATO). */
+/** "Sin dato comparable" (excluidos de estadísticas): gris con trama <pattern id={ID_TRAMA}> (la define la Vista Departamental). */
 export const SIN_DATO = '#2a3442';
 export const ID_TRAMA = 'simho-trama-sin-dato';
 

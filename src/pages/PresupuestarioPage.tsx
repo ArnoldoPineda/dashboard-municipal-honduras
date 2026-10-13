@@ -366,7 +366,7 @@ const PresupuestarioPage = () => {
                       mun.superavit_deficit > 0 ? 'text-green-600' : 'text-red-600'
                     } ${isMobile ? 'px-2 py-2' : 'px-4 py-3'}`}
                   >
-                    {formatCurrency(mun.superavit_deficit)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(mun.superavit_deficit)}
                   </td>
                   <td className={`text-right font-bold ${
                     indicadoresMunicipio(mun).resultadoSinBalance > 0 ? 'text-green-600' : 'text-red-600'
@@ -592,8 +592,9 @@ const PresupuestarioPage = () => {
     const data = selectedMunicipalityData.map((m) => ({
       year: `${m.year}`,
       'Total Egresos': Math.round(m.total_egresos / 1_000_000),
-      'Superávit/Déficit (con balance)': Math.round(m.superavit_deficit / 1_000_000),
-      'Resultado sin balance': Math.round(indicadoresMunicipio(m).resultadoSinBalance / 1_000_000),
+      // Sin liquidación: sin barras (no hay resultado que graficar).
+      'Superávit/Déficit (con balance)': sinLiquidacion(m) ? null : Math.round(m.superavit_deficit / 1_000_000),
+      'Resultado sin balance': sinLiquidacion(m) ? null : Math.round(indicadoresMunicipio(m).resultadoSinBalance / 1_000_000),
     }));
 
     return (
@@ -644,7 +645,7 @@ const PresupuestarioPage = () => {
                       mun.superavit_deficit > 0 ? 'text-green-600' : 'text-red-600'
                     } ${isMobile ? 'px-2 py-2' : 'px-3 py-2'}`}
                   >
-                    {formatCurrency(mun.superavit_deficit)}
+                    {sinLiquidacion(mun) ? ROTULO_SIN_LIQUIDACION : formatCurrency(mun.superavit_deficit)}
                   </td>
                 </tr>
               ))}

@@ -135,7 +135,7 @@ export default function DashboardNacional() {
     const propios = ins.ingresosCorrientes;
     const autonomia = calcular(ins).autonomia ?? 0;
     const autonomiaMediana = mediana(byYear, 'autonomia');
-    const topMuni = [...byYear].sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
+    const topMuni = byYear.filter(m => !sinLiquidacion(m)).sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
     const depts = new Set(byYear.map((m) => normDept(m.department))).size;
     return { totalMunis, sinLiq, pop, presup, propios, autonomia, autonomiaMediana, depts, topMuni };
   }, [byYear]);
@@ -144,7 +144,7 @@ export default function DashboardNacional() {
   const deptBars = useMemo(() => {
     const map = new Map<string, { presup: number; propios: number }>();
     byYear.forEach((m: any) => {
-      if (!isValidDept(m.department)) return;
+      if (!isValidDept(m.department) || sinLiquidacion(m)) return;
       const d: string = m.department;
       const prev = map.get(d) || { presup: 0, propios: 0 };
       map.set(d, {
@@ -173,8 +173,7 @@ export default function DashboardNacional() {
         propios: ins.ingresosCorrientes,
         pop:     ins.poblacion,
         // Serie principal: mediana municipal, igual que el KPI.
-        autonomia: mediana(ym, 'autonomia') ?? 0,
-        munis:   ym.length,
+        autonomia: mediana(ym, 'autonomia'),
       };
     }).filter((t): t is NonNullable<typeof t> => t !== null);
   }, [municipalities]);
@@ -192,7 +191,9 @@ export default function DashboardNacional() {
   const sparkPresup  = trendYears.map(t => t.presup);
   const sparkPropios = trendYears.map(t => t.propios);
   const sparkPop     = trendYears.map(t => t.pop);
-  const sparkAut     = trendYears.map(t => t.autonomia);
+  const sparkAut     = trendYears.flatMap(t => (t.autonomia === null ? [] : [t.autonomia]));
+  const prevAut      = prevYear?.autonomia ?? null;
+  const prom = (v: number) => (kpis && kpis.totalMunis > 0 ? v / kpis.totalMunis : 0);
 
   const tickStyle = { fill: '#7c8aa3', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif" };
 
@@ -268,20 +269,20 @@ export default function DashboardNacional() {
             <KpiCard label="Municipios" value={`${kpis.totalMunis}`}
               sub={kpis.sinLiq ? `con liquidación · ${kpis.sinLiq} sin liquidación` : 'con liquidación'} />
             <KpiCard label={ROTULO_POBLACION} value={fmtNum(kpis.pop)}
-              sub={`~${fmtNum(Math.round(kpis.pop / kpis.totalMunis))} prom`}
+              sub={`~${fmtNum(Math.round(prom(kpis.pop)))} prom`}
               {...pctChange(kpis.pop, prevYear?.pop)} sparkData={sparkPop} />
             <KpiCard label="Presupuesto" value={fmtB(kpis.presup)}
-              sub={`${fmtM(kpis.presup / kpis.totalMunis)} prom`}
+              sub={`${fmtM(prom(kpis.presup))} prom`}
               {...pctChange(kpis.presup, prevYear?.presup)} sparkData={sparkPresup} />
             <KpiCard label="Ing. Corrientes" value={fmtB(kpis.propios)}
-              sub={`${((kpis.propios / kpis.presup) * 100).toFixed(1)}% del presup`}
+              sub={kpis.presup > 0 ? `${((kpis.propios / kpis.presup) * 100).toFixed(1)}% del presup` : '—'}
               {...pctChange(kpis.propios, prevYear?.propios)} sparkData={sparkPropios} />
             <KpiCard label="Autonomía (mediana municipal)"
               value={kpis.autonomiaMediana === null ? '—' : `${kpis.autonomiaMediana.toFixed(1)}%`}
               sub={`Agregado nacional: ${kpis.autonomia.toFixed(1)} %`}
-              {...(prevYear && kpis.autonomiaMediana !== null ? {
-                trend: `${kpis.autonomiaMediana - prevYear.autonomia >= 0 ? '+' : ''}${(kpis.autonomiaMediana - prevYear.autonomia).toFixed(1)} pp`,
-                trendUp: kpis.autonomiaMediana >= prevYear.autonomia,
+              {...(prevAut !== null && kpis.autonomiaMediana !== null ? {
+                trend: `${kpis.autonomiaMediana - prevAut >= 0 ? '+' : ''}${(kpis.autonomiaMediana - prevAut).toFixed(1)} pp`,
+                trendUp: kpis.autonomiaMediana >= prevAut,
               } : {})} sparkData={sparkAut} />
             <KpiCard label="Departamentos" value={`${kpis.depts}`}
               sub="con datos SEFIN" />

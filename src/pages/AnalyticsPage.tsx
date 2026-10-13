@@ -243,8 +243,6 @@ export default function AnalyticsPage() {
   }, [municipalities, deptName]);
   const muniName  = useMemo(() => deptMunis.find(m => m.id === muniId)?.name ?? '', [deptMunis, muniId]);
 
-  // Años en que el municipio elegido no tiene liquidación (sus columnas se rotulan así).
-  const sinLiqYears = new Set<number>();
   const yearDataMap = useMemo(() => {
     const map: Record<number, YearData> = {};
     for (const year of activeYears) {
@@ -265,12 +263,11 @@ export default function AnalyticsPage() {
     }
     return map;
   }, [municipalities, scope, deptName, muniName, activeYears]);
-  if (scope === 'municipio') {
-    municipalities.forEach(m => {
-      if (sinLiquidacion(m) && m.department && m.name && norm(m.department) === norm(deptName)
-        && norm(m.name) === norm(muniName)) sinLiqYears.add(Number(m.year));
-    });
-  }
+  // Años en que el municipio elegido no tiene liquidación (sus columnas se rotulan así).
+  const sinLiqYears = useMemo(() => new Set<number>(scope !== 'municipio' ? [] : municipalities
+    .filter(m => sinLiquidacion(m) && m.department && m.name
+      && norm(m.department) === norm(deptName) && norm(m.name) === norm(muniName))
+    .map(m => Number(m.year))), [municipalities, scope, deptName, muniName]);
 
   const scopeLabel = useMemo(() => {
     if (scope === 'municipio' && muniName) return `${muniName} — ${deptName}`;
@@ -346,7 +343,7 @@ export default function AnalyticsPage() {
 
   const chart4 = sortedYears.map(y => ({
     year: String(y),
-    value: toM(yearDataMap[y]?.resultadoSinBalance ?? 0),
+    value: sinLiqYears.has(y) ? null : toM(yearDataMap[y]?.resultadoSinBalance ?? 0),
   }));
 
   const TICK_STYLE = { fill: '#4a5a73', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" };

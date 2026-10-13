@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, indicadoresMunicipio, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
@@ -10,11 +10,6 @@ import { useNavbar } from '../context/NavbarContext';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'propiosPc' | 'gastosCapital' | 'resultadoConBalance' | 'superavit';
-
-/** Métricas que se agregan como Σ/Σ (no promedio de municipios). */
-const RATIO_METRICS: Partial<Record<Metric, 'autonomia' | 'propiosPerCapita'>> = {
-  autonomia: 'autonomia', propiosPc: 'propiosPerCapita',
-};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -64,7 +59,6 @@ function toRow(m: Municipality) {
     presupuesto:   m.presupuesto_municipal ?? 0,
     categoria:     m.category ?? '',
     ind:           indicadoresMunicipio(m),
-    src:           m,
     otros:         m.gastos_capital_deuda ?? 0,
     isCapital:     m.code === 1, // cabecera departamental
   };
@@ -110,20 +104,6 @@ export default function RankingsPage() {
   const prevMusArr = useMemo(() => prevRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [prevRows]);
   const sinLiqNombres = useMemo(() => yearRows.filter(sinLiquidacion).map(m => m.name ?? ''), [yearRows]);
   const incompletosNombres = useMemo(() => yearRows.filter(datoIncompleto).map(m => m.name ?? ''), [yearRows]);
-
-  // Referencia departamental: montos = promedio por municipio; razones y per cápita = Σ/Σ del departamento.
-  const deptAvgMap = useMemo<Record<string, number>>(() => {
-    const byDept: Record<string, typeof allMusArr> = {};
-    allMusArr.forEach(m => { (byDept[m.departamentoId] = byDept[m.departamentoId] || []).push(m); });
-    const ratioKey = RATIO_METRICS[metric];
-    const result: Record<string, number> = {};
-    Object.entries(byDept).forEach(([k, list]) => {
-      result[k] = ratioKey
-        ? indicadoresAgregados(list.map(m => m.src))[ratioKey] ?? 0
-        : list.reduce((s, m) => s + getMetricValue(m, metric), 0) / list.length;
-    });
-    return result;
-  }, [metric, allMusArr]);
 
   // Full ranked list (all munis, active metric)
   const rankedAll = useMemo(() => {
@@ -175,7 +155,7 @@ export default function RankingsPage() {
     whiteSpace: 'nowrap',
   };
 
-  const GRID = '48px 1.5fr 1fr 56px 150px 84px 1.3fr';
+  const GRID = '48px 1.5fr 1fr 56px 150px 1.3fr';
 
   return (
     <DashboardLayout title="Rankings">
@@ -288,8 +268,8 @@ export default function RankingsPage() {
 
           {/* Header row */}
           <div style={{ display: 'grid', gridTemplateColumns: GRID }}>
-            {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'vs DEPTO', 'RELATIVO'].map(h => (
-              <div key={h} title={h === 'CAT.' ? ROTULO_CATEGORIA : undefined} style={{ ...TH, textAlign: h === 'VALOR' || h === 'vs DEPTO' ? 'right' : 'left' }}>
+            {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'RELATIVO'].map(h => (
+              <div key={h} title={h === 'CAT.' ? ROTULO_CATEGORIA : undefined} style={{ ...TH, textAlign: h === 'VALOR' ? 'right' : 'left' }}>
                 {h}
               </div>
             ))}
@@ -299,8 +279,6 @@ export default function RankingsPage() {
           {pageRows.map((muni: any, i: number) => {
             const globalRank = filtered.indexOf(muni) + 1;
             const value      = getMetricValue(muni, metric);
-            const avg        = deptAvgMap[muni.departamentoId] || 0;
-            const vsPct      = avg !== 0 ? ((value - avg) / Math.abs(avg)) * 100 : 0;
             const barPct     = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
             const prevRank   = prevRankMap[muni.id];
             const movement   = prevRank ? prevRank - globalRank : null;
@@ -401,17 +379,6 @@ export default function RankingsPage() {
                   fontWeight: 600,
                 }}>
                   {formatValue(metric, value)}
-                </div>
-
-                {/* vs Depto */}
-                <div style={{
-                  padding: '9px 12px',
-                  fontSize: 11.5,
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  color: vsPct >= 0 ? '#1f9d57' : '#ef5a5a',
-                  textAlign: 'right',
-                }}>
-                  {vsPct >= 0 ? '+' : ''}{vsPct.toFixed(1)}%
                 </div>
 
                 {/* Relativo — bar + movement */}

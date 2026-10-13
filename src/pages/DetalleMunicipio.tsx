@@ -40,8 +40,9 @@ export default function DetalleMunicipio() {
   }, [deptRowsAll, fiscalYear]);
 
   const evolucion = useMemo(
-    () => muniRows.filter((m) => m.year <= fiscalYear).map((m) => ({ year: m.year, presupuesto: m.presupuesto_municipal ?? 0 })),
-    [muniRows, fiscalYear]
+    // Evolución sobre todo el rango (ANIOS_SEFIN), no solo hasta el año elegido.
+    () => muniRows.map((m) => ({ year: m.year, presupuesto: m.presupuesto_municipal ?? 0 })),
+    [muniRows]
   );
 
   if (loading) {

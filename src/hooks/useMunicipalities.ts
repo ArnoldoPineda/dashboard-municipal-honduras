@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient.ts';
 import { nombreOficial } from '../data/nombresOficiales';
+import { ANIO_ACTUAL } from '../data/anios';
 
 export type Municipality = {
   id: string;
@@ -82,7 +83,7 @@ async function fetchAllPages(yearsNum: number[]): Promise<Municipality[]> {
 
 // Hook multi-año — paginación automática en lotes de 1 000 filas
 export const useMunicipalitiesMultiYear = (
-  selectedYears: number[] = [2024]
+  selectedYears: number[] = [ANIO_ACTUAL]
 ) => {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -121,7 +122,7 @@ export const useMunicipalitiesMultiYear = (
   return { municipalities, loading, error };
 };
 
-// Hook legacy: por defecto solo 2024
+// Hook legacy: por defecto solo el último año
 export const useMunicipalities = () => {
-  return useMunicipalitiesMultiYear([2024]);
+  return useMunicipalitiesMultiYear([ANIO_ACTUAL]);
 };

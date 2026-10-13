@@ -3,7 +3,7 @@ import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, indicadores
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { DEPARTAMENTOS } from '../data/departamentos';
 import { muniKey } from '../utils/sefin';
-import { ANIOS_SEFIN } from '../data/anios';
+import { ANIOS_SEFIN, ANIO_ACTUAL } from '../data/anios';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import {
@@ -137,7 +137,7 @@ const PresupuestarioPage = () => {
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   // Clave "DEPARTAMENTO|code": hay 24 nombres repetidos entre departamentos.
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>('');
-  const [selectedYears, setSelectedYears] = useState<number[]>([2024]);
+  const [selectedYears, setSelectedYears] = useState<number[]>([ANIO_ACTUAL]);
   const [activeTab, setActiveTab] = useState('general');
   const [muniSearch, setMuniSearch] = useState<string>('');
   const [selectedCategoria, setSelectedCategoria] = useState<string>('');
@@ -161,12 +161,12 @@ const PresupuestarioPage = () => {
   }, [selectedMunicipality, selectedYears, municipalities]);
 
   const yearRowCount = useMemo(
-    () => municipalities.filter(m => m.year === (selectedYears[0] ?? 2024)).length,
+    () => municipalities.filter(m => m.year === (selectedYears[0] ?? ANIO_ACTUAL)).length,
     [municipalities, selectedYears]
   );
 
   const sefinTableData = useMemo(() => {
-    const year = selectedYears[0] ?? 2024;
+    const year = selectedYears[0] ?? ANIO_ACTUAL;
     const deptNorm = selectedDeptId ? normalize(selectedDeptId.replace(/-/g, ' ')) : null;
     return municipalities
       .filter(m => {
@@ -779,7 +779,7 @@ const PresupuestarioPage = () => {
               Datos Financieros
             </div>
             <div style={{ fontSize: 13, color: '#7c8aa3', marginTop: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
-              {yearRowCount} registros SEFIN · ejercicio {selectedYears[0] ?? 2024}
+              {yearRowCount} registros SEFIN · ejercicio {selectedYears[0] ?? ANIO_ACTUAL}
             </div>
           </div>
         </div>
@@ -1018,7 +1018,7 @@ const PresupuestarioPage = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <span style={{ fontSize: 10, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                {sefinTableData.length} municipios · {selectedYears[0] ?? 2024} · {SEFIN_COLUMNS.length} columnas SEFIN + {SIMHO_COLUMNS.length} indicadores SIMHO
+                {sefinTableData.length} municipios · {selectedYears[0] ?? ANIO_ACTUAL} · {SEFIN_COLUMNS.length} columnas SEFIN + {SIMHO_COLUMNS.length} indicadores SIMHO
               </span>
             </div>
             <div style={{ overflowX: 'auto', maxHeight: '70vh', overflowY: 'auto' }}>

@@ -4,7 +4,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG, muniKey } from '../utils/sefin';
-import { ANIOS_SEFIN } from '../data/anios';
+import { ANIOS_SEFIN, ANIO_ACTUAL } from '../data/anios';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -90,7 +90,7 @@ const PAGE_SIZE = 25;
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function RankingsPage() {
-  const [year,       setYear]       = useState<number>(2024);
+  const [year,       setYear]       = useState<number>(ANIO_ACTUAL);
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [metric,     setMetric]     = useState<Metric>('presupuesto');
   const [page,       setPage]       = useState<number>(0);

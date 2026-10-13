@@ -3,7 +3,7 @@ import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
-import { ANIOS_SEFIN, RANGO_ANIOS } from '../data/anios';
+import { ANIOS_SEFIN, RANGO_ANIOS, ANIO_ACTUAL } from '../data/anios';
 import {
   LineChart,
   Line,
@@ -537,7 +537,7 @@ function FinancialChartsSection({
   municipalities: any[];
   mode: 'muni' | 'dept';
 }) {
-  const [finYear, setFinYear] = useState<number>(2024);
+  const [finYear, setFinYear] = useState<number>(ANIO_ACTUAL);
 
   // Which years have at least one record for any selected entity
   const yearsWithData = useMemo(() => {
@@ -642,7 +642,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
   // deptSections: one entry per group (up to 2), value is the dept name or '' if unselected
   const [deptSections, setDeptSections] = useState<string[]>(['']);
   const [selected, setSelected]         = useState<string[]>([]); // ids "DEPARTAMENTO|nombre"
-  const [years, setYears]               = useState<number[]>([2021, 2022, 2023, 2024]);
+  const [years, setYears]               = useState<number[]>([...ANIOS_SEFIN]);
   const [metric, setMetric]             = useState<MetricKey>('presupuesto');
 
   const departments = useMemo(() =>
@@ -927,7 +927,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
 
 function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
   const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
-  const [years, setYears]                 = useState<number[]>([2021, 2022, 2023, 2024]);
+  const [years, setYears]                 = useState<number[]>([...ANIOS_SEFIN]);
   const [metric, setMetric]               = useState<MetricKey>('presupuesto');
 
   const departments = useMemo(() =>

@@ -1,6 +1,7 @@
 // Fuente única de indicadores financieros municipales (docs/PLAN_REDISENO.md §1).
 // Por municipio y año. Agregados (departamento, nación): suma de numeradores y denominadores.
 import type { Municipality } from '../hooks/useMunicipalities';
+import { fmtL } from './formato';
 
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
 export const ROTULO_POBLACION = 'Población: proyección (provisional)';
@@ -179,4 +180,109 @@ export function atipicos(m: Municipality): string[] {
   const func = suma(m, ['servicios_personales', 'servicios_no_personales', 'materiales_suministro', 'transferencias_corrientes', 'otros_gastos']);
   if (Math.abs(func - i.funcionamiento) > TOL) out.push('Funcionamiento ≠ suma de renglones');
   return out;
+}
+
+// ── Comparación con pares (Ficha Municipal) ──────────────────────────────────
+
+export interface Comparacion {
+  mediana:   number | null;
+  /** round(100 × pares con valor menor ÷ pares con dato); null si la fila está excluida o sin dato. */
+  percentil: number | null;
+  /** Pares con dato (incluye al propio municipio). */
+  n:         number;
+}
+
+/**
+ * Pares = misma categoría y mismo año, sin las filas de excluirDeEstadisticas(); incluye al municipio.
+ * Para una fila excluida devuelve la mediana de sus pares pero no percentil.
+ */
+export function comparacionPares(filas: Municipality[], fila: Municipality, clave: keyof Indicadores): Comparacion {
+  const pares = filas.filter((m) => m.year === fila.year && m.category === fila.category && !excluirDeEstadisticas(m));
+  const vals = pares.map((m) => indicadoresMunicipio(m)[clave]).filter((v): v is number => v != null);
+  const x = indicadoresMunicipio(fila)[clave];
+  const percentil = excluirDeEstadisticas(fila) || x == null || !vals.length
+    ? null : Math.round((100 * vals.filter((v) => v < x).length) / vals.length);
+  return { mediana: mediana(pares, clave), percentil, n: vals.length };
+}
+
+/** Dirección de cada indicador comparable: "mayor" = mayor es mejor. */
+export const SEMAFORO = {
+  autonomia:                     'mayor',
+  propiosPerCapita:              'mayor',
+  ibiPerCapita:                  'mayor',
+  inversionSobreGasto:           'mayor',
+  inversionPerCapita:            'mayor',
+  ahorroCorriente:               'mayor',
+  resultadoSinBalance:           'mayor',
+  dependenciaTransferencias:     'menor',
+  funcionamientoSobreCorrientes: 'menor',
+  servicioDeudaSobreCorrientes:  'menor',
+  balanceSobreIngresos:          'menor',
+} as const;
+export type ClaveSemaforo = keyof typeof SEMAFORO;
+
+export type Tono = 'turquesa' | 'gris' | 'naranja';
+export interface Semaforo { etiqueta: string; tono: Tono }
+
+/** Umbrales de alerta que se imponen al percentil. */
+export const ALERTA_BALANCE = 25;       // recursos de balance ÷ ingresos, %
+export const ALERTA_SERVICIO_DEUDA = 30; // servicio de deuda ÷ corrientes, %
+
+/** Semáforo por percentil favorable: ≥ 70 sobre, ≤ 30 bajo, en medio "en la mediana"; las alertas mandan. */
+export function semaforo(clave: ClaveSemaforo, valor: number | null, percentil: number | null): Semaforo {
+  if (clave === 'balanceSobreIngresos' && valor != null && valor >= ALERTA_BALANCE) return { etiqueta: 'ALERTA', tono: 'naranja' };
+  if (clave === 'servicioDeudaSobreCorrientes' && valor != null && valor > ALERTA_SERVICIO_DEUDA) return { etiqueta: 'ALERTA', tono: 'naranja' };
+  if (percentil == null) return { etiqueta: 'SIN COMPARACIÓN', tono: 'gris' };
+  const fav = SEMAFORO[clave] === 'mayor' ? percentil : 100 - percentil;
+  if (fav >= 70) return { etiqueta: 'SOBRE LA MEDIANA', tono: 'turquesa' };
+  if (fav <= 30) return { etiqueta: 'BAJO LA MEDIANA', tono: 'naranja' };
+  return { etiqueta: 'EN LA MEDIANA', tono: 'gris' };
+}
+
+const pctTxt = (v: number) => `${v.toFixed(1)} %`;
+
+/** Plantillas de fortaleza (percentil favorable ≥ 70), en orden de prioridad. */
+const FORTALEZAS: [ClaveSemaforo, (v: number, p: number) => string][] = [
+  ['autonomia',                     (v, p) => `autonomía alta (${pctTxt(v)}, P${p} de su categoría)`],
+  ['inversionSobreGasto',           (v, p) => `inversión alta (${pctTxt(v)} del gasto, P${p} de su categoría)`],
+  ['propiosPerCapita',              (v, p) => `ingresos propios por habitante altos (${fmtL(v)}, P${p})`],
+  ['dependenciaTransferencias',     (v, p) => `baja dependencia de transferencias (${pctTxt(v)}, P${p})`],
+  ['funcionamientoSobreCorrientes', (v, p) => `gasto de funcionamiento contenido (${pctTxt(v)} de los corrientes, P${p})`],
+  ['ibiPerCapita',                  (v, p) => `buena recaudación de IBI (${fmtL(v)} por habitante, P${p})`],
+  ['inversionPerCapita',            (v, p) => `inversión por habitante alta (${fmtL(v)}, P${p})`],
+];
+
+const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/**
+ * "Lectura automática SIMHO": hasta 2 frases con plantillas fijas (sin IA).
+ * Frase 1: hasta 2 fortalezas + alertas. Frase 2: resultado sin balance negativo.
+ */
+export function lecturaSimho(fila: Municipality, comparaciones: Partial<Record<ClaveSemaforo, Comparacion>>): string {
+  const r = indicadoresMunicipio(fila);
+  const i = insumos(fila);
+  const fortalezas = FORTALEZAS.flatMap(([k, plantilla]) => {
+    const v = r[k]; const p = comparaciones[k]?.percentil;
+    if (v == null || p == null || semaforo(k, v, p).tono !== 'turquesa') return [];
+    return [plantilla(v, p)];
+  }).slice(0, 2);
+  const alertas: string[] = [];
+  const bal = r.balanceSobreIngresos;
+  const alertaBalance = bal != null && bal >= ALERTA_BALANCE;
+  if (alertaBalance) {
+    const p = comparaciones.balanceSobreIngresos?.percentil;
+    alertas.push(`acumula ${fmtL(i.recursosBalance)} de recursos de balance, el ${Math.round(bal!)} % de sus ingresos${p != null ? ` (P${p})` : ''}`);
+  }
+  const deuda = r.servicioDeudaSobreCorrientes;
+  if (deuda != null && deuda > ALERTA_SERVICIO_DEUDA) alertas.push(`el servicio de deuda absorbe el ${pctTxt(deuda)} de los ingresos corrientes`);
+
+  const frases: string[] = [];
+  const f = fortalezas.join(' y '); const a = alertas.join(' y ');
+  if (f && a) frases.push(`${mayuscula(f)}, pero ${a}.`);
+  else if (f || a) frases.push(`${mayuscula(f || a)}.`);
+  if (r.resultadoSinBalance < 0) {
+    const deficit = fmtL(-r.resultadoSinBalance);
+    frases.push(alertaBalance ? `Sin ese saldo, el año cierra con un déficit de ${deficit}.` : `Con los ingresos del año, cierra con un déficit de ${deficit}.`);
+  }
+  return frases.length ? frases.slice(0, 2).join(' ') : 'Indicadores en línea con la mediana de su categoría.';
 }

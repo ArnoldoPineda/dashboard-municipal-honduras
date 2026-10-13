@@ -69,7 +69,7 @@ function IconTrophy() {
 
 const NAV_ITEMS = [
   { to: '/',             label: 'Mapa Interactivo',  icon: <IconMap />,      exact: true },
-  { to: '/dashboard',    label: 'Dashboard Nacional', icon: <IconDashboard />, exact: false },
+  { to: '/dashboard',    label: 'Panorama Nacional', icon: <IconDashboard />, exact: false },
   { to: '/muni-detalle', label: 'Ficha Municipal',    icon: <IconBuilding />,  exact: false, alias: '/municipio/' },
   { to: '/financiero',   label: 'Datos Financieros',  icon: <IconDollar />,    exact: false },
   { to: '/analisis',     label: 'Análisis',            icon: <IconTrend />,     exact: false },

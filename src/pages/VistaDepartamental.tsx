@@ -4,7 +4,7 @@ import React, {
 import * as d3 from 'd3';
 import {
   ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion, notaDatoIncompleto,
-  excluirDeEstadisticas, indicadoresMunicipio, clasesQuintil, CLAVE_METRICA, MetricaMapa, Clases,
+  excluirDeEstadisticas, indicadoresMunicipio, clasesQuintil, mediana, CLAVE_METRICA, MetricaMapa, Clases,
 } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -173,7 +173,7 @@ function DeptMuniMap({
 
     // Nombres en el centroide; si el municipio mide < 25 px de ancho, solo queda en el tooltip.
     const labelsG = svg.append('g').attr('class', 'vista-depto-rotulos').attr('pointer-events', 'none')
-      .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 10)
+      .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 11)
       .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
       .attr('fill', '#c8d6e5').attr('stroke', BORDER).attr('stroke-width', 3)
       .attr('stroke-linejoin', 'round').style('paint-order', 'stroke');
@@ -280,10 +280,13 @@ export default function VistaDepartamental() {
 
   // Agregados del departamento (lib/indicadores: Σ numeradores ÷ Σ denominadores).
   const deptYear = useMemo(() => sumarInsumos(deptRows), [deptRows]);
-  const autonomiaSb: number | null = useMemo(
+  // Autonomía como en el Panorama: mediana municipal (cifra principal) y agregado Σ/Σ (segunda línea).
+  const autonomiaAgregado: number | null = useMemo(
     () => (deptRows.length === 0 ? null : calcular(deptYear).autonomia),
     [deptRows, deptYear]
   );
+  const autonomiaMediana = useMemo(() => mediana(deptRows, 'autonomia'), [deptRows]);
+  const nExcluidos = deptRows.filter(excluirDeEstadisticas).length;
 
   // Capital = municipio con code 1 (cabecera departamental)
   const capital = dept?.capital ?? '';
@@ -299,17 +302,6 @@ export default function VistaDepartamental() {
       .filter((m) => !q || m.name.toLowerCase().includes(q));
   }, [munis, search, indicator]);
 
-  // Verificación temporal (solo desarrollo): Supabase ↔ geometría por department|code, todo el país.
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development' || !topoData || !loaded || yearRows.length === 0) return;
-    const geoKeys = new Set<string>(topoData.objects.municipios.geometries.map((g: any) => g.properties.key));
-    const sbKeys  = new Set(yearRows.map(muniKey));
-    const sbSinGeo = Array.from(sbKeys).filter((k) => !geoKeys.has(k));
-    const geoSinSb = Array.from(geoKeys).filter((k) => !sbKeys.has(k));
-    console.warn(`[SIMHO ${fiscalYear}] Supabase sin geometría: ${sbSinGeo.length}`, sbSinGeo,
-                 `| Geometrías sin Supabase: ${geoSinSb.length}`, geoSinSb);
-  }, [topoData, yearRows, loaded, fiscalYear]);
-
   const onSelectMuni = useCallback((path: string) => navigate(path), [navigate]);
 
   if (!dept) {
@@ -322,12 +314,16 @@ export default function VistaDepartamental() {
   }
 
   const na = (v: string) => (noData || !loaded ? '—' : v); // mientras carga: '—', nunca 0
-  const kpis = [
-    { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
+  const pct = (v: number | null) => (v == null ? '—' : `${v.toFixed(1)} %`);
+  // Montos: totales del departamento (Σ sin excluidos). Autonomía: mediana + agregado, como el Panorama.
+  const kpis: { label: string; value: string; color: string; sub?: string }[] = [
+    { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8',
+      sub: loaded && !noData ? `${deptRows.length - nExcluidos} en estadísticas${nExcluidos ? ` · ${nExcluidos} excluido${nExcluidos > 1 ? 's' : ''}` : ''}` : undefined },
     { label: ROTULO_POBLACION.toUpperCase(), value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
     { label: 'PRESUPUESTO',    value: na(fmtL(deptYear.presupuesto)),     color: '#f59e0b' },
     { label: 'ING. CORRIENTES', value: na(fmtL(deptYear.ingresosCorrientes)), color: '#f59e0b' },
-    { label: 'AUTONOMÍA',      value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
+    { label: 'AUTONOMÍA · MEDIANA MUNICIPAL', value: na(pct(autonomiaMediana)), color: '#5eead4',
+      sub: loaded && !noData ? `Agregado: ${pct(autonomiaAgregado)}` : undefined },
     { label: 'TRANSFERENCIAS', value: na(fmtL(deptYear.transferencias)),   color: '#f59e0b' },
   ];
 
@@ -376,7 +372,7 @@ export default function VistaDepartamental() {
           flex: '0 0 60%', borderRight: '1px solid rgba(0,212,184,0.10)',
           padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden',
         }}>
-          <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
             MAPA MUNICIPAL — clic para ver detalle
           </div>
           <div className="vista-depto-lienzo" style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
@@ -391,7 +387,7 @@ export default function VistaDepartamental() {
             />
           </div>
           {!mapMessage && <LeyendaMetrica metrica={indicator} clases={clases} sinDato={munis.some((m) => m.excluida)} />}
-          <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', flexShrink: 0 }}>
             Límites: OCHA COD-AB / SINIT (CC BY-IGO)
           </div>
         </div>
@@ -407,7 +403,7 @@ export default function VistaDepartamental() {
                 borderRadius: 8, padding: '9px 11px',
               }}>
                 <div style={{
-                  fontSize: 8, color: '#4a5a73',
+                  fontSize: 11, color: '#a9b7c8',
                   fontFamily: "'IBM Plex Mono', monospace",
                   letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4,
                 }}>
@@ -416,13 +412,14 @@ export default function VistaDepartamental() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: k.color, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {k.value}
                 </div>
+                {k.sub && <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", marginTop: 3 }}>{k.sub}</div>}
               </div>
             ))}
           </div>
 
           <div style={{ height: 1, background: 'rgba(0,212,184,0.1)', flexShrink: 0 }} />
 
-          <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: '#a9b7c8', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
             MUNICIPIOS ({geoCount ?? '—'})
           </div>
 
@@ -475,7 +472,7 @@ export default function VistaDepartamental() {
                     )}
                     {m.sinLiq && (
                       <span style={{
-                        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#f59e0b',
+                        fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: '#f59e0b',
                         border: '1px solid #f59e0b55', borderRadius: 3, padding: '1px 5px',
                       }}>
                         {ROTULO_SIN_LIQUIDACION.toUpperCase()}
@@ -483,7 +480,7 @@ export default function VistaDepartamental() {
                     )}
                     {indicator === 'categoria' && (
                       <span title={ROTULO_CATEGORIA} style={{
-                        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
                         color: CAT_COLORS[cat], background: CAT_COLORS[cat] + '18',
                         border: `1px solid ${CAT_COLORS[cat]}30`, borderRadius: 3, padding: '1px 5px',
                       }}>

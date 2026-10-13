@@ -156,7 +156,7 @@ export function SeccionDepartamentos({ filasAnio, metrica, onMetrica, anio }: {
         <MapaDepartamentos filasAnio={filasAnio} metrica={metrica} />
         <ol aria-label={`Ranking de departamentos por ${ETIQUETA_METRICA[metrica]}`} style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
           {filas.map((f, i) => (
-            <li key={f.department} style={{ display: 'grid', gridTemplateColumns: `22px minmax(0, 1.1fr) minmax(60px, 1fr) ${numerica ? 76 : 116}px`, gap: 10, alignItems: 'center', fontSize: 14, color: C.texto }}>
+            <li key={f.department} style={{ display: 'grid', gridTemplateColumns: `22px minmax(0, 1.4fr) minmax(36px, 1fr) ${numerica ? 76 : 116}px`, gap: 10, alignItems: 'center', fontSize: 14, color: C.texto }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: C.gris, textAlign: 'right' }}>{i + 1}</span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombreDepartamento(f.department)}</span>
               {numerica ? (

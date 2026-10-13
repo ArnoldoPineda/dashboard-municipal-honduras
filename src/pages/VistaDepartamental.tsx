@@ -172,7 +172,7 @@ function DeptMuniMap({
       .attr('pointer-events', 'none');
 
     // Nombres en el centroide; si el municipio mide < 25 px de ancho, solo queda en el tooltip.
-    const labelsG = svg.append('g').attr('pointer-events', 'none')
+    const labelsG = svg.append('g').attr('class', 'vista-depto-rotulos').attr('pointer-events', 'none')
       .attr('font-family', "'IBM Plex Mono', monospace").attr('font-size', 10)
       .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
       .attr('fill', '#c8d6e5').attr('stroke', BORDER).attr('stroke-width', 3)
@@ -332,9 +332,9 @@ export default function VistaDepartamental() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+    <div className="vista-depto" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{
+      <div className="vista-depto-cab" style={{
         display: 'flex', alignItems: 'center', gap: 16,
         padding: '13px 24px',
         borderBottom: '1px solid rgba(0,212,184,0.14)',
@@ -370,16 +370,16 @@ export default function VistaDepartamental() {
       </div>
 
       {/* Main: left = choropleth, right = KPIs + list */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="vista-depto-cuerpo" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* LEFT: municipal choropleth */}
-        <div style={{
+        <div className="vista-depto-mapa" style={{
           flex: '0 0 60%', borderRight: '1px solid rgba(0,212,184,0.10)',
           padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden',
         }}>
           <div style={{ fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.1em', flexShrink: 0 }}>
             MAPA MUNICIPAL — clic para ver detalle
           </div>
-          <div style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
+          <div className="vista-depto-lienzo" style={{ flex: 1, minHeight: 500, width: '100%', height: '100%', position: 'relative' }}>
             <DeptMuniMap
               topoData={topoData}
               deptName={dept.nombre}
@@ -397,7 +397,7 @@ export default function VistaDepartamental() {
         </div>
 
         {/* RIGHT: KPI cards + searchable list */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16, gap: 12 }}>
+        <div className="vista-depto-lista" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16, gap: 12 }}>
           {/* KPI grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, flexShrink: 0 }}>
             {kpis.map((k) => (

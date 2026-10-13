@@ -75,7 +75,7 @@ export default function MapaDepartamentos({ filasAnio, metrica, maxAlto = 420 }:
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img"
         aria-label={`Mapa de los 18 departamentos coloreado por ${ETIQUETA_METRICA[metrica]}; clic para abrir el departamento`}
-        style={{ display: 'block', maxHeight: maxAlto, minHeight: 220 }} onMouseLeave={() => setHover(null)}>
+        style={{ display: 'block', maxHeight: maxAlto }} onMouseLeave={() => setHover(null)}>
         {formas.map((f: any) => {
           const d = porDepto.get(f.department);
           const fill = d ? colorMetrica(metrica, d, datos.clases) : SIN_DATO;
@@ -94,7 +94,7 @@ export default function MapaDepartamentos({ filasAnio, metrica, maxAlto = 420 }:
           const d = porDepto.get(f.department);
           const fill = d ? colorMetrica(metrica, d, datos.clases) : SIN_DATO;
           return d ? (
-            <text key={`t-${f.department}`} x={f.c[0]} y={f.c[1]} textAnchor="middle" dominantBaseline="middle"
+            <text key={`t-${f.department}`} className="mapa-rotulo" x={f.c[0]} y={f.c[1]} textAnchor="middle" dominantBaseline="middle"
               fontFamily={MONO} fontSize={12} fontWeight={600} fill={textoSobre(fill.startsWith('#') ? fill : SIN_DATO)}
               style={{ pointerEvents: 'none' }}>{valorTexto(metrica, d)}</text>
           ) : null;

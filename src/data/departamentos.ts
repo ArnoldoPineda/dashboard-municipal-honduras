@@ -35,6 +35,12 @@ export function getDepartamento(id: string): Departamento | null {
   return DEPARTAMENTOS.find((d) => d.id === id) ?? null;
 }
 
+/** Nombre oficial para mostrar: "FRANCISCO MORAZAN" → "Francisco Morazán". Único mapa de nombres de la UI. */
+export function nombreDepartamento(raw: string | null | undefined): string {
+  const d = DEPARTAMENTOS.find((x) => norm(x.nombre) === norm(raw ?? ''));
+  return d ? d.nombre : (raw ?? '');
+}
+
 /** "FRANCISCO MORAZAN" / "Francisco Morazán" → "francisco-morazan" (null si no existe). */
 export function deptNameToId(nombre: string): string | null {
   return DEPARTAMENTOS.find((d) => norm(d.nombre) === norm(nombre))?.id ?? null;

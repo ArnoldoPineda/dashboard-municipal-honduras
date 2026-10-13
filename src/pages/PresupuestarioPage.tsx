@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, indicadoresMunicipio, insumos, sinLiquidacion, Indicadores } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout.tsx';
-import { DEPARTAMENTOS } from '../data/departamentos';
+import { DEPARTAMENTOS, nombreDepartamento } from '../data/departamentos';
 import { muniKey } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
@@ -1018,7 +1018,7 @@ const PresupuestarioPage = () => {
                     const row: Record<string, any> = {
                       cod_dep: codDep,
                       cod_mun: m.code != null ? String(m.code) : '',
-                      department: m.department || '',
+                      department: nombreDepartamento(m.department),
                       name: m.name || '',
                       categoria: cat,
                       population: m.population,

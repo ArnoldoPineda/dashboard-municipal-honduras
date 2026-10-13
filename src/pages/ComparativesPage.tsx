@@ -5,6 +5,7 @@ import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
+import { nombreDepartamento } from '../data/departamentos';
 import { fmtL } from '../lib/formato';
 import {
   LineChart,
@@ -160,7 +161,7 @@ function muniLabels(ids: string[]): Record<string, string> {
   const names = ids.map(id => splitMuniId(id)[1]);
   return Object.fromEntries(ids.map((id, i) => {
     const [dept, name] = splitMuniId(id);
-    return [id, names.filter(n => n === names[i]).length > 1 ? `${name} (${dept})` : name];
+    return [id, names.filter(n => n === names[i]).length > 1 ? `${name} (${nombreDepartamento(dept)})` : name];
   }));
 }
 
@@ -570,7 +571,7 @@ function FinancialChartsSection({
         : municipalities.filter(m => m.department === entity && m.year === effectiveFinYear);
       if (!recs.length || (mode === 'muni' && sinLiquidacion(recs[0]))) return null;
       const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
-      return { name: mode === 'muni' ? labels[entity] : entity, ...fc };
+      return { name: mode === 'muni' ? labels[entity] : nombreDepartamento(entity), ...fc };
     }).filter(Boolean) as any[];
   }, [selected, municipalities, effectiveFinYear, mode]);
 
@@ -773,7 +774,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
                     <option value="">— Selecciona Departamento —</option>
                     {departments
                       .filter(d => !usedDepts.includes(d))
-                      .map(d => <option key={d} value={d}>{d}</option>)}
+                      .map(d => <option key={d} value={d}>{nombreDepartamento(d)}</option>)}
                   </select>
                 </div>
 
@@ -956,7 +957,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
         const row: any = { year: y };
         selectedDepts.forEach(d => {
           const recs = municipalities.filter(m => m.department === d && m.year === y);
-          if (recs.length) row[d] = Math.round(getAggMetricValue(recs, metric) * 10) / 10;
+          if (recs.length) row[nombreDepartamento(d)] = Math.round(getAggMetricValue(recs, metric) * 10) / 10;
         });
         return Object.keys(row).length > 1 ? row : null;
       })
@@ -966,7 +967,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
 
   const tableRows = useMemo(() => {
     return selectedDepts.map(dept => {
-      const row: any = { label: dept };
+      const row: any = { label: nombreDepartamento(dept) };
       years.forEach(y => {
         const recs = municipalities.filter(m => m.department === dept && m.year === y);
         if (!recs.length) return;
@@ -998,7 +999,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
                   disabled={disabled}
                   onClick={() => toggleDept(d)}
                   style={{ opacity: disabled ? 0.4 : 1 }}
-                >{d}</button>
+                >{nombreDepartamento(d)}</button>
               );
             })}
           </div>
@@ -1037,7 +1038,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
       <ChartCard
         title={`DEPARTAMENTOS — ${getMetricLabel(metric).toUpperCase()} TOTAL`}
         data={chartData}
-        keys={selectedDepts}
+        keys={selectedDepts.map(nombreDepartamento)}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
 

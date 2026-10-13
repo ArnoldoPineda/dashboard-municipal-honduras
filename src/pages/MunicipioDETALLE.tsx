@@ -3,7 +3,7 @@ import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, UMBRAL_EJEC
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
+import { DEPARTAMENTOS, codigoINE, nombreDepartamento } from '../data/departamentos';
 import { fmtL } from '../lib/formato';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
@@ -218,7 +218,7 @@ export default function MunicipioDETALLE() {
   );
   const sb   = muniRows.find(m => m.year === fiscalYear) ?? null;
   const muni = muniRows[0] ?? null;
-  const deptNombre = ALL_DEPTS.find(d => d.code === deptCode)?.name ?? muni?.department ?? '';
+  const deptNombre = ALL_DEPTS.find(d => d.code === deptCode)?.name ?? nombreDepartamento(muni?.department);
 
   function handleDeptChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setDeptCode(e.target.value);

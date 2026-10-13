@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
+import { nombreDepartamento } from '../data/departamentos';
 import { fmtL } from '../lib/formato';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
@@ -142,7 +143,7 @@ export default function DashboardNacional() {
     const map = new Map<string, { presup: number; propios: number }>();
     byYear.forEach((m: any) => {
       if (!isValidDept(m.department) || excluirDeEstadisticas(m)) return;
-      const d: string = m.department;
+      const d: string = nombreDepartamento(m.department);
       const prev = map.get(d) || { presup: 0, propios: 0 };
       map.set(d, {
         presup: prev.presup + (m.presupuesto_municipal || 0),

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDepartamento } from '../data/departamentos';
+import { getDepartamento, nombreDepartamento } from '../data/departamentos';
 import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
 import SelectorAnio from '../components/SelectorAnio';
@@ -74,7 +74,7 @@ export default function DetalleMunicipio() {
   }
 
   // Nombre del departamento con tildes (data/departamentos.ts).
-  const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? header.department ?? '';
+  const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? nombreDepartamento(header.department);
   const sinLiq = row ? sinLiquidacion(row) : false;
   const af = row && !sinLiq ? indicadoresMunicipio(row).autonomia : null;
 

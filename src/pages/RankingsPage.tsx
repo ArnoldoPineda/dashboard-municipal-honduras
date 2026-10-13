@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, indicadoresMunicipio, sinLiquidacion, datoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
-import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
+import { DEPARTAMENTOS, deptNameToId, nombreDepartamento } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG, muniKey } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
@@ -44,11 +44,10 @@ function getMetricValue(m: any, metric: Metric): number {
 /** Fila SEFIN → forma usada por el ranking. */
 function toRow(m: Municipality) {
   const deptId  = (deptNameToId as any)(m.department ?? '') ?? (m.department ?? '').toLowerCase().replace(/\s+/g, '-');
-  const dept    = (DEPARTAMENTOS as any[]).find((d: any) => d.id === deptId);
   return {
     id:            muniKey(m), // estable entre años (el id de Supabase cambia por año)
     nombre:        m.name ?? '',
-    departamento:  dept ? dept.nombre : (m.department ?? ''),
+    departamento:  nombreDepartamento(m.department),
     departamentoId: deptId,
     poblacion:     m.population ?? 0,
     presupuesto:   m.presupuesto_municipal ?? 0,

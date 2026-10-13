@@ -36,7 +36,6 @@ const COD_DEP_MAP: Record<string, string> = {
 };
 
 const SEFIN_COLUMNS: { key: string; header: string; isText?: boolean }[] = [
-  { key: 'no_mun',                     header: 'No. MUN.',                          isText: true },
   { key: 'cod_dep',                    header: 'COD. DEP',                          isText: true },
   { key: 'cod_mun',                    header: 'COD. MUN.',                         isText: true },
   { key: 'department',                 header: 'DEPARTAMENTO',                      isText: true },
@@ -145,7 +144,6 @@ const PresupuestarioPage = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [muniSearch, setMuniSearch] = useState<string>('');
   const [selectedCategoria, setSelectedCategoria] = useState<string>('');
-  const [presupuestoMin, setPresupuestoMin] = useState<number>(0);
 
   // 👇 Estado para evitar parpadeo de Recharts
   const [chartsReady, setChartsReady] = useState(false);
@@ -178,11 +176,10 @@ const PresupuestarioPage = () => {
         if (deptNorm && normalize(m.department || '') !== deptNorm) return false;
         if (muniSearch.trim() && !normalize(m.name || '').includes(normalize(muniSearch))) return false;
         if (selectedCategoria && m.category !== selectedCategoria) return false;
-        if (presupuestoMin > 0 && (m.presupuesto_municipal || 0) < presupuestoMin) return false;
         return true;
       })
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
-  }, [municipalities, fiscalYear, selectedDeptId, muniSearch, selectedCategoria, presupuestoMin]);
+  }, [municipalities, fiscalYear, selectedDeptId, muniSearch, selectedCategoria]);
 
   if (loading) {
     return (
@@ -759,10 +756,6 @@ const PresupuestarioPage = () => {
     border: '1px solid #2dd4bf',
   };
 
-  const presupuestoLabel = presupuestoMin === 0
-    ? 'Sin mínimo'
-    : `L ${(presupuestoMin / 1_000_000).toFixed(0)} M`;
-
   return (
     <DashboardLayout title="Datos Financieros">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -888,20 +881,6 @@ const PresupuestarioPage = () => {
               </div>
             </div>
 
-            {/* PRESUPUESTO MÍN slider */}
-            <div>
-              <span style={FLABEL}>
-                PRESUPUESTO MÍN ·{' '}
-                <span style={{ color: '#2dd4bf' }}>{presupuestoLabel}</span>
-              </span>
-              <input
-                type="range"
-                className="simho-slider"
-                min={0} max={500000000} step={10000000}
-                value={presupuestoMin}
-                onChange={e => setPresupuestoMin(Number(e.target.value))}
-              />
-            </div>
           </div>
         </div>
 
@@ -1053,13 +1032,12 @@ const PresupuestarioPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {sefinTableData.map((m, i) => {
+                  {sefinTableData.map((m) => {
                     const cat = m.category ?? '';
                     const codDep = COD_DEP_MAP[normalize(m.department || '')] || '';
                     const catColor: Record<string, string> = { A: '#2dd4bf', B: '#60a5fa', C: '#f59e0b', D: '#a78bfa' };
                     const ind = indicadoresMunicipio(m);
                     const row: Record<string, any> = {
-                      no_mun: i + 1,
                       cod_dep: codDep,
                       cod_mun: m.code != null ? String(m.code) : '',
                       department: m.department || '',

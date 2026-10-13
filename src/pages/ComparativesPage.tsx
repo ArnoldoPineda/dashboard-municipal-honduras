@@ -364,7 +364,7 @@ function IncomeBarCard({ title, data }: { title: string; data: any[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
-            tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
+            tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
             tickFormatter={(v: number) => fmtL(v * 1e6)}
           />
           <Tooltip
@@ -397,7 +397,7 @@ function GastosBarCard({ title, data }: { title: string; data: any[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
           <YAxis
-            tick={AXIS_TICK} axisLine={false} tickLine={false} width={52}
+            tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
             tickFormatter={(v: number) => fmtL(v * 1e6)}
           />
           <Tooltip
@@ -448,7 +448,7 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
             tick={AXIS_TICK}
             axisLine={false}
             tickLine={false}
-            width={52}
+            width={84}
             tickFormatter={(v: number) => fmtL(v * 1e6)}
           />
           <Tooltip

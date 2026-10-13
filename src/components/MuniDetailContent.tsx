@@ -215,7 +215,7 @@ function EvoLineChart({ evolucion }: { evolucion: { year: number; presupuesto: n
             <YAxis
               tickFormatter={(v) => fmtL(v)}
               tick={{ fill: '#4a5a73', fontSize: 13, fontFamily: "'IBM Plex Mono', monospace" }}
-              tickLine={false} axisLine={false} width={52}
+              tickLine={false} axisLine={false} width={76}
             />
             <RTooltip content={<DarkTooltip formatter={(v: number) => fmtL(v)} />} />
             <Line
@@ -245,7 +245,7 @@ function CompBarChart({ muni, deptAvg }: { muni: MuniFigures; deptAvg: MuniFigur
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data} layout="vertical"
-            margin={{ top: 4, right: 52, bottom: 4, left: 88 }}
+            margin={{ top: 4, right: 84, bottom: 4, left: 88 }}
             barCategoryGap="30%" barGap={3}
           >
             <CartesianGrid stroke="rgba(0,212,184,0.07)" strokeDasharray="3 4" horizontal={false} />

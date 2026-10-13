@@ -69,7 +69,7 @@ export function LecturaSimho({ fila, comps, excluida }: { fila: Municipality; co
 export function TarjetasIndicadores({ fila, comps, excluida }: { fila: Municipality; comps: Comparaciones; excluida: boolean }) {
   const r = indicadoresMunicipio(fila);
   return (
-    <section aria-label="Indicadores clave" style={grilla(240)}>
+    <section aria-label="Indicadores clave" className="ficha-tarjetas">
       {TARJETAS.map((k) => {
         const c = comps[k];
         const valor = r[k] as number | null;

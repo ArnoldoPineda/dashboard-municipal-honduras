@@ -29,6 +29,7 @@ const contenedor: React.CSSProperties = {
 };
 const columna: React.CSSProperties = {
   padding: '28px clamp(16px, 3vw, 40px) 24px', display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1240,
+  containerType: 'inline-size', // las tarjetas responden al ancho del contenido (index.css: .ficha-tarjetas)
 };
 
 function Mensaje({ children }: { children: React.ReactNode }) {

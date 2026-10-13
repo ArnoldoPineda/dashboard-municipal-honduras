@@ -118,19 +118,24 @@ function TabIngresos({ fila, comps }: Props) {
             <div style={{
               height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
               whiteSpace: 'nowrap', fontFamily: MONO, fontSize: 12, fontWeight: 600, color: tinta ?? '#062621', background: color,
-            }}>{pct(v, total) >= 8 ? fmtL(v) : ''}</div>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: C.suave, textAlign: 'center', overflow: 'hidden' }}>
+            }}><span className="ficha-seg-etiqueta">{pct(v, total) >= 8 ? fmtL(v) : ''}</span></div>
+            <div className="ficha-seg-etiqueta" style={{ fontFamily: MONO, fontSize: 11, color: C.suave, textAlign: 'center', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {pct(v, total) >= 5 ? `${pct(v, total).toFixed(1)} %` : ''}
             </div>
           </div>
         ))}
       </div>
-      <div style={grilla(210, 10)}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '10px 24px' }}>
         {visibles.map(([label, v, color]) => (
-          <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
             <div style={{ width: 14, height: 14, borderRadius: 3, flex: '0 0 auto', background: color }} />
-            <div style={{ fontSize: 14, flex: '1 1 auto', color: C.texto }}>{label}</div>
-            <div style={{ fontFamily: MONO, fontSize: 13, color: C.texto, whiteSpace: 'nowrap' }}>{fmtL(v)} · {Math.round(pct(v, total))} %</div>
+            <div title={label} style={{
+              fontSize: 14, flex: '1 1 auto', minWidth: 0, color: C.texto,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{label}</div>
+            <div style={{ fontFamily: MONO, fontSize: 13, color: C.texto, whiteSpace: 'nowrap', flex: '0 0 auto', marginLeft: 'auto', textAlign: 'right' }}>
+              {fmtL(v)} · {Math.round(pct(v, total))} %
+            </div>
           </div>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, indicadoresMunicipio, indicadoresAgregados } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
@@ -7,7 +7,12 @@ import { NO_DATA_MSG, muniKey } from '../utils/sefin';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'gastosCapital' | 'superavit';
+type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'propiosPc' | 'gastosCapital' | 'superavit';
+
+/** Métricas que se agregan como Σ/Σ (no promedio de municipios). */
+const RATIO_METRICS: Partial<Record<Metric, 'autonomia' | 'propiosPerCapita'>> = {
+  autonomia: 'autonomia', propiosPc: 'propiosPerCapita',
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +26,7 @@ const fmtInt = new Intl.NumberFormat('es-HN');
 function formatValue(metric: Metric, value: number): string {
   if (metric === 'autonomia')  return `${value.toFixed(1)}%`;
   if (metric === 'poblacion')  return fmtInt.format(Math.round(value));
+  if (metric === 'propiosPc')  return `L ${fmtInt.format(Math.round(value))}`;
   if (metric === 'superavit') {
     const abs = Math.abs(value);
     return (value >= 0 ? '+' : '−') + `L ${fmt.format(abs)}`;
@@ -32,13 +38,12 @@ function getMetricValue(m: any, metric: Metric): number {
   switch (metric) {
     case 'poblacion':      return m.poblacion || 0;
     case 'presupuesto':    return m.presupuesto || 0;
-    case 'ingresosPropios':return m.ingresosPropios || 0;
-    case 'autonomia':
-      // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (fórmula estándar, afSEFIN).
-      return m.ingresosRecaudados > 0 ? (m.ingresosPropios / m.ingresosRecaudados) * 100 : 0;
+    // lib/indicadores: corrientes, autonomía, per cápita y resultado sin balance.
+    case 'ingresosPropios':return m.ind.ingresosCorrientes;
+    case 'autonomia':      return m.ind.autonomia ?? 0;
+    case 'propiosPc':      return m.ind.propiosPerCapita ?? 0;
     case 'gastosCapital':  return m.otros || 0;
-    // SEFIN superavit_deficit = ingresos_recaudados − total_egresos
-    case 'superavit':      return m.superavit || 0;
+    case 'superavit':      return m.ind.resultadoSinBalance;
     default:               return 0;
   }
 }
@@ -55,10 +60,9 @@ function toRow(m: Municipality) {
     poblacion:     m.population ?? 0,
     presupuesto:   m.presupuesto_municipal ?? 0,
     categoria:     m.category ?? '',
-    ingresosPropios: m.ingresos_propios ?? 0,
-    ingresosRecaudados: m.ingresos_recaudados ?? 0,
+    ind:           indicadoresMunicipio(m),
+    src:           m,
     otros:         m.gastos_capital_deuda ?? 0,
-    superavit:     m.superavit_deficit ?? 0,
     isCapital:     m.code === 1, // cabecera departamental
   };
 }
@@ -71,10 +75,11 @@ const SORTED_DEPTS = [...(DEPARTAMENTOS as any[])]
 const METRICS: { key: Metric; label: string }[] = [
   { key: 'poblacion',       label: ROTULO_POBLACION },
   { key: 'presupuesto',     label: 'Presupuesto Total' },
-  { key: 'ingresosPropios', label: 'Ingresos Propios' },
-  { key: 'autonomia',       label: 'Autonomía Financiera' },
-  { key: 'gastosCapital',   label: 'Gastos de Capital' },
-  { key: 'superavit',       label: 'Superávit/Déficit' },
+  { key: 'ingresosPropios', label: 'Ingresos Corrientes' },
+  { key: 'autonomia',       label: 'Autonomía' },
+  { key: 'propiosPc',       label: 'Ingresos Propios per cápita' },
+  { key: 'gastosCapital',   label: 'Gastos de Capital y Deuda' },
+  { key: 'superavit',       label: 'Resultado sin Balance' },
 ];
 
 const PAGE_SIZE = 25;
@@ -98,17 +103,17 @@ export default function RankingsPage() {
   const allMusArr = useMemo(() => yearRows.map(toRow), [yearRows]);
   const prevMusArr = useMemo(() => prevRows.map(toRow), [prevRows]);
 
-  // Dept average per departamentoId for the active metric
+  // Referencia departamental: montos = promedio por municipio; razones y per cápita = Σ/Σ del departamento.
   const deptAvgMap = useMemo<Record<string, number>>(() => {
-    const map: Record<string, { sum: number; count: number }> = {};
-    allMusArr.forEach(m => {
-      const v = getMetricValue(m, metric);
-      if (!map[m.departamentoId]) map[m.departamentoId] = { sum: 0, count: 0 };
-      map[m.departamentoId].sum   += v;
-      map[m.departamentoId].count += 1;
-    });
+    const byDept: Record<string, typeof allMusArr> = {};
+    allMusArr.forEach(m => { (byDept[m.departamentoId] = byDept[m.departamentoId] || []).push(m); });
+    const ratioKey = RATIO_METRICS[metric];
     const result: Record<string, number> = {};
-    Object.entries(map).forEach(([k, { sum, count }]) => { result[k] = count ? sum / count : 0; });
+    Object.entries(byDept).forEach(([k, list]) => {
+      result[k] = ratioKey
+        ? indicadoresAgregados(list.map(m => m.src))[ratioKey] ?? 0
+        : list.reduce((s, m) => s + getMetricValue(m, metric), 0) / list.length;
+    });
     return result;
   }, [metric, allMusArr]);
 

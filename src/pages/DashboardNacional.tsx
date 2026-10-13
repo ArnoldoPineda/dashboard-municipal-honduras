@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ROTULO_POBLACION, sumarInsumos, calcular, indicadoresMunicipio, mediana } from '../lib/indicadores';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Area, AreaChart,
@@ -125,15 +125,16 @@ export default function DashboardNacional() {
   const kpis = useMemo(() => {
     if (byYear.length === 0) return null;
     const totalMunis = byYear.length;
-    const pop = byYear.reduce((s, m) => s + (m.population || 0), 0);
-    const presup = byYear.reduce((s, m) => s + (m.presupuesto_municipal || 0), 0);
-    const propios = byYear.reduce((s, m) => s + (m.ingresos_propios || 0), 0);
-    const autonomia = totalMunis > 0
-      ? byYear.reduce((s, m) => s + (m.autonomia_financiera || 0), 0) / totalMunis
-      : 0;
+    // Bug 5: la autonomía nacional era el promedio simple de autonomia_financiera; ahora Σ/Σ (lib/indicadores).
+    const ins = sumarInsumos(byYear);
+    const pop = ins.poblacion;
+    const presup = ins.presupuesto;
+    const propios = ins.ingresosCorrientes;
+    const autonomia = calcular(ins).autonomia ?? 0;
+    const autonomiaMediana = mediana(byYear, 'autonomia');
     const topMuni = [...byYear].sort((a, b) => (b.presupuesto_municipal || 0) - (a.presupuesto_municipal || 0))[0];
     const depts = new Set(byYear.map((m) => normDept(m.department))).size;
-    return { totalMunis, pop, presup, propios, autonomia, depts, topMuni };
+    return { totalMunis, pop, presup, propios, autonomia, autonomiaMediana, depts, topMuni };
   }, [byYear]);
 
   // Department bar chart data
@@ -145,14 +146,14 @@ export default function DashboardNacional() {
       const prev = map.get(d) || { presup: 0, propios: 0 };
       map.set(d, {
         presup: prev.presup + (m.presupuesto_municipal || 0),
-        propios: prev.propios + (m.ingresos_propios || 0),
+        propios: prev.propios + sumarInsumos([m]).ingresosCorrientes,
       });
     });
     return [...map.entries()]
       .map(([name, v]) => ({
         name: name.length > 10 ? name.slice(0, 10) + '…' : name,
         Presupuesto: Math.round(v.presup / 1e6),
-        'Ing. Propios': Math.round(v.propios / 1e6),
+        'Ing. Corrientes': Math.round(v.propios / 1e6),
       }))
       .sort((a, b) => b.Presupuesto - a.Presupuesto);
   }, [byYear]);
@@ -162,14 +163,14 @@ export default function DashboardNacional() {
     return YEARS.map(y => {
       const ym = municipalities.filter(m => m.year === y && isValidDept(m.department));
       if (ym.length === 0) return null;
-      const sum = (f: string) => ym.reduce((s: number, m: any) => s + (m[f] || 0), 0);
+      const ins = sumarInsumos(ym);
       return {
         year: y,
-        presup:  sum('presupuesto_municipal'),
-        propios: sum('ingresos_propios'),
-        pop:     sum('population'),
-        // Misma métrica que el KPI: promedio simple de autonomia_financiera por municipio.
-        autonomia: sum('autonomia_financiera') / ym.length,
+        presup:  ins.presupuesto,
+        propios: ins.ingresosCorrientes,
+        pop:     ins.poblacion,
+        // Misma métrica que el KPI: Σ corrientes ÷ Σ ingresos del año.
+        autonomia: calcular(ins).autonomia ?? 0,
         munis:   ym.length,
       };
     }).filter((t): t is NonNullable<typeof t> => t !== null);
@@ -178,7 +179,7 @@ export default function DashboardNacional() {
   const trendData = trendYears.map(t => ({
     year: t.year,
     Presupuesto: Math.round(t.presup / 1e9 * 100) / 100,
-    'Ing. Propios': Math.round(t.propios / 1e9 * 100) / 100,
+    'Ing. Corrientes': Math.round(t.propios / 1e9 * 100) / 100,
   }));
 
   // Variación vs año anterior (antes eran porcentajes fijos escritos a mano)
@@ -268,11 +269,11 @@ export default function DashboardNacional() {
             <KpiCard label="Presupuesto" value={fmtB(kpis.presup)}
               sub={`${fmtM(kpis.presup / kpis.totalMunis)} prom`}
               {...pctChange(kpis.presup, prevYear?.presup)} sparkData={sparkPresup} />
-            <KpiCard label="Ing. Propios" value={fmtB(kpis.propios)}
+            <KpiCard label="Ing. Corrientes" value={fmtB(kpis.propios)}
               sub={`${((kpis.propios / kpis.presup) * 100).toFixed(1)}% del presup`}
               {...pctChange(kpis.propios, prevYear?.propios)} sparkData={sparkPropios} />
             <KpiCard label="Autonomía" value={`${kpis.autonomia.toFixed(1)}%`}
-              sub="promedio nacional"
+              sub={kpis.autonomiaMediana === null ? 'nacional' : `nacional · mediana municipal ${kpis.autonomiaMediana.toFixed(1)}%`}
               {...(prevYear ? {
                 trend: `${kpis.autonomia - prevYear.autonomia >= 0 ? '+' : ''}${(kpis.autonomia - prevYear.autonomia).toFixed(1)} pp`,
                 trendUp: kpis.autonomia >= prevYear.autonomia,
@@ -298,7 +299,7 @@ export default function DashboardNacional() {
               <YAxis tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v => `${v}`} />
               <Tooltip content={<DarkTooltip formatter={(v: number) => `L ${v}M`} />} />
               <Bar dataKey="Presupuesto" fill="#00d4b8" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="Ing. Propios" fill="rgba(0,212,184,0.3)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="Ing. Corrientes" fill="rgba(0,212,184,0.3)" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>}
@@ -326,13 +327,13 @@ export default function DashboardNacional() {
               <Tooltip content={<DarkTooltip formatter={(v: number) => `L ${v}B`} />} />
               <Area type="monotone" dataKey="Presupuesto" stroke="#00d4b8" strokeWidth={2}
                 fill="url(#presupGrad)" dot={{ fill: '#00d4b8', r: 3 }} />
-              <Area type="monotone" dataKey="Ing. Propios" stroke="#f59e0b" strokeWidth={1.5}
+              <Area type="monotone" dataKey="Ing. Corrientes" stroke="#f59e0b" strokeWidth={1.5}
                 fill="url(#propiosGrad)" dot={{ fill: '#f59e0b', r: 3 }} />
             </AreaChart>
           </ResponsiveContainer>
           {/* Legend */}
           <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-            {[{ color: '#00d4b8', label: 'Presupuesto' }, { color: '#f59e0b', label: 'Ing. Propios' }].map(l => (
+            {[{ color: '#00d4b8', label: 'Presupuesto' }, { color: '#f59e0b', label: 'Ing. Corrientes' }].map(l => (
               <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-secondary)' }}>
                 <div style={{ width: 18, height: 2, background: l.color, borderRadius: 1 }} />
                 {l.label}
@@ -356,7 +357,7 @@ export default function DashboardNacional() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(0,212,184,0.1)' }}>
-                {['#', 'Municipio', 'Departamento', 'Presupuesto', 'Ing. Propios', 'Autonomía'].map(h => (
+                {['#', 'Municipio', 'Departamento', 'Presupuesto', 'Ing. Corrientes', 'Autonomía'].map(h => (
                   <th key={h} style={{
                     padding: '8px 14px',
                     textAlign: h === '#' ? 'center' : 'left',
@@ -397,15 +398,20 @@ export default function DashboardNacional() {
                         {fmtM(m.presupuesto_municipal || 0)}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace" }}>
-                        {fmtM(m.ingresos_propios || 0)}
+                        {fmtM(indicadoresMunicipio(m).ingresosCorrientes)}
                       </td>
                       <td style={{ padding: '10px 14px', fontFamily: "'IBM Plex Mono', monospace" }}>
-                        <span style={{
-                          color: (m.autonomia_financiera || 0) >= 30 ? '#1f9d57' : (m.autonomia_financiera || 0) >= 15 ? '#f59e0b' : '#ef5a5a',
-                          fontSize: 12,
-                        }}>
-                          {(m.autonomia_financiera || 0).toFixed(1)}%
-                        </span>
+                        {(() => {
+                          const a = indicadoresMunicipio(m).autonomia;
+                          return (
+                            <span style={{
+                              color: a === null ? '#7c8aa3' : a >= 30 ? '#1f9d57' : a >= 15 ? '#f59e0b' : '#ef5a5a',
+                              fontSize: 12,
+                            }}>
+                              {a === null ? '—' : `${a.toFixed(1)}%`}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))

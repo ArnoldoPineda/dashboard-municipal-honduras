@@ -2,6 +2,7 @@
 // Fuente única de cifras para todas las páginas: el mock de municipios se eliminó.
 import { useMemo } from 'react';
 import { Municipality, useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { sumarInsumos, calcular } from '../lib/indicadores';
 
 export const NO_DATA_MSG = 'Sin datos SEFIN para este año';
 
@@ -22,32 +23,27 @@ export const muniPath = (m: Pick<Municipality, 'department' | 'code'>) => `/muni
 export const sumField =(rows: Municipality[], field: keyof Municipality): number =>
   rows.reduce((s, m) => s + (Number(m[field]) || 0), 0);
 
-/** Fórmula validada del proyecto: ingresos_propios / ingresos_recaudados × 100. */
-export function autonomia(propios: number, recaudados: number): number | null {
-  return recaudados > 0 ? (propios / recaudados) * 100 : null;
-}
-
 export interface SefinAgg {
   count:              number;
   presupuesto:        number;
   poblacion:          number;
-  ingresosPropios:    number;
-  ingresosRecaudados: number;
+  ingresosCorrientes: number;
+  ingresosDelAnio:    number;
   transferencias:     number;
   autonomia:          number | null;
 }
 
+/** Agregado de un grupo de filas (un año). Fórmulas en lib/indicadores. */
 export function aggregate(rows: Municipality[]): SefinAgg {
-  const ingresosPropios    = sumField(rows, 'ingresos_propios');
-  const ingresosRecaudados = sumField(rows, 'ingresos_recaudados');
+  const i = sumarInsumos(rows);
   return {
-    count:          rows.length,
-    presupuesto:    sumField(rows, 'presupuesto_municipal'),
-    poblacion:      sumField(rows, 'population'),
-    ingresosPropios,
-    ingresosRecaudados,
-    transferencias: sumField(rows, 'transferencias_art91'),
-    autonomia:      autonomia(ingresosPropios, ingresosRecaudados),
+    count:              rows.length,
+    presupuesto:        i.presupuesto,
+    poblacion:          i.poblacion,
+    ingresosCorrientes: i.ingresosCorrientes,
+    ingresosDelAnio:    i.ingresosDelAnio,
+    transferencias:     i.transferencias,
+    autonomia:          calcular(i).autonomia,
   };
 }
 

@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ROTULO_POBLACION, insumos, indicadoresMunicipio, indicadoresAgregados } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { NO_DATA_MSG, autonomia } from '../utils/sefin';
+import { NO_DATA_MSG } from '../utils/sefin';
 import {
   LineChart,
   Line,
@@ -38,7 +38,7 @@ type MetricKey =
 
 const BASE_METRICS: { key: MetricKey; label: string }[] = [
   { key: 'presupuesto',    label: 'Presupuesto' },
-  { key: 'ingresos',      label: 'Ingresos Propios' },
+  { key: 'ingresos',      label: 'Ingresos Corrientes' },
   { key: 'autonomia',     label: 'Autonomía' },
   { key: 'poblacion',     label: ROTULO_POBLACION },
   { key: 'transferencias',label: 'Transferencias' },
@@ -107,29 +107,28 @@ const AXIS_TICK = {
 
 function getMetricValue(m: any, metric: MetricKey): number {
   switch (metric) {
+    // Montos en millones sin redondear (se redondea al mostrar, no antes de sumar).
     case 'presupuesto':
-      return m.presupuesto_municipal ? Math.round(m.presupuesto_municipal / 1_000_000) : 0;
+      return insumos(m).presupuesto / 1_000_000;
     case 'ingresos':
-      return m.ingresos_propios ? Math.round(m.ingresos_propios / 1_000_000) : 0;
+      return insumos(m).ingresosCorrientes / 1_000_000;
     case 'autonomia':
-      // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (fórmula estándar, afSEFIN).
-      return m.ingresos_recaudados
-        ? Math.round((m.ingresos_propios / m.ingresos_recaudados) * 1000) / 10 : 0;
+      return indicadoresMunicipio(m).autonomia ?? 0;
     case 'poblacion':
-      return m.population || 0;
+      return insumos(m).poblacion;
     case 'transferencias':
-      return m.otras_transferencias ? Math.round(m.otras_transferencias / 1_000_000) : 0;
-    // Columnas SEFIN tal cual: sin proporciones supuestas (antes 58 % / 63 % si el campo valía 0).
+      return insumos(m).transferencias / 1_000_000;
+    // Columnas SEFIN tal cual.
     case 'ing_tributarios':
-      return Math.round((m.ingresos_tributarios || 0) / 1_000_000);
+      return (m.ingresos_tributarios || 0) / 1_000_000;
     case 'ing_no_tributarios':
-      return Math.round((m.ingresos_no_tributarios || 0) / 1_000_000);
+      return (m.ingresos_no_tributarios || 0) / 1_000_000;
     case 'ing_capital':
-      return Math.round((m.ingresos_capital || 0) / 1_000_000);
+      return (m.ingresos_capital || 0) / 1_000_000;
     case 'gasto_funcionamiento':
-      return Math.round((m.gastos_funcionamiento || 0) / 1_000_000);
+      return (m.gastos_funcionamiento || 0) / 1_000_000;
     case 'gasto_capital':
-      return Math.round((m.gastos_capital_deuda || 0) / 1_000_000);
+      return (m.gastos_capital_deuda || 0) / 1_000_000;
     default:
       return 0;
   }
@@ -141,15 +140,9 @@ function formatValue(metric: MetricKey, value: number): string {
   return `L ${value.toFixed(1)}M`;
 }
 
-/** Valor agregado de varias filas: suma, salvo autonomía (fórmula validada sobre los totales). */
+/** Valor agregado de varias filas (un año): suma, salvo autonomía (Σ/Σ en lib/indicadores). */
 function getAggMetricValue(recs: any[], metric: MetricKey): number {
-  if (metric === 'autonomia') {
-    const a = autonomia(
-      recs.reduce((s, m) => s + (m.ingresos_propios || 0), 0),
-      recs.reduce((s, m) => s + (m.ingresos_recaudados || 0), 0),
-    );
-    return a === null ? 0 : Math.round(a * 10) / 10;
-  }
+  if (metric === 'autonomia') return indicadoresAgregados(recs).autonomia ?? 0;
   return recs.reduce((s, m) => s + getMetricValue(m, metric), 0);
 }
 
@@ -174,57 +167,25 @@ function getMetricLabel(metric: MetricKey): string {
 
 // ── Financial category helpers ────────────────────────────────────────────────
 
-function getRawFinCats(m: any) {
-  const pres     = m.presupuesto_municipal || 0;
-  const ingRecaud = m.ingresos_recaudados || 0;
-  const ingProp  = m.ingresos_propios || 0;
-  const tribut   = m.ingresos_tributarios    || 0;
-  const noTrib   = m.ingresos_no_tributarios || 0;
-  const capital  = m.ingresos_capital        || 0;
-  const gastF    = m.gastos_funcionamiento   || 0;
-  const gastC    = m.gastos_capital_deuda    || 0;
-  return { pres, ingRecaud, ingProp, tribut, noTrib, capital, gastF, gastC };
-}
-
-function getFinCats(m: any) {
-  const r = getRawFinCats(m);
-  const M = 1_000_000;
-  return {
-    ingTributarios:       Math.round(r.tribut / M),
-    ingNoTributarios:     Math.round(r.noTrib / M),
-    ingCapital:           Math.round(r.capital / M),
-    gastosFuncionamiento: Math.round(r.gastF / M),
-    gastosCapital:        Math.round(r.gastC / M),
-    autonomiaPct:         r.ingRecaud > 0 ? Math.round(r.ingProp / r.ingRecaud * 1000) / 10 : 0,
-    ingTributarioPct:     r.pres > 0 ? Math.round(r.tribut / r.pres * 1000) / 10 : 0,
-    ingCapitalPct:        r.pres > 0 ? Math.round(r.capital / r.pres * 1000) / 10 : 0,
-    gastCapitalPct:       r.pres > 0 ? Math.round(r.gastC / r.pres * 1000) / 10 : 0,
-  };
-}
-
+/** Montos SEFIN (millones) e indicadores de lib/indicadores para una o varias filas de un año. */
 function getAggFinCats(recs: any[]) {
-  const raw      = recs.map(getRawFinCats);
-  const totPres  = raw.reduce((s, r) => s + r.pres, 0);
-  const totIngRecaud = raw.reduce((s, r) => s + r.ingRecaud, 0);
-  const totIngP  = raw.reduce((s, r) => s + r.ingProp, 0);
-  const totTrib  = raw.reduce((s, r) => s + r.tribut, 0);
-  const totNoTr  = raw.reduce((s, r) => s + r.noTrib, 0);
-  const totCap   = raw.reduce((s, r) => s + r.capital, 0);
-  const totGastF = raw.reduce((s, r) => s + r.gastF, 0);
-  const totGastC = raw.reduce((s, r) => s + r.gastC, 0);
-  const M = 1_000_000;
+  const mill = (k: string) => Math.round(recs.reduce((t, m) => t + (Number(m[k]) || 0), 0) / 1_000_000);
+  const ind  = indicadoresAgregados(recs);
+  const r1   = (v: number | null) => (v === null ? 0 : Math.round(v * 10) / 10);
   return {
-    ingTributarios:       Math.round(totTrib / M),
-    ingNoTributarios:     Math.round(totNoTr / M),
-    ingCapital:           Math.round(totCap / M),
-    gastosFuncionamiento: Math.round(totGastF / M),
-    gastosCapital:        Math.round(totGastC / M),
-    autonomiaPct:         totIngRecaud > 0 ? Math.round(totIngP / totIngRecaud * 1000) / 10 : 0,
-    ingTributarioPct:     totPres > 0 ? Math.round(totTrib / totPres * 1000) / 10 : 0,
-    ingCapitalPct:        totPres > 0 ? Math.round(totCap / totPres * 1000) / 10 : 0,
-    gastCapitalPct:       totPres > 0 ? Math.round(totGastC / totPres * 1000) / 10 : 0,
+    ingTributarios:       mill('ingresos_tributarios'),
+    ingNoTributarios:     mill('ingresos_no_tributarios'),
+    ingCapital:           mill('ingresos_capital'),
+    gastosFuncionamiento: mill('gastos_funcionamiento'),
+    gastosCapital:        mill('gastos_capital_deuda'),
+    autonomiaPct:         r1(ind.autonomia),
+    dependenciaPct:       r1(ind.dependenciaTransferencias),
+    funcionamientoPct:    r1(ind.funcionamientoSobreCorrientes),
+    inversionPct:         r1(ind.inversionSobreGasto),
   };
 }
+
+const getFinCats = (m: any) => getAggFinCats([m]);
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -510,7 +471,7 @@ function ComposicionFinancieraCard({ title, data }: { title: string; data: any[]
 }
 
 // IDH eliminado: no existe en Supabase (antes salía del mock y en la práctica siempre valía 0).
-const RADAR_AXES = ['Autonomía', 'Ing. Tributarios %', 'Ing. Capital %', 'Gasto Capital %'];
+const RADAR_AXES = ['Autonomía', 'Dependencia de transferencias', 'Funcionamiento / corrientes', 'Inversión / gasto'];
 
 function RadarCard({
   title, radarData, names,
@@ -611,10 +572,10 @@ function FinancialChartsSection({
     return RADAR_AXES.map(subject => {
       const row: any = { subject };
       barData.forEach((d: any) => {
-        if (subject === 'Autonomía')           row[d.name] = d.autonomiaPct    || 0;
-        if (subject === 'Ing. Tributarios %')  row[d.name] = d.ingTributarioPct || 0;
-        if (subject === 'Ing. Capital %')      row[d.name] = d.ingCapitalPct   || 0;
-        if (subject === 'Gasto Capital %')     row[d.name] = d.gastCapitalPct  || 0;
+        if (subject === 'Autonomía')                     row[d.name] = d.autonomiaPct;
+        if (subject === 'Dependencia de transferencias') row[d.name] = d.dependenciaPct;
+        if (subject === 'Funcionamiento / corrientes')   row[d.name] = d.funcionamientoPct;
+        if (subject === 'Inversión / gasto')             row[d.name] = d.inversionPct;
       });
       return row;
     });
@@ -728,7 +689,7 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
       const id = muniId(m);
       if (!selected.includes(id) || !years.includes(m.year)) return;
       if (!grouped[m.year]) grouped[m.year] = { year: m.year };
-      grouped[m.year][labels[id]] = getMetricValue(m, metric);
+      grouped[m.year][labels[id]] = Math.round(getMetricValue(m, metric) * 10) / 10;
     });
     return Object.values(grouped).sort((a: any, b: any) => a.year - b.year);
   }, [municipalities, selected, labels, years, metric]);
@@ -987,7 +948,7 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
         const row: any = { year: y };
         selectedDepts.forEach(d => {
           const recs = municipalities.filter(m => m.department === d && m.year === y);
-          if (recs.length) row[d] = getAggMetricValue(recs, metric);
+          if (recs.length) row[d] = Math.round(getAggMetricValue(recs, metric) * 10) / 10;
         });
         return Object.keys(row).length > 1 ? row : null;
       })
@@ -1104,7 +1065,7 @@ function ModeHistorica({ municipalities }: { municipalities: any[] }) {
     return YEARS.map(y => {
       const rec = recs.find(m => m.year === y);
       const row: any = { year: y };
-      if (rec) metrics.forEach(k => { row[k] = getMetricValue(rec, k); });
+      if (rec) metrics.forEach(k => { row[k] = Math.round(getMetricValue(rec, k) * 10) / 10; });
       return row;
     });
   }, [municipalities, muniName, dept, metrics]);

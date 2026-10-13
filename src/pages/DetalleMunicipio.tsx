@@ -4,7 +4,8 @@ import { getDepartamento } from '../data/departamentos';
 import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { deptSlug, autonomia, NO_DATA_MSG } from '../utils/sefin';
+import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
+import { indicadoresMunicipio } from '../lib/indicadores';
 
 const SEFIN_YEARS = [2021, 2022, 2023, 2024, 2025];
 
@@ -34,7 +35,7 @@ export default function DetalleMunicipio() {
     if (!yearRows.length) return null;
     const figs = yearRows.map(toFigures);
     const avg = (k: keyof ReturnType<typeof toFigures>) => figs.reduce((s, f) => s + f[k], 0) / figs.length;
-    return { presupuesto: avg('presupuesto'), ingresosPropios: avg('ingresosPropios'), transferencia: avg('transferencia') };
+    return { presupuesto: avg('presupuesto'), ingresosCorrientes: avg('ingresosCorrientes'), transferencia: avg('transferencia'), ingresosDelAnio: avg('ingresosDelAnio') };
   }, [deptRowsAll, fiscalYear]);
 
   const evolucion = useMemo(
@@ -71,7 +72,7 @@ export default function DetalleMunicipio() {
 
   // Nombre del departamento con tildes (data/departamentos.ts).
   const deptNombre = (getDepartamento(deptId || '') as any)?.nombre ?? header.department ?? '';
-  const af = row ? autonomia(row.ingresos_propios ?? 0, row.ingresos_recaudados ?? 0) : null;
+  const af = row ? indicadoresMunicipio(row).autonomia : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>

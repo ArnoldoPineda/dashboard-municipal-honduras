@@ -2,13 +2,12 @@ import React, {
   useEffect, useRef, useState, useMemo, useCallback,
 } from 'react';
 import * as d3 from 'd3';
-import { ROTULO_CATEGORIA } from '../lib/indicadores';
-import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ROTULO_CATEGORIA, ROTULO_POBLACION, sumarInsumos, calcular } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDepartamento } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
-import { useSefinYear, normName as normalizeName, muniKey, sumField as sum, autonomia, muniPath } from '../utils/sefin';
+import { useSefinYear, normName as normalizeName, muniKey, muniPath } from '../utils/sefin';
 import { useMunicipiosTopo } from '../hooks/useMunicipiosTopo';
 import { NOMBRES_OFICIALES } from '../data/nombresOficiales';
 
@@ -284,20 +283,12 @@ export default function VistaDepartamental() {
     [deptRows]
   );
 
-  // Department aggregates for selected year (Supabase)
-  const deptYear = useMemo(() => ({
-    presupuesto:     sum(deptRows, 'presupuesto_municipal'),
-    ingresosPropios: sum(deptRows, 'ingresos_propios'),
-    transferencia:   sum(deptRows, 'transferencias_art91'),
-    poblacion:       sum(deptRows, 'population'),
-  }), [deptRows]);
-
-  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (Supabase).
-  // Fórmula estándar del proyecto — misma que afSEFIN en MunicipioDETALLE.tsx.
-  const autonomiaSb: number | null = useMemo(() => {
-    if (deptRows.length === 0) return null; // sin filas de Supabase para este año (2019/2020)
-    return autonomia(sum(deptRows, 'ingresos_propios'), sum(deptRows, 'ingresos_recaudados')) ?? 0;
-  }, [deptRows]);
+  // Agregados del departamento (lib/indicadores: Σ numeradores ÷ Σ denominadores).
+  const deptYear = useMemo(() => sumarInsumos(deptRows), [deptRows]);
+  const autonomiaSb: number | null = useMemo(
+    () => (deptRows.length === 0 ? null : calcular(deptYear).autonomia),
+    [deptRows, deptYear]
+  );
 
   // Capital = municipio con code 1 (cabecera departamental)
   const capital = dept?.capital ?? '';
@@ -336,9 +327,9 @@ export default function VistaDepartamental() {
     { label: 'MUNICIPIOS',     value: geoCount !== null ? String(geoCount) : '—',      color: '#00d4b8' },
     { label: ROTULO_POBLACION.toUpperCase(), value: na(fmt.format(deptYear.poblacion) + ' hab.'),    color: '#5eead4' },
     { label: 'PRESUPUESTO',    value: na(`L ${fmt.format(deptYear.presupuesto)}`),     color: '#f59e0b' },
-    { label: 'ING. PROPIOS',   value: na(`L ${fmt.format(deptYear.ingresosPropios)}`), color: '#f59e0b' },
-    { label: 'AUTONOMÍA PROM.', value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
-    { label: 'TRANSFERENCIAS', value: na(`L ${fmt.format(deptYear.transferencia)}`),   color: '#f59e0b' },
+    { label: 'ING. CORRIENTES', value: na(`L ${fmt.format(deptYear.ingresosCorrientes)}`), color: '#f59e0b' },
+    { label: 'AUTONOMÍA',      value: autonomiaSb !== null ? `${autonomiaSb.toFixed(1)}%` : '—', color: '#5eead4' },
+    { label: 'TRANSFERENCIAS', value: na(`L ${fmt.format(deptYear.transferencias)}`),   color: '#f59e0b' },
   ];
 
   return (

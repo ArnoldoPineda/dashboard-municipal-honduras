@@ -1,5 +1,5 @@
 import React from 'react';
-import { ROTULO_POBLACION } from '../lib/indicadores';
+import { ROTULO_POBLACION, insumos } from '../lib/indicadores';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
@@ -98,23 +98,26 @@ function KPICard({ label, value, color }: { label: string; value: string; color:
   );
 }
 
-interface MuniFigures { presupuesto: number; ingresosPropios: number; transferencia: number }
+interface MuniFigures { presupuesto: number; ingresosCorrientes: number; transferencia: number; ingresosDelAnio: number }
 
-// "Otros" (presupuesto − propios − transferencias) eliminado: era un residuo calculado, no un dato SEFIN.
+// Composición de los ingresos del año (sin balance, préstamos ni bonos): corrientes + transferencias + otros.
+// La porción de corrientes es la autonomía (lib/indicadores).
 function DonutChart({ muni }: { muni: MuniFigures }) {
-  const total = muni.ingresosPropios + muni.transferencia;
-  const pct   = (v: number) => total > 0 ? Math.min(100, Math.round(v / total * 100)) : 0;
+  const total = muni.ingresosDelAnio;
+  const otros = Math.max(0, total - muni.ingresosCorrientes - muni.transferencia);
+  const pct   = (v: number) => total > 0 ? Math.round(v / total * 1000) / 10 : 0;
 
   const data = [
-    { name: 'Transferencias', value: muni.transferencia,   fill: '#f59e0b', pct: pct(muni.transferencia)   },
-    { name: 'Ing. Propios',   value: muni.ingresosPropios, fill: '#2dd4bf', pct: pct(muni.ingresosPropios) },
+    { name: 'Ing. Corrientes', value: muni.ingresosCorrientes, fill: '#2dd4bf', pct: pct(muni.ingresosCorrientes) },
+    { name: 'Transferencias',  value: muni.transferencia,      fill: '#f59e0b', pct: pct(muni.transferencia)      },
+    { name: 'Otros del año',   value: otros,                   fill: '#64748b', pct: pct(otros)                   },
   ].filter((d) => d.value > 0);
 
   const dominant = data.reduce((a, b) => a.value > b.value ? a : b, data[0]) || data[0];
 
   return (
     <div style={CHART_STYLE}>
-      <div style={TITLE_STYLE}>Ing. Propios vs Transferencias</div>
+      <div style={TITLE_STYLE}>Composición de ingresos del año</div>
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -231,7 +234,7 @@ function EvoLineChart({ evolucion }: { evolucion: { year: number; presupuesto: n
 function CompBarChart({ muni, deptAvg }: { muni: MuniFigures; deptAvg: MuniFigures }) {
   const data = [
     { name: 'PRESUPUESTO',   municipio: muni.presupuesto,     promedio: deptAvg.presupuesto    },
-    { name: 'ING. PROPIOS',  municipio: muni.ingresosPropios, promedio: deptAvg.ingresosPropios },
+    { name: 'ING. CORR.',    municipio: muni.ingresosCorrientes, promedio: deptAvg.ingresosCorrientes },
     { name: 'TRANSFERENCIA', municipio: muni.transferencia,   promedio: deptAvg.transferencia   },
   ];
 
@@ -284,12 +287,14 @@ function CompBarChart({ muni, deptAvg }: { muni: MuniFigures; deptAvg: MuniFigur
 
 // ── Exported shared content component ────────────────────────────────────────
 
-/** Fila SEFIN → cifras del detalle (transferencias = Art. 91). */
+/** Fila SEFIN → cifras del detalle (lib/indicadores: transferencias = Art. 91 + otras). */
 export function toFigures(m: Municipality): MuniFigures {
+  const i = insumos(m);
   return {
-    presupuesto:     m.presupuesto_municipal ?? 0,
-    ingresosPropios: m.ingresos_propios ?? 0,
-    transferencia:   m.transferencias_art91 ?? 0,
+    presupuesto:        i.presupuesto,
+    ingresosCorrientes: i.ingresosCorrientes,
+    transferencia:      i.transferencias,
+    ingresosDelAnio:    i.ingresosDelAnio,
   };
 }
 
@@ -304,8 +309,8 @@ export function MuniDetailContent({ row, deptAvg, evolucion }: {
   const kpis = [
     { label: ROTULO_POBLACION.toUpperCase(), value: fmtPop.format(row.population ?? 0) + ' hab.', color: '#e8eef6' },
     { label: 'PRESUPUESTO',      value: L(muniY.presupuesto),                         color: '#2dd4bf' },
-    { label: 'INGRESOS PROPIOS', value: L(muniY.ingresosPropios),                     color: '#2dd4bf' },
-    { label: 'TRANSFERENCIA',    value: L(muniY.transferencia),                       color: '#2dd4bf' },
+    { label: 'INGRESOS CORRIENTES', value: L(muniY.ingresosCorrientes),               color: '#2dd4bf' },
+    { label: 'TRANSFERENCIAS',   value: L(muniY.transferencia),                       color: '#2dd4bf' },
   ];
 
   return (

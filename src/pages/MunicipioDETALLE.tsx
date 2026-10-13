@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, indicadoresMunicipio } from '../lib/indicadores';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
@@ -273,6 +273,10 @@ export default function MunicipioDETALLE() {
   };
 
   const codDep = muni ? (DEPT_CODES[deptSlug(muni.department)] ?? '—') : '—';
+  // Indicadores: única fuente lib/indicadores.
+  const ind  = sb ? indicadoresMunicipio(sb) : null;
+  const fPct = (v: number | null | undefined) => (v == null ? '—' : `${v.toFixed(1)}%`);
+  const fPc  = (v: number | null | undefined) => (v == null ? '—' : `L ${fmtF.format(Math.round(v))}`);
   const codMun = muni?.code != null ? String(muni.code).padStart(2, '0') : '—';
   // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
   const g1 = sb
@@ -319,12 +323,15 @@ export default function MunicipioDETALLE() {
       key: 'resumen', title: 'Datos Presupuestarios', color: '#06b6d4',
       amount: sb.presupuesto_municipal ?? 0,
       rows: [
-        { label: 'Presupuesto Aprobado',  value: fmZ(sb.presupuesto_municipal) },
-        { label: 'Gastos Presupuestados', value: fmZ(sb.gastos_presupuestados) },
-        { label: 'Ingresos Propios',      value: fmZ(sb.ingresos_propios)      },
-        { label: 'Ingresos Recaudados',   value: fmZ(sb.ingresos_recaudados)   },
-        { label: 'Autonomía Financiera',  value: sb.autonomia_financiera != null ? `${Number(sb.autonomia_financiera).toFixed(1)}%` : '0.0%' },
-        { label: 'Ingresos Corrientes',   value: fmZ(sb.ingresos_corrientes)   },
+        { label: 'Presupuesto Aprobado',          value: fmZ(sb.presupuesto_municipal) },
+        { label: 'Ingresos Totales (recaudados)', value: fmZ(sb.ingresos_recaudados)   },
+        { label: 'Ingresos del Año (sin balance, préstamos ni bonos)', value: fmZ(ind!.ingresosDelAnio) },
+        { label: 'Ingresos Corrientes (G1 + G2)', value: fmZ(ind!.ingresosCorrientes)  },
+        { label: 'Autonomía',                     value: fPct(ind!.autonomia) },
+        { label: 'Dependencia de Transferencias', value: fPct(ind!.dependenciaTransferencias) },
+        { label: 'Ingresos Propios per cápita',   value: fPc(ind!.propiosPerCapita) },
+        { label: 'IBI per cápita',                value: fPc(ind!.ibiPerCapita) },
+        { label: 'Ejecución vs. Presupuesto Aprobado', value: fPct(ind!.ejecucion) },
       ],
     },
     {
@@ -402,10 +409,15 @@ export default function MunicipioDETALLE() {
       key: 'resultado', title: 'Resultado Fiscal', color: '#a78bfa',
       amount: sb.total_egresos ?? 0,
       rows: [
-        { label: 'Total Egresos',              value: fmZ(sb.total_egresos)              },
-        { label: 'Superávit / Déficit',        value: fmtSigned(sb.superavit_deficit)    },
-        { label: 'Gasto Corriente',            value: fmZ(sb.gasto_corriente)            },
-        { label: 'Ingreso Corriente Ajustado', value: fmZ(sb.ingreso_corriente_ajustado) },
+        { label: 'Total Egresos',                     value: fmZ(sb.total_egresos)                 },
+        { label: 'Resultado con Balance',             value: fmtSigned(ind!.resultadoConBalance)   },
+        { label: 'Resultado sin Balance',             value: fmtSigned(ind!.resultadoSinBalance)   },
+        { label: 'Ahorro Corriente',                  value: fmtSigned(ind!.ahorroCorriente)       },
+        { label: 'Funcionamiento / Corrientes',       value: fPct(ind!.funcionamientoSobreCorrientes) },
+        { label: 'Inversión / Gasto Total',           value: fPct(ind!.inversionSobreGasto)        },
+        { label: 'Inversión per cápita',              value: fPc(ind!.inversionPerCapita)          },
+        { label: 'Servicio de Deuda / Corrientes',    value: fPct(ind!.servicioDeudaSobreCorrientes) },
+        { label: 'Recursos de Balance / Ingresos',    value: fPct(ind!.balanceSobreIngresos)       },
       ],
     },
   ];

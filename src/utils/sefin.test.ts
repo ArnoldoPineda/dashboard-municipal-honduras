@@ -4,14 +4,14 @@ jest.mock('../hooks/useMunicipalities', () => ({ useMunicipalitiesMultiYear: () 
 
 import type { Municipality } from '../hooks/useMunicipalities';
 import {
-  normName, muniKey, deptSlug, muniPath, sumField, autonomia,
+  normName, muniKey, deptSlug, muniPath, sumField,
   aggregate, groupByDept, aggregateByDept,
 } from './sefin';
 
 // Fábrica: todo null salvo lo que se pasa.
 const row = (o: Partial<Municipality> = {}): Municipality => {
   const keys = ['code', 'name', 'department', 'population', 'presupuesto_municipal',
-    'ingresos_propios', 'ingresos_recaudados', 'transferencias_art91'];
+    'ingresos_tributarios', 'ingresos_no_tributarios', 'ingresos_recaudados', 'transferencias_art91'];
   const base: any = { id: 'x', year: 2024 };
   keys.forEach((k) => { base[k] = null; });
   return { ...base, ...o } as Municipality;
@@ -52,20 +52,11 @@ describe('sumField', () => {
   it('lista vacía → 0', () => expect(sumField([], 'population')).toBe(0));
 });
 
-describe('autonomia', () => {
-  it('La Ceiba 2024 ≈ 92.05', () => {
-    expect(autonomia(442436097.94, 480670337.87)).toBeCloseTo(92.05, 2);
-  });
-  it('recaudados 0 → null', () => expect(autonomia(5, 0)).toBeNull());
-  it('recaudados negativo → null', () => expect(autonomia(5, -10)).toBeNull());
-  it('propios 0 con recaudados > 0 → 0', () => expect(autonomia(0, 100)).toBe(0));
-});
-
 describe('aggregate', () => {
   it('vacío', () => {
     expect(aggregate([])).toEqual({
-      count: 0, presupuesto: 0, poblacion: 0, ingresosPropios: 0,
-      ingresosRecaudados: 0, transferencias: 0, autonomia: null,
+      count: 0, presupuesto: 0, poblacion: 0, ingresosCorrientes: 0,
+      ingresosDelAnio: 0, transferencias: 0, autonomia: null,
     });
   });
   it('campos null cuentan como 0, sin NaN', () => {
@@ -77,17 +68,17 @@ describe('aggregate', () => {
   });
   it('autonomía = razón de sumas, no media de razones', () => {
     const a = aggregate([
-      row({ ingresos_propios: 90, ingresos_recaudados: 100 }),
-      row({ ingresos_propios: 10, ingresos_recaudados: 900 }),
+      row({ ingresos_tributarios: 90, ingresos_recaudados: 100 }),
+      row({ ingresos_tributarios: 10, ingresos_recaudados: 900 }),
     ]);
     expect(a.autonomia).toBeCloseTo(10, 10);
   });
   it('suma todos los campos', () => {
     const a = aggregate([
-      row({ population: 1, presupuesto_municipal: 2, ingresos_propios: 3, ingresos_recaudados: 4, transferencias_art91: 5 }),
-      row({ population: 10, presupuesto_municipal: 20, ingresos_propios: 30, ingresos_recaudados: 40, transferencias_art91: 50 }),
+      row({ population: 1, presupuesto_municipal: 2, ingresos_tributarios: 3, ingresos_recaudados: 4, transferencias_art91: 5 }),
+      row({ population: 10, presupuesto_municipal: 20, ingresos_tributarios: 30, ingresos_recaudados: 40, transferencias_art91: 50 }),
     ]);
-    expect(a).toMatchObject({ poblacion: 11, presupuesto: 22, ingresosPropios: 33, ingresosRecaudados: 44, transferencias: 55 });
+    expect(a).toMatchObject({ poblacion: 11, presupuesto: 22, ingresosCorrientes: 33, ingresosDelAnio: 44, transferencias: 55 });
   });
 });
 

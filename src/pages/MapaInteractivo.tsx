@@ -53,7 +53,7 @@ export default function MapaInteractivo() {
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
-  // Autonomía Financiera = ingresos_propios / ingresos_recaudados × 100 (agregado por depto).
+  // Autonomía por departamento: lib/indicadores (Σ corrientes ÷ Σ ingresos del año).
   const { rows, loading, message: noDataMsg } = useSefinYear(fiscalYear);
   const hideFigures = loading || !!noDataMsg; // mientras carga: '—', nunca 0
 

@@ -3,7 +3,7 @@ import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, UMBRAL_EJEC
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { DEPARTAMENTOS } from '../data/departamentos';
+import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { muniKey, deptSlug, NO_DATA_MSG } from '../utils/sefin';
@@ -31,20 +31,6 @@ function formatMoney(n: number): string {
   if (n >= 1_000_000)     return `L ${(n / 1_000_000).toFixed(1)} M`;
   return `L ${fmtF.format(n)}`;
 }
-
-const CATEGORIA_LABEL: Record<string, string> = {
-  A: 'Categoría A', B: 'Categoría B', C: 'Categoría C', D: 'Categoría D',
-};
-
-// Códigos INE de departamento (mismos que PresupuestarioPage). Antes estaban en orden
-// alfabético (Choluteca 02, Colón 03…), que no corresponde al código oficial.
-const DEPT_CODES: Record<string, string> = {
-  'atlantida': '01', 'colon': '02', 'comayagua': '03', 'copan': '04',
-  'cortes': '05', 'choluteca': '06', 'el-paraiso': '07', 'francisco-morazan': '08',
-  'gracias-a-dios': '09', 'intibuca': '10', 'islas-de-la-bahia': '11',
-  'la-paz': '12', 'lempira': '13', 'ocotepeque': '14', 'olancho': '15',
-  'santa-barbara': '16', 'valle': '17', 'yoro': '18',
-};
 
 function fmtSigned(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—';
@@ -273,7 +259,6 @@ export default function MunicipioDETALLE() {
     return `L ${fmtF.format(n)}`;
   };
 
-  const codDep = muni ? (DEPT_CODES[deptSlug(muni.department)] ?? '—') : '—';
   // Indicadores: única fuente lib/indicadores.
   // Sin liquidación (docs/ATIPICOS.md §2): no se calculan indicadores.
   const sinLiq = sb ? sinLiquidacion(sb) : false;
@@ -284,7 +269,6 @@ export default function MunicipioDETALLE() {
   const fM   = (v: number | null | undefined) => (v == null ? '—' : fmZ(v));
   const fS   = (v: number | null | undefined) => (v == null ? '—' : fmtSigned(v));
   const fEje = (v: number | null | undefined) => (v == null ? '—' : `${v > UMBRAL_EJECUCION ? '⚠ ' : ''}${v.toFixed(1)}%`);
-  const codMun = muni?.code != null ? String(muni.code).padStart(2, '0') : '—';
   // ── Grupos SIMHO — suma directa de columnas individuales (nunca subtotales SEFIN) ──
   const g1 = sb
     ? (sb.impuesto_bi ?? 0) + (sb.impuesto_personal ?? 0)
@@ -315,17 +299,6 @@ export default function MunicipioDETALLE() {
   // nunca estimaciones. Área, densidad e IDH eliminados (no existen en Supabase).
 
   const sections: AccordionSection[] = !muni || !sb ? [] : [
-    {
-      key: 'general', title: 'Información General', color: '#2dd4bf', amount: 0,
-      rows: [
-        { label: 'Cód. Departamento',   value: codDep },
-        { label: 'Cód. Municipio',      value: codMun },
-        { label: 'Departamento',        value: deptNombre },
-        { label: 'Municipio',           value: sb.name ?? '' },
-        { label: ROTULO_CATEGORIA,      value: CATEGORIA_LABEL[sb.category ?? ''] ?? '—' },
-        { label: ROTULO_POBLACION,      value: fmtP.format(Number(sb.population ?? 0)) + ' hab.' },
-      ],
-    },
     {
       key: 'resumen', title: 'Datos Presupuestarios', color: '#06b6d4',
       amount: sb.presupuesto_municipal ?? 0,
@@ -638,13 +611,16 @@ export default function MunicipioDETALLE() {
               </div>
 
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                <span style={{
-                  fontSize: 12, fontWeight: 600, color: '#5eead4',
-                  background: 'rgba(94,234,212,0.1)', border: '1px solid rgba(94,234,212,0.3)',
-                  borderRadius: 4, padding: '2px 7px',
-                  fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.08em',
+                {/* Identificación: departamento · código INE · categoría · población */}
+                <span title={`${ROTULO_CATEGORIA} · ${ROTULO_POBLACION}`} style={{
+                  fontSize: 13, color: '#9fb0c6', fontFamily: "'IBM Plex Mono', monospace",
                 }}>
-                  DEPTO. {deptNombre.toUpperCase()}
+                  {[
+                    deptNombre,
+                    `Cód. ${codigoINE(muni.department, muni.code)}`,
+                    sb?.category ? `Categoría ${sb.category}` : null,
+                    sb ? `${fmtP.format(Number(sb.population ?? 0))} hab.` : null,
+                  ].filter(Boolean).join(' · ')}
                 </span>
                 {muni.code === 1 && (
                   <span style={{

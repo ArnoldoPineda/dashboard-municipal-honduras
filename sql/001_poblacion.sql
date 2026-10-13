@@ -1,6 +1,6 @@
 -- 001_poblacion.sql — población municipal INE (Proyecciones 2013–2050, base Censo 2013).
 -- ESTADO: SIN EJECUTAR. Requiere aprobación antes de correrlo en el SQL Editor de Supabase.
--- Clave: código INE de departamento (01 Atlántida … 18 Yoro, orden alfabético) + `code` SEFIN del municipio.
+-- Clave: código INE de departamento (01 Atlántida, 02 Colón, 03 Comayagua, 04 Copán, 05 Cortés, 06 Choluteca … 18 Yoro; = COD_DEP_MAP de PresupuestarioPage) + `code` SEFIN del municipio.
 
 create table if not exists public.poblacion (
   cod_depto  smallint not null check (cod_depto between 1 and 18),

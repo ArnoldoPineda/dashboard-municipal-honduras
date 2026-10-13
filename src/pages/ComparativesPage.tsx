@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, notaDatoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { ANIOS_SEFIN } from '../data/anios';
 import { useNavbar } from '../context/NavbarContext';
-import { nombreDepartamento } from '../data/departamentos';
+import { nombreDepartamento, codigoINE } from '../data/departamentos';
 import { fmtL, fmtLGrafico } from '../lib/formato';
 import {
   LineChart,
@@ -651,6 +652,19 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
   const [selected, setSelected]         = useState<string[]>([]); // ids "DEPARTAMENTO|nombre"
   const [years, setYears]               = useState<number[]>([...ANIOS_SEFIN]);
   const [metric, setMetric]             = useState<MetricKey>('presupuesto');
+
+  // Preselección desde la Ficha Municipal: /comparativos?municipio=0318 (código INE).
+  const [params] = useSearchParams();
+  const ineInicial = params.get('municipio');
+  const preseleccionado = useRef(false); // se aplica una sola vez: el usuario puede quitarlo después
+  useEffect(() => {
+    if (!ineInicial || preseleccionado.current) return;
+    const m = municipalities.find(x => codigoINE(x.department, x.code) === ineInicial);
+    if (!m) return;
+    preseleccionado.current = true;
+    setDeptSections([m.department]);
+    setSelected([muniId(m)]);
+  }, [ineInicial, municipalities]);
 
   const departments = useMemo(() =>
     [...new Set(municipalities.map(m => m.department).filter(Boolean))].sort(),

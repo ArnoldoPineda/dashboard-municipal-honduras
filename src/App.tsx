@@ -7,9 +7,8 @@ import { SimhoContext }      from './context/SimhoContext';
 import Layout               from './components/Layout';
 import MapaInteractivo      from './pages/MapaInteractivo';
 import VistaDepartamental   from './pages/VistaDepartamental';
-import DetalleMunicipio     from './pages/DetalleMunicipio';
+import FichaMunicipal, { UltimaFicha } from './pages/FichaMunicipal';
 import DashboardNacional    from './pages/DashboardNacional';
-import MunicipioDETALLE     from './pages/MunicipioDETALLE';
 import PresupuestarioPage   from './pages/PresupuestarioPage';
 import AnalyticsPage        from './pages/AnalyticsPage';
 import ComparativesPage     from './pages/ComparativesPage';
@@ -29,9 +28,9 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index                        element={<MapaInteractivo />}    />
               <Route path="departamento/:id"      element={<VistaDepartamental />} />
-              <Route path="municipio/:deptId/:code" element={<DetalleMunicipio />} />
+              <Route path="municipio/:deptId/:code" element={<FichaMunicipal />} />
               <Route path="dashboard"             element={<DashboardNacional />}  />
-              <Route path="muni-detalle"          element={<MunicipioDETALLE />}   />
+              <Route path="muni-detalle"          element={<UltimaFicha />}        />
               <Route path="financiero"            element={<PresupuestarioPage />} />
               <Route path="analisis"              element={<AnalyticsPage />}      />
               <Route path="comparativos"          element={<ComparativesPage />}   />

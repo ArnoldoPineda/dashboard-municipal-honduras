@@ -5,7 +5,7 @@ import { MuniDetailContent, toFigures } from '../components/MuniDetailContent';
 import { useNavbar } from '../context/NavbarContext';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { deptSlug, NO_DATA_MSG } from '../utils/sefin';
-import { indicadoresMunicipio, sinLiquidacion, ROTULO_SIN_LIQUIDACION } from '../lib/indicadores';
+import { indicadoresMunicipio, sinLiquidacion, datoIncompleto, ROTULO_SIN_LIQUIDACION, NOTA_DATO_INCOMPLETO } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 
 const SEFIN_YEARS = ANIOS_SEFIN;
@@ -129,6 +129,9 @@ export default function DetalleMunicipio() {
 
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 16, fontWeight: 600, color: '#5eead4', flexShrink: 0 }}>
           Autonomía: <strong style={{ color: '#2dd4bf' }}>{af === null ? '—' : `${af.toFixed(1)}%`}</strong>
+          {row && datoIncompleto(row) && (
+            <span title={NOTA_DATO_INCOMPLETO} style={{ color: '#f59e0b', marginLeft: 6, cursor: 'help' }}>⚠</span>
+          )}
         </div>
       </div>
 

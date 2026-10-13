@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion } from '../lib/indicadores';
+import React, { useState, useMemo, useCallback } from 'react';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, NOTA_DATO_INCOMPLETO, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { DEPARTAMENTOS, deptNameToId } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
@@ -63,6 +63,7 @@ function toRow(m: Municipality) {
     presupuesto:   m.presupuesto_municipal ?? 0,
     categoria:     m.category ?? '',
     ind:           indicadoresMunicipio(m),
+    incompleto:    datoIncompleto(m),
     src:           m,
     otros:         m.gastos_capital_deuda ?? 0,
     isCapital:     m.code === 1, // cabecera departamental
@@ -107,11 +108,16 @@ export default function RankingsPage() {
   const allMusArr = useMemo(() => yearRows.filter(m => !sinLiquidacion(m)).map(toRow), [yearRows]);
   const prevMusArr = useMemo(() => prevRows.filter(m => !sinLiquidacion(m)).map(toRow), [prevRows]);
   const sinLiqNombres = useMemo(() => yearRows.filter(sinLiquidacion).map(m => m.name ?? ''), [yearRows]);
+  // Dato incompleto (autonomía ≥ 99 %): fuera del ranking de autonomía y de su referencia departamental.
+  const elegibles = useCallback(
+    (arr: typeof allMusArr) => (metric === 'autonomia' ? arr.filter(m => !m.incompleto) : arr), [metric]);
+  const incompletosNombres = useMemo(
+    () => (metric === 'autonomia' ? allMusArr.filter(m => m.incompleto).map(m => m.nombre) : []), [metric, allMusArr]);
 
   // Referencia departamental: montos = promedio por municipio; razones y per cápita = Σ/Σ del departamento.
   const deptAvgMap = useMemo<Record<string, number>>(() => {
     const byDept: Record<string, typeof allMusArr> = {};
-    allMusArr.forEach(m => { (byDept[m.departamentoId] = byDept[m.departamentoId] || []).push(m); });
+    elegibles(allMusArr).forEach(m => { (byDept[m.departamentoId] = byDept[m.departamentoId] || []).push(m); });
     const ratioKey = RATIO_METRICS[metric];
     const result: Record<string, number> = {};
     Object.entries(byDept).forEach(([k, list]) => {
@@ -120,13 +126,13 @@ export default function RankingsPage() {
         : list.reduce((s, m) => s + getMetricValue(m, metric), 0) / list.length;
     });
     return result;
-  }, [metric, allMusArr]);
+  }, [metric, allMusArr, elegibles]);
 
   // Full ranked list (all munis, active metric)
   const rankedAll = useMemo(() => {
-    return [...allMusArr]
+    return elegibles(allMusArr)
       .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
-  }, [metric, allMusArr]);
+  }, [metric, allMusArr, elegibles]);
 
   // Filtered + paginated rows
   const filtered = useMemo(() => {
@@ -137,13 +143,13 @@ export default function RankingsPage() {
 
   // Puesto del año anterior con la misma métrica y el mismo filtro (vacío si ese año no tiene datos).
   const prevRankMap = useMemo<Record<string, number>>(() => {
-    const sorted = prevMusArr
+    const sorted = elegibles(prevMusArr)
       .filter((m: any) => deptFilter === 'all' || m.departamentoId === deptFilter)
       .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
     const map: Record<string, number> = {};
     sorted.forEach((m, i) => { map[m.id] = i + 1; });
     return map;
-  }, [metric, deptFilter, prevMusArr]);
+  }, [metric, deptFilter, prevMusArr, elegibles]);
 
   const maxValue = useMemo(() => {
     const vs = filtered.map((m: any) => Math.abs(getMetricValue(m, metric)));
@@ -197,7 +203,8 @@ export default function RankingsPage() {
             </div>
             <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
               {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`
-                + (sinLiqNombres.length ? ` · ${ROTULO_SIN_LIQUIDACION} (excluidos): ${sinLiqNombres.join(', ')}` : '')}
+                + (sinLiqNombres.length ? ` · ${ROTULO_SIN_LIQUIDACION} (excluidos): ${sinLiqNombres.join(', ')}` : '')
+                + (incompletosNombres.length ? ` · ⚠ ${ROTULO_DATO_INCOMPLETO} (excluidos): ${incompletosNombres.join(', ')}` : '')}
             </div>
           </div>
 
@@ -359,6 +366,9 @@ export default function RankingsPage() {
                 <div style={{ padding: '9px 12px' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#e8eef6', fontFamily: "'Barlow Condensed', sans-serif" }}>
                     {muni.nombre}
+                    {muni.incompleto && (
+                      <span title={NOTA_DATO_INCOMPLETO} style={{ color: '#f59e0b', marginLeft: 6, cursor: 'help' }}>⚠</span>
+                    )}
                   </div>
                   {muni.isCapital && (
                     <div style={{ fontSize: 8.5, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', marginTop: 1 }}>

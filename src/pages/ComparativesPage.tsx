@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, NOTA_DATO_INCOMPLETO, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, datoIncompleto } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
@@ -332,7 +332,7 @@ function ComparisonTable({ rows, years, metric }: { rows: any[]; years: number[]
                     color: '#2dd4bf', fontSize: 12,
                     fontFamily: "'IBM Plex Mono', monospace",
                     borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  }}>
+                  }} title={String(row[`y_${y}`] ?? '').endsWith('⚠') ? NOTA_DATO_INCOMPLETO : undefined}>
                     {row[`y_${y}`] ?? '—'}
                   </td>
                 ))}
@@ -700,7 +700,8 @@ function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
       const row: any = { label: labels[id] };
       years.forEach(y => {
         const rec = municipalities.find(m => muniId(m) === id && m.year === y);
-        row[`y_${y}`] = !rec ? null : sinLiquidacion(rec) ? ROTULO_SIN_LIQUIDACION : formatValue(metric, getMetricValue(rec, metric));
+        row[`y_${y}`] = !rec ? null : sinLiquidacion(rec) ? ROTULO_SIN_LIQUIDACION
+          : formatValue(metric, getMetricValue(rec, metric)) + (metric === 'autonomia' && datoIncompleto(rec) ? ' ⚠' : '');
       });
       return row;
     });

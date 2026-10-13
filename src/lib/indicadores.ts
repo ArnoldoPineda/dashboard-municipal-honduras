@@ -7,6 +7,11 @@ export const ROTULO_POBLACION = 'Población: proyección (provisional)';
 /** Rótulo único de la categoría A–D: columna SEFIN `category`, criterio oficial no documentado. */
 export const ROTULO_CATEGORIA = 'Categoría según base SEFIN — criterio por confirmar';
 export const ROTULO_SIN_LIQUIDACION = 'Sin liquidación';
+export const ROTULO_DATO_INCOMPLETO = 'Dato incompleto';
+/** Autonomía desde la que se presume que faltan las transferencias (docs/ATIPICOS.md §5). */
+export const UMBRAL_AUTONOMIA_INCOMPLETA = 99;
+export const NOTA_DATO_INCOMPLETO =
+  'Autonomía ≥ 99 %: Art. 91 y otras transferencias vienen en 0 en la fuente SEFIN; probable dato faltante. Excluido del ranking de autonomía.';
 /** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
 export const UMBRAL_EJECUCION = 150;
 
@@ -124,6 +129,10 @@ export function mediana(rows: Municipality[], k: keyof Indicadores): number | nu
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
 }
 
+/** Fila con liquidación pero autonomía ≥ 99 %: transferencias probablemente faltantes en la fuente. */
+export const datoIncompleto = (m: Municipality) =>
+  !sinLiquidacion(m) && (indicadoresMunicipio(m).autonomia ?? 0) >= UMBRAL_AUTONOMIA_INCOMPLETA;
+
 /** Diferencia tolerada entre un subtotal SEFIN y la suma de sus renglones (lempiras). */
 const TOL = 1;
 const suma = (m: Municipality, ks: (keyof Municipality)[]) => ks.reduce((s, k) => s + n(m[k] as number), 0);
@@ -137,6 +146,7 @@ export function atipicos(m: Municipality): string[] {
   if (i.ingresosCorrientes === 0 && i.ingresosTotales > 0) out.push('Ingresos corrientes en cero');
   if (i.ingresosTotales > 0 && i.ingresosDelAnio <= 0) out.push('Ingresos del año ≤ 0 (balance y financiamiento ≥ total)');
   if (r.autonomia !== null && r.autonomia > 100) out.push('Autonomía > 100 %');
+  if (datoIncompleto(m)) out.push('Autonomía ≥ 99 % (dato incompleto)');
   if (i.poblacion <= 0) out.push('Sin población');
   if (i.totalEgresos <= 0) out.push('Sin egresos reportados');
   if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');

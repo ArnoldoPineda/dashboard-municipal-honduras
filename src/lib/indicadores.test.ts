@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
-import { indicadoresMunicipio, indicadoresAgregados, mediana, atipicos, sinLiquidacion, sumarInsumos } from './indicadores';
+import { indicadoresMunicipio, indicadoresAgregados, mediana, atipicos, sinLiquidacion, sumarInsumos, datoIncompleto } from './indicadores';
 
 const M = 1e6;
 const row = (o: Partial<Municipality>) => o as Municipality;
@@ -101,6 +101,17 @@ describe('sin liquidación', () => {
     expect(sumarInsumos([sinLiq, normal])).toMatchObject({ presupuesto: 80, poblacion: 4, ingresosTotales: 100 });
     expect(indicadoresAgregados([sinLiq, normal]).autonomia).toBeCloseTo(40);
     expect(mediana([sinLiq, normal], 'autonomia')).toBeCloseTo(40);
+  });
+});
+
+describe('dato incompleto', () => {
+  it('autonomía ≥ 99 % con liquidación → incompleto; 98.9 % no; sin liquidación no', () => {
+    const r = (trib: number) => row({ ingresos_recaudados: 1000, ingresos_tributarios: trib, total_egresos: 900 });
+    expect(datoIncompleto(r(990))).toBe(true);
+    expect(datoIncompleto(r(989))).toBe(false);
+    expect(datoIncompleto(row({ ingresos_recaudados: 100 }))).toBe(false);
+    expect(datoIncompleto(siguatepequeExacta)).toBe(false);
+    expect(atipicos(r(1000))).toContain('Autonomía ≥ 99 % (dato incompleto)');
   });
 });
 

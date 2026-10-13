@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, UMBRAL_EJECUCION, indicadoresMunicipio, sinLiquidacion } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_DATO_INCOMPLETO, UMBRAL_EJECUCION, indicadoresMunicipio, sinLiquidacion, datoIncompleto } from '../lib/indicadores';
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from 'recharts';
@@ -335,7 +335,7 @@ export default function MunicipioDETALLE() {
         { label: 'Ingresos Totales (recaudados)', value: fmZ(sb.ingresos_recaudados)   },
         { label: 'Ingresos del Año (sin balance, préstamos ni bonos)', value: fM(ind?.ingresosDelAnio) },
         { label: 'Ingresos Corrientes (G1 + G2)', value: fM(ind?.ingresosCorrientes)  },
-        { label: 'Autonomía',                     value: fPct(ind?.autonomia) },
+        { label: 'Autonomía',                     value: fPct(ind?.autonomia) + (sb && datoIncompleto(sb) ? ` ⚠ ${ROTULO_DATO_INCOMPLETO} (transferencias en 0 en la fuente)` : '') },
         { label: 'Dependencia de Transferencias', value: fPct(ind?.dependenciaTransferencias) },
         { label: 'Ingresos Propios per cápita',   value: fPc(ind?.propiosPerCapita) },
         { label: 'IBI per cápita',                value: fPc(ind?.ibiPerCapita) },

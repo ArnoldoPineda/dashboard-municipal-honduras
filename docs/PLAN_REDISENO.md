@@ -73,3 +73,10 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
 - ~~**Regla de "dato incompleto"**~~ → hecho en la Fase 2: `sinArt91()` (Art. 91 + otras = 0, corrientes > 0). Juticalpa 2025 no entra (tiene Art. 91 por L 2.06 M). Ver `ATIPICOS.md` §5.
 - Código no enrutado (inventario §1.2): `Dashboard.tsx`, `Dashboard_MEJORADO.tsx` y similares, que todavía tienen años fijos y fórmulas antiguas.
 - `RENDICION_PARCIAL` es una lista fija: actualizarla con las notas al pie del Excel en cada importación.
+
+## 6. Fase 6 — Comparar y Rankings
+
+- `rankear()`, `contarExcluidos()`, `paresSugeridos()` y `motivoExcluido()` en `src/lib/indicadores.ts` (sin fórmulas nuevas). Pruebas: `rankings.test.ts` y `rankings.bordes.test.ts`.
+- **Comparar** (`/comparativos`): hasta 5 municipios. La tabla muestra valor, percentil en su categoría y semáforo, con una columna "Mediana cat. X" por cada categoría presente. Debajo van barras por indicador con la línea de mediana. La ejecución va "sin dirección" (no está en `SEMAFORO`). El ahorro corriente y el resultado sin balance van solo aquí. Se eliminó el modo Departamentos, que ahora remite a Panorama Nacional.
+- **Rankings** (`/rankings`): solo indicadores per cápita y razones; los montos absolutos no se rankean. La posición se cuenta dentro del filtro y el percentil en la categoría completa. Los excluidos (`excluirDeRazones`) van al final con ⚠ y sin posición. El ordenar por columna solo cambia la vista.
+- Verificación 2025: 295 rankeados en autonomía y 3 ⚠ (Pespire sin liquidación; El Triunfo y San Juan Guarita sin Art. 91). Siguatepeque tiene P65 y la mediana de la categoría A es 68.3 %, igual que en la Ficha.

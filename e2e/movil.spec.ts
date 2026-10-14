@@ -79,3 +79,16 @@ for (const [nombre, ruta] of RUTAS.filter(([n]) => ['rankings', 'base-datos', 'f
     expect(abajo.pieArriba).toBeGreaterThanOrEqual(abajo.contenidoAbajo - 0.5); // después del contenido, sin superponerse
   });
 }
+
+test('390 px: con alcance País el aviso de Distrito Central va como nota visible bajo el cuadro', async ({ page }) => {
+  const AVISO = 'Distrito Central registra este impuesto en un solo renglón, que cambia entre años. Para comparar en el tiempo, usar el subtotal Industria, comercio y servicios.';
+  await abrir(page, '/analisis');
+  const cuadro = page.getByRole('region', { name: 'Cuadro presupuestario' });
+  await expect(cuadro.getByRole('img', { name: `Aviso: ${AVISO}` })).toHaveCount(3);
+  const nota = cuadro.getByRole('note');
+  await expect(nota).toHaveText(`⚠ ${AVISO}`);
+  await nota.scrollIntoViewIfNeeded();
+  await expect(nota).toBeVisible();
+  const { x, width } = (await nota.boundingBox())!;
+  expect(x + width).toBeLessThanOrEqual(390);
+});

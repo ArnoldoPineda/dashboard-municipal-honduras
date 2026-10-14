@@ -10,6 +10,9 @@ interface NavbarContextValue {
   setIndicator: (k: IndicatorKey) => void;
   fiscalYear:   number;
   setFiscalYear: (y: number) => void;
+  /** Texto extra del pie de fuente (p. ej. precios constantes en Análisis); null = ninguno. */
+  notaPie:      string | null;
+  setNotaPie:   (t: string | null) => void;
 }
 
 const NavbarContext = createContext<NavbarContextValue>({
@@ -17,14 +20,17 @@ const NavbarContext = createContext<NavbarContextValue>({
   setIndicator: () => {},
   fiscalYear:   ANIO_ACTUAL,
   setFiscalYear: () => {},
+  notaPie:      null,
+  setNotaPie:   () => {},
 });
 
 export function NavbarProvider({ children }: { children: React.ReactNode }) {
   const [indicator,  setIndicator]  = useState<IndicatorKey>('autonomia');
   const [fiscalYear, setFiscalYear] = useState(ANIO_ACTUAL);
+  const [notaPie,    setNotaPie]    = useState<string | null>(null);
 
   return (
-    <NavbarContext.Provider value={{ indicator, setIndicator, fiscalYear, setFiscalYear }}>
+    <NavbarContext.Provider value={{ indicator, setIndicator, fiscalYear, setFiscalYear, notaPie, setNotaPie }}>
       {children}
     </NavbarContext.Provider>
   );

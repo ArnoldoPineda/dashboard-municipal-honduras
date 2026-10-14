@@ -7,6 +7,7 @@ import SelectorMetrica from '../components/SelectorMetrica';
 import MapaDepartamentos from '../components/panorama/MapaDepartamentos';
 import { METRICAS, CATEGORICA } from '../lib/colorMetrica';
 import { fmtL } from '../lib/formato';
+import { useEsMovil } from '../hooks/useMediaQuery';
 
 const MONO = "'IBM Plex Mono', monospace";
 const COND = "'Barlow Condensed', sans-serif";
@@ -24,6 +25,7 @@ function Tarjeta({ rotulo, valor, nota, color = '#2dd4bf' }: { rotulo: string; v
 
 export default function MapaInteractivo() {
   const { indicator, setIndicator, fiscalYear } = useNavbar();
+  const esMovil = useEsMovil();
   // Fuente única de cifras: Supabase `municipalities` del año seleccionado.
   const { rows, loading, message: noDataMsg } = useSefinYear(fiscalYear);
   const hideFigures = loading || !!noDataMsg; // mientras carga: '—', nunca 0
@@ -52,7 +54,7 @@ export default function MapaInteractivo() {
             Seleccione un departamento para explorar sus municipios.
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: esMovil ? 'nowrap' : 'wrap' }}>
           <SelectorMetrica valor={indicator} onCambio={setIndicator} />
           <SelectorAnio alto />
         </div>
@@ -67,7 +69,7 @@ export default function MapaInteractivo() {
             </div>
           </div>
         ) : !loading && (
-          <MapaDepartamentos filasAnio={rows} metrica={indicator} maxAlto="max(240px, calc(100vh - 440px))" />
+          <MapaDepartamentos filasAnio={rows} metrica={indicator} maxAlto={esMovil ? 'none' : 'max(240px, calc(100vh - 440px))'} />
         )}
         <div style={{ fontFamily: MONO, fontSize: 10, color: '#8a9bb0', letterSpacing: '0.06em', marginTop: 8 }}>
           Límites: OCHA COD-AB / SINIT (CC BY-IGO) · EJERCICIO FISCAL {fiscalYear}

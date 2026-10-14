@@ -18,6 +18,13 @@ export const ROTULO_RENDICION_PARCIAL = 'Dato incompleto (rendición parcial)';
  * (docs/ATIPICOS.md §6). Clave: "DEPARTAMENTO|code|año".
  */
 const RENDICION_PARCIAL = new Set(['GRACIAS A DIOS|6|2021', 'EL PARAISO|11|2022']);
+/**
+ * Inversión por habitante bajo este umbral (L): señal de atípico, no exclusión. En la fuente, el gasto de capital
+ * de estas filas queda casi todo en "Asignaciones globales" y no en bienes capitalizables (docs/ATIPICOS.md §8).
+ */
+// ponytail: umbral fijo en lempiras nominales; pasar a umbral real (IPC) o relativo si cambia el nivel de precios.
+export const UMBRAL_INVERSION_PC = 50;
+export const ROTULO_INVERSION_CASI_NULA = 'Inversión casi nula en la fuente — verificar con la liquidación';
 /** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
 export const UMBRAL_EJECUCION = 150;
 
@@ -185,6 +192,12 @@ export function mediana(rows: Municipality[], k: keyof Indicadores): number | nu
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
 }
 
+/** Inversión por habitante < UMBRAL_INVERSION_PC en una fila con liquidación (atípico de fuente, no se excluye). */
+export const inversionCasiNula = (m: Municipality) => {
+  const v = indicadoresMunicipio(m).inversionPerCapita;
+  return !sinLiquidacion(m) && v != null && v < UMBRAL_INVERSION_PC;
+};
+
 /** Diferencia tolerada entre un subtotal SEFIN y la suma de sus renglones (lempiras). */
 const TOL = 1;
 const suma = (m: Municipality, ks: (keyof Municipality)[]) => ks.reduce((s, k) => s + n(m[k] as number), 0);
@@ -200,6 +213,7 @@ export function atipicos(m: Municipality): string[] {
   if (r.autonomia !== null && r.autonomia > 100) out.push('Autonomía > 100 %');
   const nota = notaDatoIncompleto(m);
   if (nota) out.push(nota);
+  if (inversionCasiNula(m)) out.push(ROTULO_INVERSION_CASI_NULA);
   if (i.poblacion <= 0) out.push('Sin población');
   if (i.totalEgresos <= 0) out.push('Sin egresos reportados');
   if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');

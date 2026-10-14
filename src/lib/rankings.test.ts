@@ -1,7 +1,8 @@
 import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
 import {
-  rankear, contarExcluidos, paresSugeridos, comparacionPares, excluirDeRazones,
+  rankear, contarExcluidos, paresSugeridos, comparacionPares, excluirDeRazones, inversionCasiNula, atipicos,
+  ROTULO_INVERSION_CASI_NULA,
   ROTULO_SIN_LIQUIDACION, ROTULO_SIN_ART91, ROTULO_RENDICION_PARCIAL,
 } from './indicadores';
 import fixture from './__fixtures__/municipios2021_2025.json';
@@ -126,5 +127,21 @@ describe('paresSugeridos', () => {
     const sinPrimero = paresSugeridos(anio, sigua, [p[0]], 4);
     expect(sinPrimero).not.toContain(p[0]);
     expect(paresSugeridos(anio, sigua, [], 0)).toEqual([]);
+  });
+});
+
+describe('inversión casi nula (atípico de fuente, docs/ATIPICOS.md §8)', () => {
+  it('2025: 6 filas < L 50 por habitante; Pespire (sin liquidación) no cuenta', () => {
+    expect(de(2025).filter(inversionCasiNula).map((m) => m.name).sort()).toEqual(
+      ['Jano', 'La Unión', 'Nueva Frontera', 'Texiguat', 'Tomalá', 'Trojes']);
+    expect(filas.filter(inversionCasiNula)).toHaveLength(42);
+  });
+  it('se marca en atipicos() pero no se excluye ni pierde posición', () => {
+    const anio = de(2025);
+    const tomala = anio.find((m) => m.name === 'Tomalá')!;
+    expect(atipicos(tomala)).toContain(ROTULO_INVERSION_CASI_NULA);
+    expect(excluirDeRazones(tomala)).toBe(false);
+    expect(rankear(anio, anio, 'inversionPerCapita').find((x) => x.fila === tomala)!.posicion).not.toBeNull();
+    expect(atipicos(anio.find((m) => m.name === 'Humuya')!)).not.toContain(ROTULO_INVERSION_CASI_NULA);
   });
 });

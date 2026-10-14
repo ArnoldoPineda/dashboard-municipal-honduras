@@ -19,6 +19,7 @@ Hay dos tipos de dato incompleto, con rótulos distintos:
 | Autonomía > 100 % | corrientes > ingresos del año | 0 |
 | Sin transferencia Art. 91 en la fuente | `sinArt91()`: con liquidación, Art. 91 + otras = 0 y corrientes > 0 | 7 |
 | Dato incompleto (rendición parcial) | `rendicionParcial()`: lista fija según notas del Excel (§6) | 2 |
+| Inversión casi nula en la fuente | `inversionCasiNula()`: con liquidación, bienes capitalizables ÷ población < L 50 (§8) | 42 |
 | Sin población | `population` ≤ 0 o nula | 0 |
 | Sin egresos reportados | `total_egresos` ≤ 0 | 4 |
 | Sin ingresos reportados | `ingresos_recaudados` ≤ 0 | 0 |
@@ -144,3 +145,22 @@ Corrige el criterio de la Fase 2, que sacaba de los totales en lempiras a las fi
 Donde un total incluye filas sin Art. 91 se muestra: "Incluye N municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas" (`notaTotales`). Con rendiciones parciales se agrega "Incluye N municipio(s) con rendición parcial (dato incompleto)".
 
 Efecto: el presupuesto nacional 2023 pasa de L 23.2 a L 28.4 mil M (San Pedro Sula vuelve al total); la autonomía agregada 2023 sigue en 52.1 % y la mediana en 13.7 %.
+
+## 8. Inversión casi nula en la fuente (Fase 6)
+
+Revisión pedida en la Fase 6: municipios 2025 con inversión por habitante menor a L 50. Datos leídos de `public.municipalities` el 2026-10-13 (anon key, solo lectura). Montos en millones de lempiras.
+
+| Municipio (2025) | Pob. | Bienes capitalizables | Transf. de capital | Asignaciones globales | Gastos de capital y deuda | Total egresos | Inversión pc |
+|---|---|---|---|---|---|---|---|
+| Nueva Frontera (Santa Bárbara, C) | 14 313 | 0.014 | 5.048 | 19.610 | 24.672 | 31.943 | L 0.98 |
+| Tomalá (Lempira, C) | 7 213 | 0.008 | 7.101 | 11.703 | 19.348 | 24.007 | L 1.07 |
+| Jano (Olancho, C) | 6 267 | 0.068 | 6.026 | 12.012 | 18.106 | 22.521 | L 10.78 |
+| La Unión (Olancho, C) | 8 773 | 0.231 | 5.595 | 3.036 | 8.862 | 19.818 | L 26.34 |
+| Texiguat (El Paraíso, D) | 8 940 | 0.417 | 4.067 | 15.931 | 20.416 | 27.160 | L 46.68 |
+| Trojes (El Paraíso, B) | 58 891 | 2.894 | 6.734 | 16.223 | 25.851 | 41.223 | L 49.15 |
+
+**Diagnóstico: dato fuente, no cálculo.** En las seis filas los renglones cuadran: bienes capitalizables + transferencias de capital + activos financieros + servicio de deuda + otros gastos de capital + asignaciones globales = gastos de capital y deuda, y funcionamiento + gastos de capital y deuda = total egresos. El gasto de capital está casi todo en **Asignaciones globales** y no en bienes capitalizables, que es el numerador de la inversión de SIMHO (§1 del plan). La inversión real puede estar subregistrada por clasificación; hay que verificarlo con la liquidación.
+
+Contraste con el top 3 de 2025 (el numerador es correcto): Humuya tiene bienes capitalizables por L 16.864 M y una población de 1 557, lo que da L 10 831 por habitante; las asignaciones globales son 0. Yauyupe tiene L 13.588 M y 1 523 habitantes (L 8 922). Lauterique tiene L 23.330 M y 3 252 habitantes (L 7 174). En los tres, los bienes capitalizables equivalen al 50–60 % del gasto total (la mediana nacional es 28.5 %). El per cápita alto viene de poblaciones muy pequeñas, no de un error.
+
+**Decisión (2026-10-13):** no se excluyen. `inversionCasiNula()` agrega a `atipicos()` la señal "Inversión casi nula en la fuente — verificar con la liquidación". Comparar la muestra con ⚠ en el encabezado, en las barras y en los avisos. Rankings la muestra como "atípico" en los indicadores de inversión (por habitante y ÷ gasto), sin quitarle la posición. Hay 42 filas en 2021–2025 y 6 en 2025. El umbral está en lempiras nominales y es fijo.

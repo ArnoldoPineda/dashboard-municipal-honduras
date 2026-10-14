@@ -6,7 +6,7 @@ import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
 import {
   ClaveSemaforo, SEMAFORO, FilaRanking, ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION,
-  rankear, sinLiquidacion,
+  ROTULO_INVERSION_CASI_NULA, rankear, sinLiquidacion, inversionCasiNula,
 } from '../lib/indicadores';
 import { fmtNum } from '../lib/formato';
 import { DEPARTAMENTOS, nombreDepartamento, codigoINE } from '../data/departamentos';
@@ -95,6 +95,8 @@ export default function RankingsPage() {
   const deptNombre = DEPTS.find((d) => d.cod === depto)?.nombre;
   const alcance = [deptNombre ?? 'Todos los departamentos', categoria ? `Categoría ${categoria}` : 'Todas las categorías'].join(' · ');
   const esPct = !clave.endsWith('PerCapita');
+  // Atípico de fuente (docs/ATIPICOS.md §8): se marca, no se excluye; solo en los indicadores de inversión.
+  const atipico = (r: FilaRanking) => !r.motivo && (clave === 'inversionPerCapita' || clave === 'inversionSobreGasto') && inversionCasiNula(r.fila);
 
   function tablaExport(): TablaExport {
     return {
@@ -107,11 +109,11 @@ export default function RankingsPage() {
         { clave: 'population', titulo: 'Población', tipo: 'entero' },
         { clave, titulo: `${ETIQUETAS[clave]} (${esPct ? '%' : 'L por hab.'})`, tipo: esPct ? 'pct' : 'lph' },
         { clave: 'percentil_categoria', titulo: 'Percentil en su categoría', tipo: 'entero' },
-        { clave: 'nota', titulo: 'Nota (⚠ excluido)', tipo: 'texto' },
+        { clave: 'nota', titulo: 'Nota (⚠ excluido o atípico)', tipo: 'texto' },
       ],
       filas: ranking.map((r) => [
         r.posicion, codigoINE(r.fila.department, r.fila.code), r.fila.name ?? '', nombreDepartamento(r.fila.department),
-        r.fila.category ?? '', r.fila.population ?? null, r.valor, r.percentil, r.motivo ?? '',
+        r.fila.category ?? '', r.fila.population ?? null, r.valor, r.percentil, r.motivo ?? (atipico(r) ? `Atípico: ${ROTULO_INVERSION_CASI_NULA}` : ''),
       ]),
     };
   }
@@ -214,6 +216,11 @@ export default function RankingsPage() {
                         <td style={{ ...td, fontFamily: SANS, fontSize: 14 }}>
                           {ruta ? <Link to={ruta} onClick={(e) => e.stopPropagation()} style={{ color: C.texto, textDecoration: 'none' }}>{r.fila.name}</Link> : r.fila.name}
                           {r.motivo && <span title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
+                          {atipico(r) && (
+                            <span title={ROTULO_INVERSION_CASI_NULA} style={{ marginLeft: 6, fontFamily: MONO, fontSize: 11, color: C.ambar, border: `1px solid ${C.ambar}`, borderRadius: 4, padding: '0 4px' }}>
+                              atípico<span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>: {ROTULO_INVERSION_CASI_NULA}</span>
+                            </span>
+                          )}
                         </td>
                         <td style={{ ...td, color: C.texto2 }}>{nombreDepartamento(r.fila.department)}</td>
                         <td style={{ ...td, color: C.texto2 }}>{r.fila.category ?? '—'}</td>
@@ -232,6 +239,12 @@ export default function RankingsPage() {
             {excluidos.length > 0 && (
               <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
                 ⚠ {REGLA_EXCLUSION}
+              </div>
+            )}
+            {ranking.some(atipico) && (
+              <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
+                <span style={{ color: C.ambar }}>atípico</span>: {ROTULO_INVERSION_CASI_NULA} (inversión por habitante menor a L 50).
+                Se rankea igual; no se excluye.
               </div>
             )}
           </section>

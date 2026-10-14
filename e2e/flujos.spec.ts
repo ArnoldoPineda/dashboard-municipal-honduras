@@ -115,3 +115,10 @@ test('Análisis: ⚠ en Industria, Comercio y Servicios solo si el alcance inclu
   await expect(avisos).toHaveCount(3);
   // El CSV no cambia; el aviso va en las notas del Excel (no se verifica aquí).
 });
+
+test('Análisis en escritorio: el aviso de Distrito Central queda solo como tooltip (sin nota bajo el cuadro)', async ({ page }) => {
+  await abrir(page, '/analisis');
+  const cuadro = page.getByRole('region', { name: 'Cuadro presupuestario' });
+  await expect(cuadro.getByRole('img', { name: /^Aviso: Distrito Central/ })).toHaveCount(3);
+  await expect(cuadro.getByRole('note')).toHaveCount(0);
+});

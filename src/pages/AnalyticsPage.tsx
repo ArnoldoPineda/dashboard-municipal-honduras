@@ -470,6 +470,12 @@ export default function AnalyticsPage() {
                   Se ocultan impuestos sin recaudación en los años mostrados.
                 </div>
               )}
+              {/* En celular el tooltip del ⚠ no se ve al tocar: el aviso va como nota visible (en escritorio queda solo el tooltip). */}
+              {esMovil && avisoICS && filasVisibles.some((r) => r.avisoICS) && (
+                <div role="note" style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.ambar }}>
+                  ⚠ {AVISO_RENGLON_ICS}
+                </div>
+              )}
               <div style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontFamily: MONO, fontSize: 11, color: C.suave }}>
                 Var. %: último año frente al anterior seleccionado. Crecimiento promedio anual (TCAC) entre {sortedYears[0]} y {ultimo}; "—" si algún extremo es ≤ 0.{enReal ? ' En modo Real son variaciones a precios constantes (sin inflación).' : ''}
               </div>

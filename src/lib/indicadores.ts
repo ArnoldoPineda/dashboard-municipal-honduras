@@ -26,7 +26,8 @@ export const UMBRAL_INVERSION_GASTO = 2;
 /** Asignaciones globales ÷ total egresos desde este % : el rótulo nombra las asignaciones como posible destino. */
 export const UMBRAL_ASIGNACIONES_GLOBALES = 30;
 /** Rótulo base (sin asignaciones relevantes) y leyenda general. */
-export const ROTULO_INVERSION_CASI_NULA = 'Inversión en bienes capitalizables casi nula (< 2 % del gasto) — verificar con la liquidación';
+export const TEXTO_INVERSION_CASI_NULA = `inversión en bienes capitalizables casi nula (< ${UMBRAL_INVERSION_GASTO} % del gasto)`;
+export const ROTULO_INVERSION_CASI_NULA = `Inversión en bienes capitalizables casi nula (< ${UMBRAL_INVERSION_GASTO} % del gasto) — verificar con la liquidación`;
 /** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
 export const UMBRAL_EJECUCION = 150;
 
@@ -204,7 +205,7 @@ export const inversionCasiNula = (m: Municipality) => {
 export function rotuloInversionCasiNula(m: Municipality): string {
   const ag = ratio(n(m.asignaciones_globales), n(m.total_egresos));
   return ag != null && ag >= UMBRAL_ASIGNACIONES_GLOBALES
-    ? `Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar registrado en Asignaciones globales (${fmtPct(ag)} del gasto) — verificar con la liquidación`
+    ? `Inversión en bienes capitalizables casi nula (< ${UMBRAL_INVERSION_GASTO} % del gasto). El gasto de capital puede estar registrado en Asignaciones globales (${fmtPct(ag)} del gasto) — verificar con la liquidación`
     : ROTULO_INVERSION_CASI_NULA;
 }
 

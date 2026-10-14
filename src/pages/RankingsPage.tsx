@@ -6,7 +6,7 @@ import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
 import {
   ClaveSemaforo, SEMAFORO, FilaRanking, ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION,
-  rankear, sinLiquidacion, inversionCasiNula, rotuloInversionCasiNula,
+  rankear, sinLiquidacion, inversionCasiNula, rotuloInversionCasiNula, TEXTO_INVERSION_CASI_NULA,
 } from '../lib/indicadores';
 import { fmtNum } from '../lib/formato';
 import { DEPARTAMENTOS, nombreDepartamento, codigoINE } from '../data/departamentos';
@@ -240,7 +240,7 @@ export default function RankingsPage() {
                     );
                     const caja: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', color: 'inherit', textDecoration: 'none' };
                     return (
-                      <li key={`${r.fila.department}|${r.fila.code}`} style={{ borderTop: `1px solid ${C.borde}`, background: r.motivo ? '#1a1610' : C.panel }}>
+                      <li key={`${r.fila.department}|${r.fila.code}`} style={{ borderTop: `1px solid ${C.borde}`, background: r.motivo ? C.filaAviso : C.panel }}>
                         {ruta ? <Link to={ruta} style={caja}>{contenido}</Link> : <div style={caja}>{contenido}</div>}
                       </li>
                     );
@@ -267,7 +267,7 @@ export default function RankingsPage() {
                   {filas.map((r) => {
                     const ine = codigoINE(r.fila.department, r.fila.code);
                     const ruta = rutaFicha(ine);
-                    const fondo = r.motivo ? '#1a1610' : C.panel;
+                    const fondo = r.motivo ? C.filaAviso : C.panel;
                     return (
                       <tr key={`${r.fila.department}|${r.fila.code}`} onClick={() => ruta && navigate(ruta)} style={{ cursor: ruta ? 'pointer' : 'default', background: fondo }}>
                         <td style={{ ...td, ...fija('posicion', fondo), textAlign: 'right', color: r.posicion != null && r.posicion <= 3 ? C.turquesa : C.texto2 }}>{r.posicion ?? '—'}</td>
@@ -303,7 +303,7 @@ export default function RankingsPage() {
             )}
             {ranking.some(atipico) && (
               <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
-                <span style={{ color: C.ambar }}>atípico</span>: inversión en bienes capitalizables casi nula (&lt; 2 % del gasto); el motivo de cada fila está en su marca.
+                <span style={{ color: C.ambar }}>atípico</span>: {TEXTO_INVERSION_CASI_NULA}; el motivo de cada fila está en su marca.
                 Se rankea igual; no se excluye.
               </div>
             )}

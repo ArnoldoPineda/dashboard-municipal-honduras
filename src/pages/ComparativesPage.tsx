@@ -1,6 +1,6 @@
 // Comparar (Fase 6): hasta 5 municipios frente a sus pares (misma categoría SGJD 2020 y mismo año).
 // Valores, medianas, percentiles y semáforo salen de lib/indicadores (comparacionPares, semaforo); formato de lib/formato.
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer, CartesianGrid,
@@ -63,6 +63,11 @@ export default function ComparativesPage() {
     const p = params.get('municipio');
     return p && /^\d{4}$/.test(p) ? [p] : [];
   });
+  // Si ya estás en /comparativos y llega otro ?municipio= (p. ej. desde otra Ficha), se agrega sin duplicar y sin pasar de MAX.
+  const municipioURL = params.get('municipio');
+  useEffect(() => {
+    if (municipioURL && /^\d{4}$/.test(municipioURL)) setInes((xs) => (xs.includes(municipioURL) || xs.length >= MAX ? xs : [...xs, municipioURL]));
+  }, [municipioURL]);
   const { municipalities: filasAnio, loading } = useMunicipalitiesMultiYear([fiscalYear]);
   const sinDatos = !loading && filasAnio.length === 0;
 

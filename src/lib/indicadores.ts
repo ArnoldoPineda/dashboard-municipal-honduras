@@ -53,13 +53,30 @@ export interface Insumos {
   poblacion:         number;
 }
 
-/** Impuestos de G1 (columnas SEFIN IMPUESTO SOBRE BI … DE TELECOMUNICACIONES). G1 = impuestos + tasas por servicios + derechos. */
-export const CAMPOS_IMPUESTOS_G1 = [
-  'impuesto_bi', 'impuesto_personal', 'impuesto_industria', 'impuesto_comercio',
-  'impuesto_servicios', 'impuesto_pecuario', 'impuesto_extraccion', 'impuesto_telecomunicaciones',
+/**
+ * Lista central de los impuestos de G1 (columnas SEFIN IMPUESTO SOBRE BI … DE TELECOMUNICACIONES), en el orden del cuadro
+ * de Análisis. `ics`: parte de Industria, comercio y servicios. G1 = impuestos + tasas por servicios + derechos.
+ */
+export const IMPUESTOS_G1 = [
+  { campo: 'impuesto_bi',                 etiqueta: 'IBI (bienes inmuebles)', ics: false },
+  { campo: 'impuesto_industria',          etiqueta: 'Industria',              ics: true },
+  { campo: 'impuesto_comercio',           etiqueta: 'Comercio',               ics: true },
+  { campo: 'impuesto_servicios',          etiqueta: 'Servicios',              ics: true },
+  { campo: 'impuesto_personal',           etiqueta: 'Personal o vecinal',     ics: false },
+  { campo: 'impuesto_telecomunicaciones', etiqueta: 'Telecomunicaciones',     ics: false },
+  { campo: 'impuesto_extraccion',         etiqueta: 'Extracción o explotación de recursos', ics: false },
+  { campo: 'impuesto_pecuario',           etiqueta: 'Pecuario',               ics: false },
 ] as const;
+export const CAMPOS_IMPUESTOS_G1 = IMPUESTOS_G1.map((i) => i.campo);
+/** Industria, comercio y servicios: subconjunto de la lista central. */
+export const CAMPOS_ICS = IMPUESTOS_G1.filter((i) => i.ics).map((i) => i.campo);
 /** Suma de los impuestos de G1 (sin tasas ni derechos); nulos cuentan como 0. */
 export const impuestosG1 = (m: Municipality) => CAMPOS_IMPUESTOS_G1.reduce((acc, c) => acc + n(m[c]), 0);
+/** Municipios que registran Industria/Comercio/Servicios en un solo renglón que cambia entre años (docs/ATIPICOS.md §9): usar el subtotal. */
+export const INE_RENGLON_ICS_CAMBIANTE = ['0801'];  // Distrito Central
+export const AVISO_RENGLON_ICS = 'Distrito Central registra este impuesto en un solo renglón, que cambia entre años. Para comparar en el tiempo, usar el subtotal Industria, comercio y servicios.';
+/** Subtotal Industria + Comercio + Servicios; nulos cuentan como 0. */
+export const impuestosICS = (m: Municipality) => CAMPOS_ICS.reduce((acc, c) => acc + n(m[c]), 0);
 
 export function insumos(m: Municipality): Insumos {
   const ingresosTotales = n(m.ingresos_recaudados);

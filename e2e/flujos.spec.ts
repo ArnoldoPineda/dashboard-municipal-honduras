@@ -34,33 +34,84 @@ test('Comparar: un ?municipio= nuevo se lee estando ya en la página (sin duplic
   await expect(elegidos).toHaveCount(2);
 });
 
-test('Análisis: G1 de Siguatepeque 2021 desglosado en Impuestos (con IBI), Tasas y Derechos', async ({ page }) => {
+// Cuadro de Análisis de un municipio + su CSV exportado (todas las filas, incluidas las ocultas en 0).
+async function cuadroDe(page: import('@playwright/test').Page, municipio: string) {
   await abrir(page, '/analisis');
   await page.getByRole('group', { name: 'Alcance' }).getByRole('button', { name: 'Municipio' }).click();
-  await page.getByRole('combobox').fill('Siguatepeque');
-  await page.getByRole('option', { name: /Siguatepeque/ }).first().click();
+  await page.getByRole('combobox').fill(municipio);
+  await page.getByRole('option', { name: new RegExp(municipio) }).first().click();
   await page.waitForFunction(() => !/Cargando/.test(document.body.innerText));
   const cuadro = page.getByRole('region', { name: 'Cuadro presupuestario' });
-  const anios = await cuadro.locator('thead th').allInnerTexts();
-  const col = anios.findIndex((t) => t.trim().startsWith('2021'));
-  expect(col).toBeGreaterThan(0);
-  const celda = (concepto: string) => cuadro.locator('tbody tr', { has: page.getByRole('rowheader', { name: concepto, exact: true }) }).locator('th, td').nth(col);
-  const nb = ' ';
-  const filas = await cuadro.getByRole('rowheader').allInnerTexts();
-  const iG1 = filas.findIndex((t) => t.includes('Ingresos Tributarios (G1)'));
-  expect(filas.slice(iG1, iG1 + 5).map((t) => t.replace(/ /g, ' ').trim())).toEqual([
-    '↳ Ingresos Tributarios (G1)', '↳ de los cuales: Impuestos', '↳ IBI (bienes inmuebles)', '↳ de los cuales: Tasas por Servicios', '↳ de los cuales: Derechos',
-  ]);
-  // En pantalla los montos van abreviados (fmtL); la cifra exacta se verifica en el CSV exportado.
-  await expect(celda(`${nb.repeat(4)}↳ de los cuales: Impuestos`)).toHaveText('L 30.8 M');
-  await expect(celda(`${nb.repeat(8)}↳ IBI (bienes inmuebles)`)).toHaveText('L 4.8 M');
-  await cuadro.screenshot({ path: test.info().outputPath('cuadro-siguatepeque.png') });
+  const conceptos = (await cuadro.getByRole('rowheader').allInnerTexts()).map((t) => t.replace(/\u00a0/g, ' ').trim());
   const [descarga] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'CSV' }).click()]);
   const csv = fs.readFileSync((await descarga.path())!, 'utf8').replace(/^\uFEFF/, '');
-  const lineas = csv.split(/\r?\n/).map((l) => l.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map((c) => c.replace(/^"|"$/g, '')));
+  const lineas = csv.split(/\r?\n/).map((l) => l.split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((c) => c.replace(/^"|"$/g, '')));
   const cab = lineas.find((l) => l.some((c) => c.trim() === '2021'))!;
-  const i2021 = cab.findIndex((c) => c.trim() === '2021');
-  const valor = (concepto: string) => Number(lineas.find((l) => l.some((c) => c.trim() === concepto))![i2021].replace(/[^\d.-]/g, ''));
-  expect(Math.round(valor('↳ de los cuales: Impuestos'))).toBe(30797096);
-  expect(Math.round(valor('↳ IBI (bienes inmuebles)'))).toBe(4815328);
+  const valor = (concepto: string, anio: number) => {
+    const fila = lineas.find((l) => l.some((c) => c.trim() === concepto));
+    if (!fila) throw new Error(`Sin fila en el CSV: ${concepto}`);
+    return Math.round(Number(fila[cab.findIndex((c) => c.trim() === String(anio))].replace(/[^\d.-]/g, '')) || 0);
+  };
+  return { cuadro, conceptos, valor };
+}
+
+test('Análisis: Siguatepeque — G1 con los 8 impuestos desglosados (Pecuario oculto en pantalla, presente en el CSV)', async ({ page }) => {
+  const { cuadro, conceptos, valor } = await cuadroDe(page, 'Siguatepeque');
+  const iG1 = conceptos.indexOf('↳ Ingresos Tributarios (G1)');
+  expect(conceptos.slice(iG1, iG1 + 13)).toEqual([
+    '↳ Ingresos Tributarios (G1)', '↳ de los cuales: Impuestos', '↳ IBI (bienes inmuebles)', '↳ Industria, comercio y servicios',
+    '↳ Industria', '↳ Comercio', '↳ Servicios', '↳ Personal o vecinal', '↳ Telecomunicaciones', '↳ Extracción o explotación de recursos',
+    '↳ de los cuales: Tasas por Servicios', '↳ de los cuales: Derechos', '↳ Ingresos No Tributarios (G2)',
+  ]);
+  expect(conceptos).not.toContain('↳ Pecuario');
+  await expect(cuadro.getByText('Se ocultan impuestos sin recaudación en los años mostrados.')).toBeVisible();
+
+  const esperado: Record<number, Record<string, number>> = {
+    2021: { 'IBI (bienes inmuebles)': 4815328, 'Personal o vecinal': 1773151, Industria: 4216775, Comercio: 9358377, Servicios: 8804318,
+      'Extracción o explotación de recursos': 77353, Telecomunicaciones: 1751795, Pecuario: 0 },
+    2022: { 'IBI (bienes inmuebles)': 10519206, 'Personal o vecinal': 2531045, Industria: 5101116, Comercio: 12796753, Servicios: 11767588,
+      'Extracción o explotación de recursos': 104299, Telecomunicaciones: 2746749, Pecuario: 0 },
+  };
+  for (const [anio, filas] of Object.entries(esperado)) {
+    for (const [concepto, v] of Object.entries(filas)) expect([anio, concepto, valor(`↳ ${concepto}`, Number(anio))]).toEqual([anio, concepto, v]);
+    const y = Number(anio);
+    expect(valor('↳ Industria, comercio y servicios', y)).toBe(filas.Industria + filas.Comercio + filas.Servicios);
+    expect(Math.abs(valor('↳ de los cuales: Impuestos', y) - Object.values(filas).reduce((a, b) => a + b, 0))).toBeLessThanOrEqual(1);
+  }
+  expect(valor('↳ de los cuales: Impuestos', 2021)).toBe(30797096);
+  await cuadro.screenshot({ path: test.info().outputPath('cuadro-siguatepeque.png') });
+});
+
+test('Análisis: ⚠ en Industria, Comercio y Servicios solo si el alcance incluye a Distrito Central', async ({ page }) => {
+  const AVISO = 'Distrito Central registra este impuesto en un solo renglón, que cambia entre años. Para comparar en el tiempo, usar el subtotal Industria, comercio y servicios.';
+  await abrir(page, '/analisis');
+  const cuadro = page.getByRole('region', { name: 'Cuadro presupuestario' });
+  const avisos = cuadro.getByRole('img', { name: `Aviso: ${AVISO}` });
+  const alcance = page.getByRole('group', { name: 'Alcance' });
+  const conAviso = async () => (await avisos.evaluateAll((els) => els.map((e) => e.closest('th')!.textContent!.replace(/⚠/g, '').trim())));
+  // País (por defecto)
+  await expect(avisos).toHaveCount(3);
+  expect(await conAviso()).toEqual(['↳\u00a0Industria', '↳\u00a0Comercio', '↳\u00a0Servicios']);
+  await expect(avisos.first()).toHaveAttribute('title', AVISO);
+  // Departamento: Francisco Morazán sí; Comayagua no
+  await alcance.getByRole('button', { name: 'Departamento' }).click();
+  const depto = page.getByRole('combobox', { name: /Departamento/ }).or(page.locator('label:has-text("Departamento") select'));
+  await depto.selectOption({ label: 'Francisco Morazán' });
+  await expect(avisos).toHaveCount(3);
+  await depto.selectOption({ label: 'Comayagua' });
+  await expect(avisos).toHaveCount(0);
+  // Categoría: A (incluye a Distrito Central) sí; B no
+  await alcance.getByRole('button', { name: 'Categoría' }).click();
+  const cat = page.getByRole('group', { name: 'Categoría SGJD' });
+  await cat.getByRole('button', { name: 'A', exact: true }).click();
+  await expect(avisos).toHaveCount(3);
+  await cat.getByRole('button', { name: 'B', exact: true }).click();
+  await expect(avisos).toHaveCount(0);
+  // Municipio: Distrito Central sí
+  await alcance.getByRole('button', { name: 'Municipio' }).click();
+  await page.getByRole('combobox', { name: /municipio/i }).fill('Distrito Central');
+  await page.getByRole('option', { name: /Distrito Central/ }).first().click();
+  await page.waitForFunction(() => !/Cargando/.test(document.body.innerText));
+  await expect(avisos).toHaveCount(3);
+  // El CSV no cambia; el aviso va en las notas del Excel (no se verifica aquí).
 });

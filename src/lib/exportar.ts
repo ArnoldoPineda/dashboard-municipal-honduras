@@ -45,6 +45,9 @@ export const DICCIONARIO: Record<string, EntradaDiccionario> = {
   valor:       { definicion: 'Resultado del criterio sobre el grupo filtrado.', unidad: 'Según la columna', fuente: 'SIMHO' },
   indicador:   { definicion: 'Indicador SIMHO (ver su fórmula en esta hoja).', unidad: 'Texto', fuente: 'SIMHO' },
   serie:       { definicion: 'Mediana municipal o agregado Σ/Σ del alcance (o el valor del municipio).', unidad: 'Texto', fuente: 'SIMHO' },
+  // Rankings
+  posicion:    { definicion: 'Posición en el filtro exportado según el sentido favorable del indicador (empates comparten posición). Vacía si la fila está excluida o sin dato.', unidad: 'Posición', fuente: 'SIMHO (rankear, src/lib/indicadores.ts)' },
+  percentil_categoria: { definicion: 'Percentil en su categoría completa del año: 100 × pares con valor menor ÷ pares con dato, redondeado; sin filas excluidas.', unidad: 'Percentil (0–100)', fuente: 'SIMHO (comparacionPares, src/lib/indicadores.ts)' },
   grupo:       { definicion: 'Bloque del cuadro al que pertenece el renglón (Presupuesto, Ingresos, Transferencias, Egresos, Resultado).', unidad: 'Texto', fuente: 'SIMHO' },
   // SEFIN: montos
   presupuesto_municipal:     col('PRESUPUESTO MUNICIPAL'),

@@ -1,458 +1,241 @@
-import React, { useState, useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION, ROTULO_SIN_ART91, ROTULO_RENDICION_PARCIAL, indicadoresMunicipio, sinLiquidacion, sinArt91, rendicionParcial, excluirDeEstadisticas } from '../lib/indicadores';
-import DashboardLayout from '../components/DashboardLayout';
-import { DEPARTAMENTOS, deptNameToId, nombreDepartamento } from '../data/departamentos';
-import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
-import { NO_DATA_MSG, muniKey } from '../utils/sefin';
-import { ANIOS_SEFIN } from '../data/anios';
+// Rankings (Fase 6): quién está arriba y abajo en cada indicador. Posición, percentil y exclusiones salen de
+// lib/indicadores (rankear: sentido "mejor" según SEMAFORO, excluidos al final sin posición).
+import React, { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
-import { fmtL } from '../lib/formato';
+import {
+  ClaveSemaforo, SEMAFORO, FilaRanking, ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION,
+  rankear, sinLiquidacion,
+} from '../lib/indicadores';
+import { fmtNum } from '../lib/formato';
+import { DEPARTAMENTOS, nombreDepartamento, codigoINE } from '../data/departamentos';
+import { rutaFicha } from '../lib/municipios';
+import { NO_DATA_MSG } from '../utils/sefin';
+import { descargarXlsx, descargarCsv, nombreArchivo, TablaExport } from '../lib/exportar';
+import SelectorAnio from '../components/SelectorAnio';
+import { ETIQUETAS, fmtIndicador } from '../components/ficha/TarjetasIndicadores';
+import { C, MONO, COND, SANS, panel } from '../components/ficha/estilo';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+const GRUPOS: { titulo: string; claves: ClaveSemaforo[] }[] = [
+  { titulo: 'Per cápita', claves: ['propiosPerCapita', 'ibiPerCapita', 'inversionPerCapita'] },
+  { titulo: 'Razones', claves: [
+    'autonomia', 'dependenciaTransferencias', 'funcionamientoSobreCorrientes',
+    'inversionSobreGasto', 'servicioDeudaSobreCorrientes', 'balanceSobreIngresos',
+  ] },
+];
+const DEPTS = [...DEPARTAMENTOS].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+const NOTA_MONTOS = 'Los montos absolutos no se rankean porque favorecen a los municipios grandes; para capacidad de ahorro, ver Funcionamiento / ingresos corrientes.';
+const REGLA_EXCLUSION = 'Posiciones y percentiles sin las filas sin liquidación, sin transferencia Art. 91 en la fuente o con rendición parcial; '
+  + 'esas filas aparecen al final con ⚠ y sin posición. El percentil se calcula en la categoría completa del año (pares de la Ficha Municipal).';
 
-type Metric = 'poblacion' | 'presupuesto' | 'ingresosPropios' | 'autonomia' | 'propiosPc' | 'gastosCapital' | 'resultadoConBalance' | 'superavit';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const CAT_COLORS: Record<string, string> = {
-  A: '#00d4b8', B: '#3a9bd6', C: '#f59e0b', D: '#7c8aa3',
-};
-
-const fmtInt = new Intl.NumberFormat('es-HN');
-
-function formatValue(metric: Metric, value: number): string {
-  if (metric === 'autonomia')  return `${value.toFixed(1)}%`;
-  if (metric === 'poblacion')  return fmtInt.format(Math.round(value));
-  return fmtL(value);
-}
-
-function getMetricValue(m: any, metric: Metric): number {
-  switch (metric) {
-    case 'poblacion':      return m.poblacion || 0;
-    case 'presupuesto':    return m.presupuesto || 0;
-    // lib/indicadores: corrientes, autonomía, per cápita y resultado sin balance.
-    case 'ingresosPropios':return m.ind.ingresosCorrientes;
-    case 'autonomia':      return m.ind.autonomia ?? 0;
-    case 'propiosPc':      return m.ind.propiosPerCapita ?? 0;
-    case 'gastosCapital':  return m.otros || 0;
-    case 'resultadoConBalance': return m.ind.resultadoConBalance;
-    case 'superavit':      return m.ind.resultadoSinBalance;
-    default:               return 0;
-  }
-}
-
-/** Fila SEFIN → forma usada por el ranking. */
-function toRow(m: Municipality) {
-  const deptId  = (deptNameToId as any)(m.department ?? '') ?? (m.department ?? '').toLowerCase().replace(/\s+/g, '-');
-  return {
-    id:            muniKey(m), // estable entre años (el id de Supabase cambia por año)
-    nombre:        m.name ?? '',
-    departamento:  nombreDepartamento(m.department),
-    departamentoId: deptId,
-    poblacion:     m.population ?? 0,
-    presupuesto:   m.presupuesto_municipal ?? 0,
-    categoria:     m.category ?? '',
-    ind:           indicadoresMunicipio(m),
-    otros:         m.gastos_capital_deuda ?? 0,
-    isCapital:     m.code === 1, // cabecera departamental
-  };
-}
-
-// ── Sorted departments list ───────────────────────────────────────────────────
-
-const SORTED_DEPTS = [...(DEPARTAMENTOS as any[])]
-  .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-
-const METRICS: { key: Metric; label: string }[] = [
-  { key: 'poblacion',       label: ROTULO_POBLACION },
-  { key: 'presupuesto',     label: 'Presupuesto Total' },
-  { key: 'ingresosPropios', label: 'Ingresos Corrientes' },
-  { key: 'autonomia',       label: 'Autonomía' },
-  { key: 'propiosPc',       label: 'Ingresos Propios per cápita' },
-  { key: 'gastosCapital',   label: 'Gastos de Capital y Deuda' },
-  { key: 'resultadoConBalance', label: 'Resultado con Balance' },
-  { key: 'superavit',       label: 'Resultado sin Balance' },
+type Vista = 'top' | 'bottom' | 'todos';
+type Col = 'posicion' | 'municipio' | 'departamento' | 'categoria' | 'poblacion' | 'valor' | 'percentil';
+const COLS: { col: Col; titulo: string; num: boolean }[] = [
+  { col: 'posicion', titulo: 'Posición (en este filtro)', num: true },
+  { col: 'municipio', titulo: 'Municipio', num: false },
+  { col: 'departamento', titulo: 'Departamento', num: false },
+  { col: 'categoria', titulo: 'Categoría', num: false },
+  { col: 'poblacion', titulo: 'Población', num: true },
+  { col: 'valor', titulo: 'Valor', num: true },
+  { col: 'percentil', titulo: 'Percentil en su categoría', num: true },
 ];
 
-const PAGE_SIZE = 25;
-
-// ── Component ─────────────────────────────────────────────────────────────────
+const celda = (r: FilaRanking, col: Col): string | number | null => {
+  switch (col) {
+    case 'posicion': return r.posicion;
+    case 'municipio': return r.fila.name ?? '';
+    case 'departamento': return nombreDepartamento(r.fila.department);
+    case 'categoria': return r.fila.category ?? '';
+    case 'poblacion': return r.fila.population ?? null;
+    case 'valor': return r.valor;
+    case 'percentil': return r.percentil;
+  }
+};
 
 export default function RankingsPage() {
-  // Año global (NavbarContext), compartido con las demás páginas.
-  const { fiscalYear: year, setFiscalYear: setYear } = useNavbar();
-  const [deptFilter, setDeptFilter] = useState<string>('all');
-  const [metric,     setMetric]     = useState<Metric>('presupuesto');
-  const [page,       setPage]       = useState<number>(0);
+  const { fiscalYear } = useNavbar();
+  const navigate = useNavigate();
+  const [clave, setClave] = useState<ClaveSemaforo>('autonomia');
+  const [categoria, setCategoria] = useState('');
+  const [depto, setDepto] = useState('');
+  const [vista, setVista] = useState<Vista>('top');
+  const [orden, setOrden] = useState<{ col: Col; dir: 1 | -1 } | null>(null);
+  const { municipalities: filasAnio, loading } = useMunicipalitiesMultiYear([fiscalYear]);
+  const sinDatos = !loading && filasAnio.length === 0;
 
-  // Filas SEFIN del año y del anterior (para el movimiento en el ranking).
-  // 2019/2020 no tienen filas: "Sin datos SEFIN para este año" en todas las métricas, nunca el mock.
-  const { municipalities: supabaseMunis, loading: sbLoading } = useMunicipalitiesMultiYear([year - 1, year]);
+  const ranking = useMemo(() => {
+    const visibles = filasAnio.filter((m) => (!categoria || m.category === categoria)
+      && (!depto || codigoINE(m.department, m.code).slice(0, 2) === depto));
+    return rankear(filasAnio, visibles, clave);
+  }, [filasAnio, categoria, depto, clave]);
 
-  const yearRows = useMemo(() => supabaseMunis.filter(m => m.year === year), [supabaseMunis, year]);
-  const prevRows = useMemo(() => supabaseMunis.filter(m => m.year === year - 1), [supabaseMunis, year]);
-  const noData = !sbLoading && yearRows.length === 0;
+  const rankeados = ranking.filter((r) => r.posicion != null);
+  const excluidos = ranking.filter((r) => r.motivo);
+  const sinDato = ranking.length - rankeados.length - excluidos.length;
 
-  // Sin liquidación o dato incompleto: fuera de todo ranking y de la referencia departamental (docs/ATIPICOS.md).
-  const allMusArr = useMemo(() => yearRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [yearRows]);
-  const prevMusArr = useMemo(() => prevRows.filter(m => !excluirDeEstadisticas(m)).map(toRow), [prevRows]);
-  const sinLiqNombres = useMemo(() => yearRows.filter(sinLiquidacion).map(m => m.name ?? ''), [yearRows]);
-  const sinArt91Nombres = useMemo(() => yearRows.filter(sinArt91).map(m => m.name ?? ''), [yearRows]);
-  const parcialNombres  = useMemo(() => yearRows.filter(rendicionParcial).map(m => m.name ?? ''), [yearRows]);
+  const enVista = vista === 'top' ? rankeados.slice(0, 10) : vista === 'bottom' ? rankeados.slice(-10) : ranking;
+  // El clic en un encabezado solo reordena la vista; la posición es siempre la del indicador.
+  const filas = useMemo(() => {
+    if (!orden) return enVista;
+    const { col, dir } = orden;
+    return [...enVista].sort((a, b) => {
+      const x = celda(a, col); const y = celda(b, col);
+      if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1; // vacíos al final
+      return dir * (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'es'));
+    });
+  }, [enVista, orden]);
 
-  // Full ranked list (all munis, active metric)
-  const rankedAll = useMemo(() => {
-    return [...allMusArr]
-      .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
-  }, [metric, allMusArr]);
+  const ordenar = (col: Col) => setOrden((o) => (o?.col === col ? { col, dir: o.dir === 1 ? -1 : 1 } : { col, dir: 1 }));
+  const ariaSort = (col: Col): React.AriaAttributes['aria-sort'] => (orden?.col === col ? (orden.dir === 1 ? 'ascending' : 'descending') : 'none');
 
-  // Filtered + paginated rows
-  const filtered = useMemo(() => {
-    return deptFilter === 'all'
-      ? rankedAll
-      : rankedAll.filter((m: any) => m.departamentoId === deptFilter);
-  }, [rankedAll, deptFilter]);
+  const sentido = SEMAFORO[clave] === 'mayor' ? 'mayor es mejor' : 'menor es mejor';
+  const deptNombre = DEPTS.find((d) => d.cod === depto)?.nombre;
+  const alcance = [deptNombre ?? 'Todos los departamentos', categoria ? `Categoría ${categoria}` : 'Todas las categorías'].join(' · ');
+  const esPct = !clave.endsWith('PerCapita');
 
-  // Puesto del año anterior con la misma métrica y el mismo filtro (vacío si ese año no tiene datos).
-  const prevRankMap = useMemo<Record<string, number>>(() => {
-    const sorted = [...prevMusArr]
-      .filter((m: any) => deptFilter === 'all' || m.departamentoId === deptFilter)
-      .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
-    const map: Record<string, number> = {};
-    sorted.forEach((m, i) => { map[m.id] = i + 1; });
-    return map;
-  }, [metric, deptFilter, prevMusArr]);
+  function tablaExport(): TablaExport {
+    return {
+      columnas: [
+        { clave: 'posicion', titulo: 'Posición (en este filtro)', tipo: 'entero' },
+        { clave: 'cod_ine', titulo: 'Código INE', tipo: 'texto' },
+        { clave: 'name', titulo: 'Municipio', tipo: 'texto' },
+        { clave: 'department', titulo: 'Departamento', tipo: 'texto' },
+        { clave: 'categoria', titulo: 'Categoría', tipo: 'texto' },
+        { clave: 'population', titulo: 'Población', tipo: 'entero' },
+        { clave, titulo: `${ETIQUETAS[clave]} (${esPct ? '%' : 'L por hab.'})`, tipo: esPct ? 'pct' : 'lph' },
+        { clave: 'percentil_categoria', titulo: 'Percentil en su categoría', tipo: 'entero' },
+        { clave: 'nota', titulo: 'Nota (⚠ excluido)', tipo: 'texto' },
+      ],
+      filas: ranking.map((r) => [
+        r.posicion, codigoINE(r.fila.department, r.fila.code), r.fila.name ?? '', nombreDepartamento(r.fila.department),
+        r.fila.category ?? '', r.fila.population ?? null, r.valor, r.percentil, r.motivo ?? '',
+      ]),
+    };
+  }
+  const notasExport = (): [string, string][] => [
+    ['Página', `Rankings — ${ETIQUETAS[clave]} (${sentido})`],
+    ['Filtros', `Año ${fiscalYear} · ${alcance}. Se exporta el filtro completo (no solo Top 10 / Bottom 10).`],
+    ['Filas', `${rankeados.length} municipios rankeados · ${excluidos.length} excluidos ⚠${sinDato ? ` · ${sinDato} sin dato` : ''}`],
+    ['Regla de exclusión', REGLA_EXCLUSION],
+    ['Excluidos', excluidos.length ? excluidos.map((r) => `${r.fila.name} (${codigoINE(r.fila.department, r.fila.code)}): ${r.motivo}`).join(' · ') : 'Ninguno'],
+    ['Montos absolutos', NOTA_MONTOS],
+  ];
+  const alcanceArchivo = [ETIQUETAS[clave], deptNombre, categoria && `Cat ${categoria}`].filter(Boolean).join(' ');
+  const nombre = (ext: 'xlsx' | 'csv') => nombreArchivo('Rankings', alcanceArchivo, [fiscalYear], ext);
 
-  const maxValue = useMemo(() => {
-    const vs = filtered.map((m: any) => Math.abs(getMetricValue(m, metric)));
-    return vs.length ? Math.max(...vs) : 1;
-  }, [filtered, metric]);
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const pageRows   = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  // Reset page when filter/metric changes
-  const handleDept = (v: string) => { setDeptFilter(v); setPage(0); };
-  const handleMetric = (m: Metric) => { setMetric(m); setPage(0); };
-  const handleYear = (y: number) => { setYear(y); setPage(0); };
-
-  // ── Styles ────────────────────────────────────────────────────────────────
-
-  const TH: React.CSSProperties = {
-    padding: '10px 12px',
-    fontSize: 9,
-    fontFamily: "'IBM Plex Mono', monospace",
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: '#4a5a73',
-    fontWeight: 600,
-    borderBottom: '1px solid rgba(0,212,184,0.12)',
-    whiteSpace: 'nowrap',
-  };
-
-  const GRID = '48px 1.5fr 1fr 56px 150px 1.3fr';
+  const rot: React.CSSProperties = { display: 'block', fontFamily: MONO, fontSize: 11, letterSpacing: '0.08em', color: C.suave, marginBottom: 4 };
+  const control: React.CSSProperties = { minHeight: 44, fontSize: 14 };
+  const boton = (activo: boolean): React.CSSProperties => ({
+    minHeight: 44, padding: '0 14px', borderRadius: 8, cursor: 'pointer', fontFamily: COND, fontSize: 16, fontWeight: 600,
+    border: '1px solid transparent', background: activo ? C.turquesa : 'transparent', color: activo ? '#062621' : C.texto2,
+  });
+  const th: React.CSSProperties = { padding: 0, background: C.panel2, color: C.suave, fontSize: 11, fontWeight: 600, borderBottom: `1px solid ${C.borde2}`, whiteSpace: 'nowrap' };
+  const botonOrden: React.CSSProperties = { all: 'unset', boxSizing: 'border-box', cursor: 'pointer', display: 'block', width: '100%', minHeight: 44, padding: '8px 10px', textAlign: 'inherit', fontFamily: MONO, color: 'inherit' };
+  const td: React.CSSProperties = { padding: '8px 10px', borderTop: `1px solid ${C.borde}` };
 
   return (
-    <DashboardLayout title="Rankings">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+    <div className="simho-scroll" style={{ flex: 1, overflowY: 'auto', background: C.fondo, color: C.texto, fontFamily: SANS }}>
+      <div style={{ padding: '24px clamp(16px, 3vw, 32px)', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1240 }}>
+        <header>
+          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: 2, color: C.turquesa }}>SIMHO — SEFIN {fiscalYear}</div>
+          <h1 style={{ margin: '4px 0 0', fontFamily: COND, fontSize: 'clamp(30px, 5vw, 38px)', fontWeight: 700 }}>Rankings</h1>
+          <p style={{ margin: '4px 0 0', fontSize: 14, color: C.suave }}>¿Quién está arriba y quién abajo en cada indicador?</p>
+        </header>
 
-        {/* ── HEADER + FILTERS ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-
-          {/* Left — title */}
-          <div>
-            <div style={{
-              fontSize: 10, color: '#2dd4bf', fontFamily: "'IBM Plex Mono', monospace",
-              letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4,
-            }}>
-              CLASIFICACIÓN MUNICIPAL
-            </div>
-            <div style={{
-              fontSize: 36, fontWeight: 700, color: '#e8eef6', lineHeight: 1.1,
-              fontFamily: "'Barlow Condensed', sans-serif",
-            }}>
-              Rankings
-            </div>
-            <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
-              {sbLoading ? 'Cargando…' : noData ? NO_DATA_MSG : `${filtered.length} municipios ordenados · variación vs. ${year - 1}`
-                + (sinLiqNombres.length ? ` · ${ROTULO_SIN_LIQUIDACION} (excluidos): ${sinLiqNombres.join(', ')}` : '')
-                + (sinArt91Nombres.length ? ` · ⚠ ${ROTULO_SIN_ART91} (excluidos): ${sinArt91Nombres.join(', ')}` : '')
-                + (parcialNombres.length ? ` · ⚠ ${ROTULO_RENDICION_PARCIAL} (excluidos): ${parcialNombres.join(', ')}` : '')}
-            </div>
+        <section aria-label="Filtros" style={{ ...panel, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-end' }}>
+          <label style={{ flex: '1 1 260px' }}><span style={rot}>Indicador</span>
+            <select className="simho-select" value={clave} onChange={(e) => { setClave(e.target.value as ClaveSemaforo); setOrden(null); }} style={{ ...control, width: '100%' }}>
+              {GRUPOS.map((g) => (
+                <optgroup key={g.titulo} label={g.titulo}>
+                  {g.claves.map((k) => <option key={k} value={k}>{ETIQUETAS[k]}</option>)}
+                </optgroup>
+              ))}
+            </select></label>
+          <label><span style={rot} title={ROTULO_CATEGORIA}>Categoría</span>
+            <select className="simho-select" value={categoria} onChange={(e) => setCategoria(e.target.value)} style={control}>
+              <option value="">Todas</option>
+              {['A', 'B', 'C', 'D'].map((c) => <option key={c} value={c}>{c}</option>)}
+            </select></label>
+          <label><span style={rot}>Departamento</span>
+            <select className="simho-select" value={depto} onChange={(e) => setDepto(e.target.value)} style={control}>
+              <option value="">Todos</option>
+              {DEPTS.map((d) => <option key={d.cod} value={d.cod}>{d.nombre}</option>)}
+            </select></label>
+          <div><span style={rot}>Año</span><SelectorAnio alto /></div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button type="button" disabled={loading || sinDatos} onClick={() => descargarXlsx(tablaExport(), notasExport(), nombre('xlsx'))}
+              style={{ minHeight: 44, padding: '0 16px', borderRadius: 8, border: `1px solid ${C.turquesa}`, background: C.turquesa, color: '#062621', fontFamily: COND, fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>Descargar Excel</button>
+            <button type="button" disabled={loading || sinDatos} onClick={() => descargarCsv(tablaExport(), nombre('csv'))}
+              style={{ minHeight: 44, padding: '0 16px', borderRadius: 8, border: `1px solid ${C.borde2}`, background: 'transparent', color: C.texto2, fontFamily: COND, fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>CSV</button>
           </div>
+        </section>
 
-          {/* Right — year pills + dept select */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{
-                fontSize: 9, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
-                letterSpacing: '0.12em', textTransform: 'uppercase',
-              }}>AÑO</span>
-              <div style={{ display: 'flex', gap: 5 }}>
-                {ANIOS_SEFIN.map(y => (
-                  <button
-                    key={y}
-                    className={y === year ? 'rk-pill rk-pill--active' : 'rk-pill'}
-                    onClick={() => handleYear(y)}
-                  >
-                    {y}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ width: 220 }}>
-              <select
-                className="simho-select"
-                value={deptFilter}
-                onChange={e => handleDept(e.target.value)}
-              >
-                <option value="all">Todos los Departamentos</option>
-                {SORTED_DEPTS.map((d: any) => (
-                  <option key={d.id} value={d.id}>{d.nombre}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* ── METRIC TABS ── */}
-        <div className="rk-tabbar">
-          {METRICS.map(m => (
-            <button
-              key={m.key}
-              className={metric === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
-              onClick={() => handleMetric(m.key)}
-            >
-              {m.label}
-            </button>
+        <div role="group" aria-label="Vista" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, background: C.panel, border: `1px solid ${C.borde2}`, borderRadius: 10, padding: 4, alignSelf: 'flex-start', maxWidth: '100%' }}>
+          {([['top', 'Top 10'], ['bottom', 'Bottom 10'], ['todos', 'Todos']] as [Vista, string][]).map(([v, t]) => (
+            <button key={v} type="button" aria-pressed={vista === v} onClick={() => setVista(v)} style={boton(vista === v)}>{t}</button>
           ))}
         </div>
 
-        {/* ── TABLE ── */}
-        {sbLoading ? (
-          <div style={{ marginTop: 18, padding: '40px 24px', textAlign: 'center', color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
-            Cargando datos SEFIN…
-          </div>
-        ) : noData ? (
-          <div style={{
-            marginTop: 18,
-            background: '#0d1628',
-            border: '1px solid rgba(245,158,11,0.3)',
-            borderRadius: 14,
-            padding: '40px 24px',
-            textAlign: 'center',
-          }}>
-            <div style={{
-              fontSize: 13, fontWeight: 700, color: '#f59e0b',
-              fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6,
-            }}>
-              ⚠ {NO_DATA_MSG}
-            </div>
-            <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>
-              No hay datos de SEFIN en el sistema para el año fiscal {year}.
-              Seleccioná un año entre 2021 y 2025.
-            </div>
-          </div>
-        ) : (
-        <div style={{
-          marginTop: 18,
-          background: '#0d1628',
-          border: '1px solid rgba(0,212,184,0.16)',
-          borderRadius: 14,
-          overflow: 'hidden',
-        }}>
-
-          {/* Header row */}
-          <div style={{ display: 'grid', gridTemplateColumns: GRID }}>
-            {['#', 'MUNICIPIO', 'DEPARTAMENTO', 'CAT.', 'VALOR', 'RELATIVO'].map(h => (
-              <div key={h} title={h === 'CAT.' ? ROTULO_CATEGORIA : undefined} style={{ ...TH, textAlign: h === 'VALOR' ? 'right' : 'left' }}>
-                {h}
+        {loading ? <div style={{ fontFamily: MONO, color: C.suave }}>Cargando datos SEFIN…</div>
+          : sinDatos ? <div style={{ fontFamily: MONO, color: C.ambar }}>⚠ {NO_DATA_MSG}</div>
+          : (
+          <section aria-label={`Ranking: ${ETIQUETAS[clave]}`} style={{ ...panel, padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 14px', borderBottom: `1px solid ${C.borde2}` }}>
+              <div style={{ fontFamily: COND, fontSize: 20, fontWeight: 600 }}>{ETIQUETAS[clave]} <span style={{ fontFamily: MONO, fontSize: 12, color: C.suave, fontWeight: 400 }}>· {sentido} · {alcance}</span></div>
+              <div style={{ fontFamily: MONO, fontSize: 13, color: C.suave, marginTop: 2 }}>
+                {rankeados.length} municipios rankeados · {excluidos.length} excluidos ⚠{sinDato ? ` · ${sinDato} sin dato` : ''}
+                {vista !== 'todos' && excluidos.length > 0 ? ' (ver Todos)' : ''}
               </div>
-            ))}
-          </div>
-
-          {/* Data rows */}
-          {pageRows.map((muni: any, i: number) => {
-            const globalRank = filtered.indexOf(muni) + 1;
-            const value      = getMetricValue(muni, metric);
-            const barPct     = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
-            const prevRank   = prevRankMap[muni.id];
-            const movement   = prevRank ? prevRank - globalRank : null;
-            const cat        = muni.categoria;
-
-            const rowBg = globalRank === 1
-              ? 'rgba(245,196,81,0.06)'
-              : globalRank <= 3
-                ? 'rgba(245,196,81,0.04)'
-                : globalRank <= 10
-                  ? 'rgba(245,158,11,0.03)'
-                  : 'transparent';
-
-            const rankBadge = (() => {
-              if (globalRank === 1) return { bg: '#f5c451', shadow: '0 0 10px rgba(245,196,81,0.55)' };
-              if (globalRank === 2) return { bg: '#c4ccd6', shadow: '0 0 8px rgba(196,204,214,0.4)' };
-              if (globalRank === 3) return { bg: '#cd8a4b', shadow: '0 0 8px rgba(205,138,75,0.4)' };
-              return null;
-            })();
-
-            return (
-              <div
-                key={muni.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: GRID,
-                  alignItems: 'center',
-                  background: rowBg,
-                  borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.03)',
-                  transition: 'background 0.12s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,184,0.04)')}
-                onMouseLeave={e => (e.currentTarget.style.background = rowBg)}
-              >
-
-                {/* Rank */}
-                <div style={{ padding: '9px 0 9px 14px', display: 'flex', alignItems: 'center' }}>
-                  {rankBadge ? (
-                    <div style={{
-                      width: 26, height: 26, borderRadius: '50%',
-                      background: rankBadge.bg, boxShadow: rankBadge.shadow,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11.5, fontWeight: 700, color: '#04231f',
-                      fontFamily: "'IBM Plex Mono', monospace",
-                    }}>
-                      {globalRank}
-                    </div>
-                  ) : (
-                    <span style={{
-                      fontSize: 13,
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      color: globalRank <= 10 ? '#f59e0b' : '#5d6e89',
-                    }}>
-                      {globalRank}
-                    </span>
-                  )}
-                </div>
-
-                {/* Municipio */}
-                <div style={{ padding: '9px 12px' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#e8eef6', fontFamily: "'Barlow Condensed', sans-serif" }}>
-                    {muni.nombre}
-                  </div>
-                  {muni.isCapital && (
-                    <div style={{ fontSize: 8.5, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.06em', marginTop: 1 }}>
-                      CAPITAL DEPTO.
-                    </div>
-                  )}
-                </div>
-
-                {/* Departamento */}
-                <div style={{ padding: '9px 12px', fontSize: 12.5, color: '#7c8aa3', fontFamily: "'IBM Plex Mono', monospace" }}>
-                  {muni.departamento}
-                </div>
-
-                {/* Categoría */}
-                <div style={{ padding: '9px 8px' }}>
-                  <span style={{
-                    background: CAT_COLORS[cat] || '#7c8aa3',
-                    color: '#04231f',
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    borderRadius: 5,
-                    padding: '2px 7px',
-                  }}>
-                    {cat}
-                  </span>
-                </div>
-
-                {/* Valor */}
-                <div style={{
-                  padding: '9px 12px',
-                  fontSize: 12.5,
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  color: (metric === 'superavit' || metric === 'resultadoConBalance') && value < 0 ? '#ef5a5a' : '#2dd4bf',
-                  textAlign: 'right',
-                  fontWeight: 600,
-                }}>
-                  {formatValue(metric, value)}
-                </div>
-
-                {/* Relativo — bar + movement */}
-                <div style={{ padding: '9px 16px 9px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {/* Progress bar */}
-                  <div style={{
-                    flex: 1, height: 7, borderRadius: 4,
-                    background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      height: '100%', borderRadius: 4,
-                      width: `${Math.min(100, Math.max(0, barPct))}%`,
-                      background: (metric === 'superavit' || metric === 'resultadoConBalance') && value < 0
-                        ? 'linear-gradient(90deg,#ef5a5a,#f87171)'
-                        : 'linear-gradient(90deg,#00d4b8,#5eead4)',
-                      transition: 'width 0.3s ease',
-                    }} />
-                  </div>
-
-                  {/* Movement */}
-                  <span style={{
-                    fontSize: 10,
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    color: movement && movement > 0 ? '#1f9d57' : movement && movement < 0 ? '#ef5a5a' : '#4a5a73',
-                    whiteSpace: 'nowrap',
-                    minWidth: 36,
-                    textAlign: 'right',
-                  }}>
-                    {movement === null ? '—' : movement > 0 ? `▲ ${movement}` : movement < 0 ? `▼ ${Math.abs(movement)}` : '— 0'}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-          {pageRows.length === 0 && (
-            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
-              Sin datos para la selección actual.
             </div>
-          )}
-        </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    {COLS.map(({ col, titulo, num }) => (
+                      <th key={col} scope="col" aria-sort={ariaSort(col)} title={col === 'poblacion' ? ROTULO_POBLACION : col === 'categoria' ? ROTULO_CATEGORIA : undefined}
+                        style={{ ...th, textAlign: num ? 'right' : 'left' }}>
+                        <button type="button" style={botonOrden} onClick={() => ordenar(col)}>
+                          {titulo}{orden?.col === col ? (orden.dir === 1 ? ' ▲' : ' ▼') : ''}
+                        </button>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filas.map((r) => {
+                    const ine = codigoINE(r.fila.department, r.fila.code);
+                    const ruta = rutaFicha(ine);
+                    return (
+                      <tr key={ine} onClick={() => ruta && navigate(ruta)} style={{ cursor: ruta ? 'pointer' : 'default', background: r.motivo ? '#1a1610' : 'transparent' }}>
+                        <td style={{ ...td, textAlign: 'right', color: r.posicion != null && r.posicion <= 3 ? C.turquesa : C.texto2 }}>{r.posicion ?? '—'}</td>
+                        <td style={{ ...td, fontFamily: SANS, fontSize: 14 }}>
+                          {ruta ? <Link to={ruta} onClick={(e) => e.stopPropagation()} style={{ color: C.texto, textDecoration: 'none' }}>{r.fila.name}</Link> : r.fila.name}
+                          {r.motivo && <span title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
+                        </td>
+                        <td style={{ ...td, color: C.texto2 }}>{nombreDepartamento(r.fila.department)}</td>
+                        <td style={{ ...td, color: C.texto2 }}>{r.fila.category ?? '—'}</td>
+                        <td style={{ ...td, textAlign: 'right', color: C.texto2 }}>{fmtNum(r.fila.population)}</td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: r.motivo ? C.ambar : C.texto }}>
+                          {sinLiquidacion(r.fila) ? ROTULO_SIN_LIQUIDACION : fmtIndicador(clave, r.valor)}
+                        </td>
+                        <td style={{ ...td, textAlign: 'right', color: C.texto2 }}>{r.percentil != null ? `P${r.percentil}` : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                  {!filas.length && <tr><td colSpan={COLS.length} style={{ ...td, textAlign: 'center', color: C.suave, padding: 24 }}>Sin municipios para este filtro.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            {excluidos.length > 0 && (
+              <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
+                ⚠ {REGLA_EXCLUSION}
+              </div>
+            )}
+          </section>
         )}
-
-        {/* ── PAGINATION ── */}
-        {!sbLoading && !noData && totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
-            <button
-              onClick={() => setPage(p => Math.max(0, p - 1))}
-              disabled={page === 0}
-              style={{
-                background: 'rgba(0,212,184,0.08)', border: '1px solid rgba(0,212,184,0.25)',
-                color: page === 0 ? '#2d3d54' : '#2dd4bf',
-                borderRadius: 7, padding: '8px 18px', cursor: page === 0 ? 'default' : 'pointer',
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: 11,
-              }}
-            >
-              ← Anterior
-            </button>
-            <span style={{ fontSize: 11, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace" }}>
-              {page + 1} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={page === totalPages - 1}
-              style={{
-                background: 'rgba(0,212,184,0.08)', border: '1px solid rgba(0,212,184,0.25)',
-                color: page === totalPages - 1 ? '#2d3d54' : '#2dd4bf',
-                borderRadius: 7, padding: '8px 18px', cursor: page === totalPages - 1 ? 'default' : 'pointer',
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: 11,
-              }}
-            >
-              Siguiente →
-            </button>
-          </div>
-        )}
-
-
+        <p style={{ margin: 0, fontSize: 13, color: C.suave }}>{NOTA_MONTOS}</p>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

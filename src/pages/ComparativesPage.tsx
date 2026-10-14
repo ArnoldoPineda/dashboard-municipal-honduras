@@ -81,7 +81,7 @@ export default function ComparativesPage() {
     return Array.from(vistas.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([cat, ine]) => ({ cat, ine }));
   }, [conFila]);
 
-  const agregar = (ine: string) => setInes((xs) => (xs.includes(ine) || xs.length >= MAX ? xs : [...xs, ine]));
+  const agregar = (ine: string) => setInes((xs) => (!/^\d{4}$/.test(ine) || xs.includes(ine) || xs.length >= MAX ? xs : [...xs, ine]));
   const quitar = (ine: string) => setInes((xs) => xs.filter((x) => x !== ine));
   const base = conFila.find(({ fila }) => !excluirDeRazones(fila))?.fila ?? conFila[0]?.fila ?? null;
   const sugeridos = useMemo(
@@ -135,7 +135,7 @@ export default function ComparativesPage() {
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: color(ine) }} aria-hidden="true" />
                   <span style={{ fontSize: 14 }}>{fila ? `${fila.name} — ${nombreDepartamento(fila.department)}` : ine}</span>
                   <button type="button" onClick={() => quitar(ine)} aria-label={`Quitar ${fila?.name ?? ine}`}
-                    style={{ all: 'unset', cursor: 'pointer', width: 44, height: 44, display: 'grid', placeItems: 'center', color: C.suave, fontSize: 18 }}>×</button>
+                    className="boton-quitar" style={{ all: 'unset', cursor: 'pointer', width: 44, height: 44, display: 'grid', placeItems: 'center', color: C.suave, fontSize: 18 }}>×</button>
                 </li>
               ))}
             </ul>
@@ -224,7 +224,7 @@ export default function ComparativesPage() {
             <section aria-label="Gráficos por indicador" style={grilla(340)}>
               {FILAS.map((k) => {
                 const datos = conFila.filter(({ fila }) => !sinLiquidacion(fila))
-                  .map(({ ine, fila }) => ({ ine, nombre: fila.name ?? ine, valor: indicadoresMunicipio(fila)[k] }))
+                  .map(({ ine, fila }) => ({ ine, nombre: `${avisos(fila).length ? '⚠ ' : ''}${fila.name ?? ine}`, valor: indicadoresMunicipio(fila)[k] }))
                   .filter((d): d is { ine: string; nombre: string; valor: number } => d.valor != null);
                 const tick = (v: number) => (esMonto(k) ? fmtLGrafico(v) : `${Math.round(v)} %`);
                 const sentido = k === 'ejecucion' ? 'sin dirección' : SEMAFORO[k] === 'mayor' ? 'mayor es mejor' : 'menor es mejor';
@@ -246,7 +246,7 @@ export default function ComparativesPage() {
                           {categorias.map(({ cat, ine }) => {
                             const med = comps[ine][k].mediana;
                             return med == null ? null : (
-                              <ReferenceLine key={cat} x={med} stroke={C.texto2} strokeDasharray="4 3"
+                              <ReferenceLine key={cat} x={med} ifOverflow="extendDomain" stroke={C.texto2} strokeDasharray="4 3"
                                 label={{ value: `Med. ${cat}`, position: 'top', fill: C.texto2, fontSize: 11 }} />
                             );
                           })}

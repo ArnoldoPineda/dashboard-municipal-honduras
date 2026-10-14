@@ -70,16 +70,18 @@ export default function RankingsPage() {
     return rankear(filasAnio, visibles, clave);
   }, [filasAnio, categoria, depto, clave]);
 
-  const rankeados = ranking.filter((r) => r.posicion != null);
-  const excluidos = ranking.filter((r) => r.motivo);
+  const rankeados = useMemo(() => ranking.filter((r) => r.posicion != null), [ranking]);
+  const excluidos = useMemo(() => ranking.filter((r) => r.motivo), [ranking]);
   const sinDato = ranking.length - rankeados.length - excluidos.length;
 
-  const enVista = vista === 'top' ? rankeados.slice(0, 10) : vista === 'bottom' ? rankeados.slice(-10) : ranking;
+  const enVista = useMemo(() => (vista === 'top' ? rankeados.slice(0, 10) : vista === 'bottom' ? rankeados.slice(-10) : ranking),
+    [vista, rankeados, ranking]);
   // El clic en un encabezado solo reordena la vista; la posición es siempre la del indicador.
   const filas = useMemo(() => {
     if (!orden) return enVista;
     const { col, dir } = orden;
     return [...enVista].sort((a, b) => {
+      if (!!a.motivo !== !!b.motivo) return a.motivo ? 1 : -1; // excluidos siempre al final
       const x = celda(a, col); const y = celda(b, col);
       if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1; // vacíos al final
       return dir * (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'es'));
@@ -207,7 +209,7 @@ export default function RankingsPage() {
                     const ine = codigoINE(r.fila.department, r.fila.code);
                     const ruta = rutaFicha(ine);
                     return (
-                      <tr key={ine} onClick={() => ruta && navigate(ruta)} style={{ cursor: ruta ? 'pointer' : 'default', background: r.motivo ? '#1a1610' : 'transparent' }}>
+                      <tr key={`${r.fila.department}|${r.fila.code}`} onClick={() => ruta && navigate(ruta)} style={{ cursor: ruta ? 'pointer' : 'default', background: r.motivo ? '#1a1610' : 'transparent' }}>
                         <td style={{ ...td, textAlign: 'right', color: r.posicion != null && r.posicion <= 3 ? C.turquesa : C.texto2 }}>{r.posicion ?? '—'}</td>
                         <td style={{ ...td, fontFamily: SANS, fontSize: 14 }}>
                           {ruta ? <Link to={ruta} onClick={(e) => e.stopPropagation()} style={{ color: C.texto, textDecoration: 'none' }}>{r.fila.name}</Link> : r.fila.name}

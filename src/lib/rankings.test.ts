@@ -59,6 +59,8 @@ describe('rankear — orden según SEMAFORO', () => {
     expect(r[4].motivo).toBe(ROTULO_SIN_ART91);
     expect(r[5].motivo).toBe(ROTULO_SIN_LIQUIDACION);
     expect(r[4].percentil).toBeNull();
+    expect(r[5].valor).toBeNull();                                                     // sin liquidación: sin valor
+    expect(rankear(f, f, 'propiosPerCapita').find((x) => x.fila.name === 'SinLiq')!.valor).toBeNull(); // no 0 L/hab.
   });
 
   it('la posición se cuenta en el filtro; el percentil en la categoría completa', () => {

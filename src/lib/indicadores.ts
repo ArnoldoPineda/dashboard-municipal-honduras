@@ -284,7 +284,7 @@ export interface FilaRanking {
   posicion:  number | null;
   /** Percentil en su categoría completa del año (comparacionPares, igual que la Ficha). */
   percentil: number | null;
-  /** Motivo del ⚠ (excluida de razones); null si no está excluida. */
+  /** Motivo del ⚠ (excluida de razones); null si no está excluida. Texto corto; la Ficha usa motivoExclusion (largo). */
   motivo:    string | null;
 }
 
@@ -296,7 +296,8 @@ export interface FilaRanking {
 export function rankear(filasAnio: Municipality[], visibles: Municipality[], clave: ClaveSemaforo): FilaRanking[] {
   const signo = SEMAFORO[clave] === 'mayor' ? -1 : 1;
   const todas = visibles.map((fila) => ({
-    fila, valor: indicadoresMunicipio(fila)[clave], posicion: null as number | null,
+    // Sin liquidación: sin valor (un 0 por habitante no es un dato real).
+    fila, valor: sinLiquidacion(fila) ? null : indicadoresMunicipio(fila)[clave], posicion: null as number | null,
     percentil: comparacionPares(filasAnio, fila, clave).percentil, motivo: motivoExcluido(fila),
   }));
   const grupo = (r: FilaRanking) => (r.motivo ? 2 : r.valor == null ? 1 : 0);

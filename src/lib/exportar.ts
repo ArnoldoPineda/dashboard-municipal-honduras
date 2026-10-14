@@ -58,6 +58,7 @@ export const DICCIONARIO: Record<string, EntradaDiccionario> = {
   ingresos_corrientes:       col('INGRESOS CORRIENTES'),
   ingresos_tributarios:      { ...col('INGRESOS TRIBUTARIOS'), definicion: 'Ingresos tributarios (G1). Ya incluye tasas por servicios y derechos.' },
   impuesto_bi:               col('IMPUESTO SOBRE BIENES INMUEBLES'),
+  impuestos:                 { definicion: 'Impuestos de G1: suma de las columnas SEFIN IMPUESTO SOBRE BI, PERSONAL O VECINAL, S/INDUSTRIA, S/COMERCIO, S/SERVICIOS, PECUARIO, S/EXTRACCION y DE TELECOMUNICACIONES. G1 = impuestos + tasas por servicios + derechos.', unidad: L, fuente: SEFIN },
   impuesto_personal:         col('IMPUESTO PERSONAL O VECINAL'),
   impuesto_industria:        col('IMPUESTO S/INDUSTRIA'),
   impuesto_comercio:         col('IMPUESTO S/COMERCIO'),

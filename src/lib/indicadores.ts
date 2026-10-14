@@ -53,6 +53,14 @@ export interface Insumos {
   poblacion:         number;
 }
 
+/** Impuestos de G1 (columnas SEFIN IMPUESTO SOBRE BI … DE TELECOMUNICACIONES). G1 = impuestos + tasas por servicios + derechos. */
+export const CAMPOS_IMPUESTOS_G1 = [
+  'impuesto_bi', 'impuesto_personal', 'impuesto_industria', 'impuesto_comercio',
+  'impuesto_servicios', 'impuesto_pecuario', 'impuesto_extraccion', 'impuesto_telecomunicaciones',
+] as const;
+/** Suma de los impuestos de G1 (sin tasas ni derechos); nulos cuentan como 0. */
+export const impuestosG1 = (m: Municipality) => CAMPOS_IMPUESTOS_G1.reduce((acc, c) => acc + n(m[c]), 0);
+
 export function insumos(m: Municipality): Insumos {
   const ingresosTotales = n(m.ingresos_recaudados);
   const recursosBalance = n(m.recursos_balance);

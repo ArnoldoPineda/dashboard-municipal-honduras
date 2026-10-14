@@ -1,7 +1,7 @@
 // Fuente única de indicadores financieros municipales (docs/PLAN_REDISENO.md §1).
 // Por municipio y año. Agregados (departamento, nación): suma de numeradores y denominadores.
 import type { Municipality } from '../hooks/useMunicipalities';
-import { fmtL } from './formato';
+import { fmtL, fmtPct } from './formato';
 import { codigoINE } from '../data/departamentos';
 
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
@@ -18,6 +18,15 @@ export const ROTULO_RENDICION_PARCIAL = 'Dato incompleto (rendición parcial)';
  * (docs/ATIPICOS.md §6). Clave: "DEPARTAMENTO|code|año".
  */
 const RENDICION_PARCIAL = new Set(['GRACIAS A DIOS|6|2021', 'EL PARAISO|11|2022']);
+/**
+ * Bienes capitalizables ÷ total egresos por debajo de este % : señal de atípico, no exclusión. En la fuente, el gasto
+ * de capital de estas filas suele quedar en "Asignaciones globales" y no en bienes capitalizables (docs/ATIPICOS.md §8).
+ */
+export const UMBRAL_INVERSION_GASTO = 2;
+/** Asignaciones globales ÷ total egresos desde este % : el rótulo nombra las asignaciones como posible destino. */
+export const UMBRAL_ASIGNACIONES_GLOBALES = 30;
+/** Rótulo base (sin asignaciones relevantes) y leyenda general. */
+export const ROTULO_INVERSION_CASI_NULA = 'Inversión en bienes capitalizables casi nula (< 2 % del gasto) — verificar con la liquidación';
 /** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
 export const UMBRAL_EJECUCION = 150;
 
@@ -185,6 +194,20 @@ export function mediana(rows: Municipality[], k: keyof Indicadores): number | nu
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
 }
 
+/** Bienes capitalizables < UMBRAL_INVERSION_GASTO % del gasto total, con liquidación (atípico de fuente, no se excluye). */
+export const inversionCasiNula = (m: Municipality) => {
+  const v = indicadoresMunicipio(m).inversionSobreGasto;
+  return !sinLiquidacion(m) && v != null && v < UMBRAL_INVERSION_GASTO;
+};
+
+/** Rótulo de la fila: menciona Asignaciones globales (con su % del gasto) si son ≥ UMBRAL_ASIGNACIONES_GLOBALES %. */
+export function rotuloInversionCasiNula(m: Municipality): string {
+  const ag = ratio(n(m.asignaciones_globales), n(m.total_egresos));
+  return ag != null && ag >= UMBRAL_ASIGNACIONES_GLOBALES
+    ? `Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar registrado en Asignaciones globales (${fmtPct(ag)} del gasto) — verificar con la liquidación`
+    : ROTULO_INVERSION_CASI_NULA;
+}
+
 /** Diferencia tolerada entre un subtotal SEFIN y la suma de sus renglones (lempiras). */
 const TOL = 1;
 const suma = (m: Municipality, ks: (keyof Municipality)[]) => ks.reduce((s, k) => s + n(m[k] as number), 0);
@@ -200,6 +223,7 @@ export function atipicos(m: Municipality): string[] {
   if (r.autonomia !== null && r.autonomia > 100) out.push('Autonomía > 100 %');
   const nota = notaDatoIncompleto(m);
   if (nota) out.push(nota);
+  if (inversionCasiNula(m)) out.push(rotuloInversionCasiNula(m));
   if (i.poblacion <= 0) out.push('Sin población');
   if (i.totalEgresos <= 0) out.push('Sin egresos reportados');
   if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');
@@ -269,6 +293,66 @@ export function semaforo(clave: ClaveSemaforo, valor: number | null, percentil: 
   if (fav >= 70) return { etiqueta: 'SOBRE LA MEDIANA', tono: 'turquesa' };
   if (fav <= 30) return { etiqueta: 'BAJO LA MEDIANA', tono: 'naranja' };
   return { etiqueta: 'EN LA MEDIANA', tono: 'gris' };
+}
+
+// ── Rankings y Comparar (Fase 6) ─────────────────────────────────────────────
+
+/** Rótulo corto del ⚠ de una fila excluida de razones; null si entra en las estadísticas. */
+export const motivoExcluido = (m: Municipality): string | null =>
+  sinLiquidacion(m) ? ROTULO_SIN_LIQUIDACION : notaDatoIncompleto(m);
+
+export interface FilaRanking {
+  fila:      Municipality;
+  valor:     number | null;
+  /** Posición dentro de `visibles` (empates comparten posición: 1, 2, 2, 4); null si excluida o sin dato. */
+  posicion:  number | null;
+  /** Percentil en su categoría completa del año (comparacionPares, igual que la Ficha). */
+  percentil: number | null;
+  /** Motivo del ⚠ (excluida de razones); null si no está excluida. Texto corto; la Ficha usa motivoExclusion (largo). */
+  motivo:    string | null;
+}
+
+/**
+ * Ranking de un indicador. `filasAnio`: todo el año (base del percentil por categoría); `visibles`: el filtro
+ * (categoría, departamento) sobre el que se cuenta la posición. "Mejor" según SEMAFORO. Orden: rankeadas,
+ * luego sin dato y al final las excluidas (excluirDeRazones), ambas sin posición.
+ */
+export function rankear(filasAnio: Municipality[], visibles: Municipality[], clave: ClaveSemaforo): FilaRanking[] {
+  const signo = SEMAFORO[clave] === 'mayor' ? -1 : 1;
+  const todas = visibles.map((fila) => ({
+    // Sin liquidación: sin valor (un 0 por habitante no es un dato real).
+    fila, valor: sinLiquidacion(fila) ? null : indicadoresMunicipio(fila)[clave], posicion: null as number | null,
+    percentil: comparacionPares(filasAnio, fila, clave).percentil, motivo: motivoExcluido(fila),
+  }));
+  const grupo = (r: FilaRanking) => (r.motivo ? 2 : r.valor == null ? 1 : 0);
+  todas.sort((a, b) => grupo(a) - grupo(b)
+    || (grupo(a) === 0 ? signo * (a.valor! - b.valor!) : 0)
+    || (a.fila.name ?? '').localeCompare(b.fila.name ?? '', 'es'));
+  todas.forEach((r, i) => {
+    if (grupo(r) !== 0) return;
+    r.posicion = i > 0 && todas[i - 1].valor === r.valor ? todas[i - 1].posicion : i + 1;
+  });
+  return todas;
+}
+
+/** Filas excluidas de razones, por motivo. */
+export function contarExcluidos(filas: Municipality[]) {
+  const sinLiq = filas.filter(sinLiquidacion).length;
+  const s91 = filas.filter(sinArt91).length;
+  const rp = filas.filter(rendicionParcial).length;
+  return { total: sinLiq + s91 + rp, sinLiquidacion: sinLiq, sinArt91: s91, rendicionParcial: rp };
+}
+
+const mismoMunicipio = (a: Municipality, b: Municipality) => a.department === b.department && a.code === b.code;
+
+/** Pares sugeridos: misma categoría y año, sin excluidos ni los ya elegidos, los más cercanos en población. */
+export function paresSugeridos(filasAnio: Municipality[], fila: Municipality, yaElegidos: Municipality[], cuantos: number): Municipality[] {
+  const pob = n(fila.population);
+  return filasAnio
+    .filter((m) => m.year === fila.year && m.category === fila.category && !excluirDeRazones(m)
+      && !mismoMunicipio(m, fila) && !yaElegidos.some((y) => mismoMunicipio(m, y)))
+    .sort((a, b) => Math.abs(n(a.population) - pob) - Math.abs(n(b.population) - pob) || (a.name ?? '').localeCompare(b.name ?? '', 'es'))
+    .slice(0, Math.max(0, cuantos));
 }
 
 const pctTxt = (v: number) => `${v.toFixed(1)} %`;

@@ -19,6 +19,7 @@ Hay dos tipos de dato incompleto, con rótulos distintos:
 | Autonomía > 100 % | corrientes > ingresos del año | 0 |
 | Sin transferencia Art. 91 en la fuente | `sinArt91()`: con liquidación, Art. 91 + otras = 0 y corrientes > 0 | 7 |
 | Dato incompleto (rendición parcial) | `rendicionParcial()`: lista fija según notas del Excel (§6) | 2 |
+| Inversión en bienes capitalizables casi nula | `inversionCasiNula()`: con liquidación, bienes capitalizables ÷ total egresos < 2 % (§8) | 26 |
 | Sin población | `population` ≤ 0 o nula | 0 |
 | Sin egresos reportados | `total_egresos` ≤ 0 | 4 |
 | Sin ingresos reportados | `ingresos_recaudados` ≤ 0 | 0 |
@@ -144,3 +145,38 @@ Corrige el criterio de la Fase 2, que sacaba de los totales en lempiras a las fi
 Donde un total incluye filas sin Art. 91 se muestra: "Incluye N municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas" (`notaTotales`). Con rendiciones parciales se agrega "Incluye N municipio(s) con rendición parcial (dato incompleto)".
 
 Efecto: el presupuesto nacional 2023 pasa de L 23.2 a L 28.4 mil M (San Pedro Sula vuelve al total); la autonomía agregada 2023 sigue en 52.1 % y la mediana en 13.7 %.
+
+## 8. Inversión en bienes capitalizables casi nula (Fase 6)
+
+**Regla (2026-10-13):** `inversionCasiNula()` marca las filas con liquidación en las que bienes capitalizables ÷ total egresos es menor a 2 %. Es una señal de atípico y no excluye la fila. El rótulo depende de las Asignaciones globales (`rotuloInversionCasiNula()`):
+- **Asignaciones globales ≥ 30 % del gasto:** "Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar registrado en Asignaciones globales (X % del gasto) — verificar con la liquidación", donde X es el porcentaje calculado con 1 decimal. En 2025 aplica a Tomalá (48.7 %), Nueva Frontera (61.4 %), Jano (53.3 %) y Texiguat (58.7 %).
+- **En otro caso:** "Inversión en bienes capitalizables casi nula (< 2 % del gasto) — verificar con la liquidación". En 2025 aplica a La Unión (15.3 %).
+
+La primera versión usaba "inversión por habitante < L 50"; se cambió al % del gasto porque marcaba como casi nula a Trojes, que invierte L 2.9 M (7 % de su gasto).
+
+Hay 26 filas marcadas en 2021–2025: 7 en 2021, 8 en 2022, 3 en 2023, 3 en 2024 y 5 en 2025. Lectura de `public.municipalities` del 2026-10-13, con la anon key y solo lectura.
+
+| Municipio (2025) | Bienes capitalizables (M L) | % del gasto | Asignaciones globales (M L) | % del gasto | Total egresos (M L) |
+|---|---|---|---|---|---|
+| Tomalá (Lempira, C) | 0.008 | 0.03 % | 11.703 | 48.7 % | 24.007 |
+| Nueva Frontera (Santa Bárbara, C) | 0.014 | 0.04 % | 19.610 | 61.4 % | 31.943 |
+| Jano (Olancho, C) | 0.068 | 0.30 % | 12.012 | 53.3 % | 22.521 |
+| La Unión (Olancho, C) | 0.231 | 1.17 % | 3.036 | 15.3 % | 19.818 |
+| Texiguat (El Paraíso, D) | 0.417 | 1.54 % | 15.931 | 58.7 % | 27.160 |
+
+**Diagnóstico: el problema está en el dato fuente, no en el cálculo.** En todas las filas los renglones cuadran:
+- Bienes capitalizables + transferencias de capital + activos financieros + servicio de deuda + otros gastos de capital + asignaciones globales = gastos de capital y deuda.
+- Funcionamiento + gastos de capital y deuda = total egresos.
+
+El gasto de capital queda en Asignaciones globales y no en bienes capitalizables, que es el numerador de la inversión de SIMHO. La Unión es distinta: sus asignaciones son bajas (15 %) y su gasto se concentra en funcionamiento (55 %).
+
+**Top 3 de inversión por habitante 2025: el numerador es correcto.**
+- Humuya: bienes capitalizables L 16.864 M, 1 557 habitantes, L 10 831 por habitante, 60 % del gasto.
+- Yauyupe: L 13.588 M, 1 523 habitantes, L 8 922 por habitante, 50 % del gasto.
+- Lauterique: L 23.330 M, 3 252 habitantes, L 7 174 por habitante, 59 % del gasto.
+
+La mediana nacional de inversión ÷ gasto es 28.5 %. El valor por habitante alto se explica por poblaciones muy pequeñas.
+
+**Dónde se muestra:**
+- Comparar: ⚠ en el encabezado, en las barras y en los avisos.
+- Rankings: marca "atípico" en los indicadores de inversión (por habitante y ÷ gasto). La fila conserva su posición, y la exportación lo indica en la columna Nota.

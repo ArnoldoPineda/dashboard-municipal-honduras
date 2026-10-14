@@ -1,1150 +1,275 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, notaDatoIncompleto, excluirDeTotales, notaTotales } from '../lib/indicadores';
-import DashboardLayout from '../components/DashboardLayout';
-import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { NO_DATA_MSG } from '../utils/sefin';
-import { ANIOS_SEFIN } from '../data/anios';
-import { useNavbar } from '../context/NavbarContext';
-import { nombreDepartamento, codigoINE } from '../data/departamentos';
-import { fmtL, fmtLGrafico } from '../lib/formato';
+// Comparar (Fase 6): hasta 5 municipios frente a sus pares (misma categoría SGJD 2020 y mismo año).
+// Valores, medianas, percentiles y semáforo salen de lib/indicadores (comparacionPares, semaforo); formato de lib/formato.
+import React, { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  LabelList,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
+import type { Municipality } from '../hooks/useMunicipalities';
+import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
+import { useNavbar } from '../context/NavbarContext';
+import {
+  Indicadores, ClaveSemaforo, SEMAFORO, Comparacion, ROTULO_CATEGORIA,
+  indicadoresMunicipio, comparacionPares, semaforo, sinLiquidacion, atipicos, paresSugeridos, excluirDeRazones,
+} from '../lib/indicadores';
+import { fmtPct, fmtLGrafico } from '../lib/formato';
+import { codigoINE, nombreDepartamento } from '../data/departamentos';
+import { rutaFicha } from '../lib/municipios';
+import { NO_DATA_MSG } from '../utils/sefin';
+import SelectorAnio from '../components/SelectorAnio';
+import BuscadorMunicipio from '../components/ficha/BuscadorMunicipio';
+import { motivoExclusion } from '../components/ficha/FranjaExcluido';
+import { ETIQUETAS, fmtIndicador } from '../components/ficha/TarjetasIndicadores';
+import { C, MONO, COND, SANS, panel, rotulo, grilla, TONO_COLOR } from '../components/ficha/estilo';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+const MAX = 5;
+const COLORES = ['#3fd6c0', '#f0a33a', '#5aa9e6', '#e879a6', '#b6a4f5'];
 
-const YEARS = ANIOS_SEFIN;
-const PALETTE = ['#2dd4bf', '#f59e0b', '#3a9bd6', '#ec4899'];
-const SECTION_COLORS = ['#2dd4bf', '#f59e0b'];
-const MAX_MUNIS = 3;
-const MAX_DEPTS = 4;
-
-type CompMode = 'municipios' | 'departamentos';
-type MetricKey =
-  | 'presupuesto' | 'ingresos' | 'autonomia' | 'poblacion' | 'transferencias'
-  | 'ing_tributarios' | 'ing_no_tributarios' | 'ing_capital'
-  | 'gasto_funcionamiento' | 'gasto_capital';
-
-const BASE_METRICS: { key: MetricKey; label: string }[] = [
-  { key: 'presupuesto',    label: 'Presupuesto' },
-  { key: 'ingresos',      label: 'Ingresos Corrientes' },
-  { key: 'autonomia',     label: 'Autonomía' },
-  { key: 'poblacion',     label: ROTULO_POBLACION },
-  { key: 'transferencias',label: 'Transferencias' },
+type Clave = ClaveSemaforo | 'ejecucion';
+const FILAS: Clave[] = [
+  'autonomia', 'dependenciaTransferencias', 'propiosPerCapita', 'ibiPerCapita', 'inversionPerCapita',
+  'funcionamientoSobreCorrientes', 'inversionSobreGasto', 'ahorroCorriente', 'servicioDeudaSobreCorrientes',
+  'balanceSobreIngresos', 'resultadoSinBalance', 'ejecucion',
 ];
+const etiqueta = (k: Clave) => (k === 'ejecucion' ? 'Ejecución (vs. presupuesto aprobado)' : ETIQUETAS[k]);
+const fmt = (k: Clave, v: number | null | undefined) => (k === 'ejecucion' ? fmtPct(v) : fmtIndicador(k, v));
+/** Montos absolutos: solo el valor, sin percentil ni semáforo (favorecen a los municipios grandes). */
+const SIN_PERCENTIL: Clave[] = ['ahorroCorriente', 'resultadoSinBalance'];
+const esMonto = (k: Clave) => k.endsWith('PerCapita') || k === 'ahorroCorriente' || k === 'resultadoSinBalance';
+const ineDe = (m: Municipality) => codigoINE(m.department, m.code);
 
-const FIN_METRICS: { key: MetricKey; label: string }[] = [
-  { key: 'ing_tributarios',     label: 'Ing. Tributarios' },
-  { key: 'ing_no_tributarios',  label: 'Ing. No Tributarios' },
-  { key: 'ing_capital',         label: 'Ing. Capital' },
-  { key: 'gasto_funcionamiento',label: 'G. Funcionamiento' },
-  { key: 'gasto_capital',       label: 'G. Capital y Deuda' },
-];
-
-const METRICS = [...BASE_METRICS, ...FIN_METRICS];
-
-// ── Style tokens ──────────────────────────────────────────────────────────────
-
-const CARD: React.CSSProperties = {
-  background: '#111827',
-  border: '1px solid #1f2937',
-  borderRadius: 8,
-  padding: 20,
-};
-
-const FLABEL: React.CSSProperties = {
-  display: 'block',
-  fontSize: 9,
-  fontFamily: "'IBM Plex Mono', monospace",
-  letterSpacing: '0.14em',
-  textTransform: 'uppercase',
-  color: '#4a5a73',
-  marginBottom: 8,
-  fontWeight: 600,
-};
-
-const TH: React.CSSProperties = {
-  padding: '10px 14px',
-  fontSize: 9,
-  fontFamily: "'IBM Plex Mono', monospace",
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  color: '#4a5a73',
-  fontWeight: 600,
-  borderBottom: '1px solid rgba(0,212,184,0.16)',
-  background: '#0d1628',
-  whiteSpace: 'nowrap',
-  textAlign: 'left',
-};
-
-const CHART_TITLE: React.CSSProperties = {
-  fontSize: 10,
-  fontFamily: "'IBM Plex Mono', monospace",
-  letterSpacing: '0.16em',
-  textTransform: 'uppercase',
-  color: '#2dd4bf',
-  marginBottom: 16,
-};
-
-const AXIS_TICK = {
-  fill: '#9ca3af',
-  fontSize: 11,
-  fontFamily: "'IBM Plex Mono', monospace",
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getMetricValue(m: any, metric: MetricKey): number {
-  switch (metric) {
-    // Montos en millones sin redondear (se redondea al mostrar, no antes de sumar).
-    case 'presupuesto':
-      return insumos(m).presupuesto / 1_000_000;
-    case 'ingresos':
-      return insumos(m).ingresosCorrientes / 1_000_000;
-    case 'autonomia':
-      return indicadoresMunicipio(m).autonomia ?? 0;
-    case 'poblacion':
-      return insumos(m).poblacion;
-    case 'transferencias':
-      return insumos(m).transferencias / 1_000_000;
-    // Columnas SEFIN tal cual.
-    case 'ing_tributarios':
-      return (m.ingresos_tributarios || 0) / 1_000_000;
-    case 'ing_no_tributarios':
-      return (m.ingresos_no_tributarios || 0) / 1_000_000;
-    case 'ing_capital':
-      return (m.ingresos_capital || 0) / 1_000_000;
-    case 'gasto_funcionamiento':
-      return (m.gastos_funcionamiento || 0) / 1_000_000;
-    case 'gasto_capital':
-      return (m.gastos_capital_deuda || 0) / 1_000_000;
-    default:
-      return 0;
-  }
+/** Texto del ⚠ de un municipio: motivo de exclusión y señales de atípico (docs/ATIPICOS.md), sin repetir. */
+function avisos(m: Municipality): string[] {
+  const motivo = motivoExclusion(m);
+  const señales = atipicos(m).filter((s) => !motivo || !motivo.includes(s));
+  return [...(motivo ? [`${motivo} Excluido de medianas y percentiles.`] : []), ...señales];
 }
 
-function formatValue(metric: MetricKey, value: number): string {
-  if (metric === 'autonomia') return `${value.toFixed(1)}%`;
-  if (metric === 'poblacion') return new Intl.NumberFormat('es-HN').format(Math.round(value));
-  return fmtL(value * 1e6); // montos de getMetricValue vienen en millones
-}
-
-/** Valor agregado de varias filas (un año): suma de montos sin las filas sin liquidación; autonomía Σ/Σ con el nivel razones. */
-function getAggMetricValue(recs: any[], metric: MetricKey): number {
-  if (metric === 'autonomia') return indicadoresAgregados(recs).autonomia ?? 0;
-  return recs.filter(m => !excluirDeTotales(m)).reduce((s, m) => s + getMetricValue(m, metric), 0);
-}
-
-// Identidad de municipio = "DEPARTAMENTO|nombre": hay 24 nombres repetidos entre departamentos.
-const muniId = (m: any): string => `${m.department}|${m.name}`;
-const splitMuniId = (id: string): [string, string] => {
-  const i = id.indexOf('|');
-  return [id.slice(0, i), id.slice(i + 1)];
-};
-/** Etiqueta visible: el nombre, o "nombre (DEPTO)" si dos seleccionados se llaman igual. */
-function muniLabels(ids: string[]): Record<string, string> {
-  const names = ids.map(id => splitMuniId(id)[1]);
-  return Object.fromEntries(ids.map((id, i) => {
-    const [dept, name] = splitMuniId(id);
-    return [id, names.filter(n => n === names[i]).length > 1 ? `${name} (${nombreDepartamento(dept)})` : name];
-  }));
-}
-
-function getMetricLabel(metric: MetricKey): string {
-  return METRICS.find(m => m.key === metric)?.label ?? metric;
-}
-
-// ── Financial category helpers ────────────────────────────────────────────────
-
-/**
- * Montos SEFIN (millones) e indicadores de lib/indicadores para una o varias filas de un año.
- * Varias filas: montos sin las filas sin liquidación; indicadores con el nivel razones. Un municipio: sus cifras tal cual.
- */
-function getAggFinCats(recs: any[], unMunicipio = false) {
-  const base = unMunicipio ? recs : recs.filter(m => !excluirDeTotales(m));
-  const mill = (k: string) => Math.round(base.reduce((t, m) => t + (Number(m[k]) || 0), 0) / 1_000_000);
-  const ind  = unMunicipio ? indicadoresMunicipio(recs[0]) : indicadoresAgregados(recs);
-  const r1   = (v: number | null) => (v === null ? 0 : Math.round(v * 10) / 10);
-  return {
-    ingTributarios:       mill('ingresos_tributarios'),
-    ingNoTributarios:     mill('ingresos_no_tributarios'),
-    ingCapital:           mill('ingresos_capital'),
-    gastosFuncionamiento: mill('gastos_funcionamiento'),
-    gastosCapital:        mill('gastos_capital_deuda'),
-    autonomiaPct:         r1(ind.autonomia),
-    dependenciaPct:       r1(ind.dependenciaTransferencias),
-    funcionamientoPct:    r1(ind.funcionamientoSobreCorrientes),
-    inversionPct:         r1(ind.inversionSobreGasto),
-  };
-}
-
-const getFinCats = (m: any) => getAggFinCats([m], true);
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function SelectedPill({ label, onRemove, color = '#2dd4bf' }: { label: string; onRemove: () => void; color?: string }) {
+function Punto({ clave, valor, comp }: { clave: Clave; valor: number | null; comp: Comparacion }) {
+  if (clave === 'ejecucion') return <span style={{ fontSize: 11, color: C.gris }}>sin dirección</span>;
+  const s = semaforo(clave, valor, comp.percentil);
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      background: color + '22', color,
-      border: `1px solid ${color}60`, borderRadius: 20,
-      padding: '4px 10px', fontSize: 11,
-      fontFamily: "'IBM Plex Mono', monospace",
-    }}>
-      {label}
-      <button
-        onClick={onRemove}
-        style={{ background: 'none', border: 'none', color, cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 13 }}
-        aria-label={`Quitar ${label}`}
-      >×</button>
-    </span>
+    <span role="img" aria-label={s.etiqueta} title={s.etiqueta}
+      style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: TONO_COLOR[s.tono], flexShrink: 0 }} />
   );
 }
 
-function MetricTabs({ value, onChange }: { value: MetricKey; onChange: (m: MetricKey) => void }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div className="rk-tabbar" style={{ marginTop: 0 }}>
-        {BASE_METRICS.map(m => (
-          <button
-            key={m.key}
-            className={value === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
-            onClick={() => onChange(m.key)}
-          >{m.label}</button>
-        ))}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{
-          fontSize: 8, color: '#4a5a73', fontFamily: "'IBM Plex Mono', monospace",
-          letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-        }}>
-          Cat. Fin. →
-        </span>
-        <div className="rk-tabbar" style={{ marginTop: 0 }}>
-          {FIN_METRICS.map(m => (
-            <button
-              key={m.key}
-              className={value === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
-              onClick={() => onChange(m.key)}
-            >{m.label}</button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function YearPills({ selected, onChange }: { selected: number[]; onChange: (y: number[]) => void }) {
-  const toggle = (y: number) =>
-    onChange(selected.includes(y) ? selected.filter(x => x !== y) : [...selected, y].sort((a, b) => a - b));
-  return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      {YEARS.map(y => (
-        <button
-          key={y}
-          className={selected.includes(y) ? 'rk-pill rk-pill--active' : 'rk-pill'}
-          onClick={() => toggle(y)}
-        >{y}</button>
-      ))}
-    </div>
-  );
-}
-
-function ChartCard({ title, data, keys }: { title: string; data: any[]; keys: string[] }) {
-  if (data.length === 0) return null;
-  return (
-    <div style={{ ...CARD, marginTop: 20 }}>
-      <div style={CHART_TITLE}>{title}</div>
-      <ResponsiveContainer width="100%" height={340}>
-        <LineChart data={data} margin={{ top: 10, right: 24, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis
-            dataKey="year"
-            tick={AXIS_TICK}
-            axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
-            tickLine={false}
-          />
-          <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={54} />
-          <Tooltip
-            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
-            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
-            verticalAlign="bottom"
-            align="center"
-          />
-          {keys.map((k, i) => (
-            <Line
-              key={k}
-              type="monotone"
-              dataKey={k}
-              stroke={PALETTE[i % PALETTE.length]}
-              strokeWidth={2}
-              dot={{ r: 3, fill: PALETTE[i % PALETTE.length] }}
-              connectNulls
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function ComparisonTable({ rows, years, metric }: { rows: any[]; years: number[]; metric: MetricKey }) {
-  if (rows.length === 0) return null;
-  return (
-    <div style={{ ...CARD, marginTop: 20, padding: 0, overflow: 'hidden' }}>
-      <div style={{
-        padding: '14px 20px 10px',
-        fontSize: 10, fontFamily: "'IBM Plex Mono', monospace",
-        letterSpacing: '0.16em', textTransform: 'uppercase',
-        color: '#2dd4bf',
-      }}>
-        TABLA COMPARATIVA — {getMetricLabel(metric).toUpperCase()}
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr>
-              <th style={TH}>Municipio</th>
-              {years.map(y => <th key={y} style={{ ...TH, textAlign: 'right' }}>{y}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => (
-              <tr key={idx} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                <td style={{ padding: '10px 14px', color: '#e8eef6', fontSize: 14, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  {row.label}
-                </td>
-                {years.map(y => (
-                  <td key={y} style={{
-                    padding: '10px 14px', textAlign: 'right',
-                    color: '#2dd4bf', fontSize: 12,
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  }} title={row[`n_${y}`] ?? undefined}>
-                    {row[`y_${y}`] ?? '—'}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ── Financial chart panels ────────────────────────────────────────────────────
-
-function IncomeBarCard({ title, data }: { title: string; data: any[] }) {
-  if (!data.length) return null;
-  return (
-    <div style={{ ...CARD, marginTop: 20 }}>
-      <div style={CHART_TITLE}>{title}</div>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} margin={{ top: 10, right: 24, left: 0, bottom: 10 }} barCategoryGap="30%">
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
-          <YAxis
-            tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
-            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
-          />
-          <Tooltip
-            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
-            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
-            verticalAlign="bottom"
-            align="center"
-          />
-          <Bar dataKey="ingTributarios"   name="Ing. Tributarios"    fill="#2dd4bf" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="ingNoTributarios" name="Ing. No Tributarios" fill="#f59e0b" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="ingCapital"       name="Ing. Capital"        fill="#ec4899" radius={[2, 2, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function GastosBarCard({ title, data }: { title: string; data: any[] }) {
-  if (!data.length) return null;
-  return (
-    <div style={{ ...CARD, marginTop: 20 }}>
-      <div style={CHART_TITLE}>{title}</div>
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={data} margin={{ top: 10, right: 24, left: 0, bottom: 10 }} barCategoryGap="30%">
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
-          <YAxis
-            tick={AXIS_TICK} axisLine={false} tickLine={false} width={84}
-            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
-          />
-          <Tooltip
-            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
-            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
-            verticalAlign="bottom"
-            align="center"
-          />
-          <Bar dataKey="gastosFuncionamiento" name="Gastos Funcionamiento"  fill="#f97316" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="gastosCapital"        name="Gastos Capital y Deuda" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// ── Combined financial composition chart (all 5 categories per municipality) ──
-
-const FIN_BARS = [
-  { key: 'ingTributarios',       name: 'Ing. Tributarios',    fill: '#2dd4bf' },
-  { key: 'ingNoTributarios',     name: 'Ing. No Tributarios', fill: '#f59e0b' },
-  { key: 'ingCapital',           name: 'Ing. Capital',        fill: '#ec4899' },
-  { key: 'gastosFuncionamiento', name: 'G. Funcionamiento',   fill: '#f97316' },
-  { key: 'gastosCapital',        name: 'G. Capital y Deuda',  fill: '#8b5cf6' },
-];
-
-function ComposicionFinancieraCard({ title, data }: { title: string; data: any[] }) {
-  if (!data.length) return null;
-  return (
-    <div style={{ ...CARD, marginTop: 20 }}>
-      <div style={CHART_TITLE}>{title}</div>
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={data} margin={{ top: 28, right: 24, left: 0, bottom: 10 }} barCategoryGap="28%">
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis
-            dataKey="name"
-            tick={AXIS_TICK}
-            axisLine={false}
-            tickLine={false}
-            interval={0}
-          />
-          <YAxis
-            tick={AXIS_TICK}
-            axisLine={false}
-            tickLine={false}
-            width={84}
-            tickFormatter={(v: number) => fmtLGrafico(v * 1e6)}
-          />
-          <Tooltip
-            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
-            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [fmtL(Number(v) * 1e6), '']}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
-            verticalAlign="bottom"
-            align="center"
-          />
-          {FIN_BARS.map(b => (
-            <Bar key={b.key} dataKey={b.key} name={b.name} fill={b.fill} radius={[2, 2, 0, 0]}>
-              <LabelList
-                dataKey={b.key}
-                position="top"
-                style={{ fontSize: 7.5, fill: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-                formatter={(v: any) => v > 0 ? fmtLGrafico(Number(v) * 1e6) : ''}
-              />
-            </Bar>
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// IDH eliminado: no existe en Supabase (antes salía del mock y en la práctica siempre valía 0).
-const RADAR_AXES = ['Autonomía', 'Dependencia de transferencias', 'Funcionamiento / corrientes', 'Inversión / gasto'];
-
-function RadarCard({
-  title, radarData, names,
-}: {
-  title: string;
-  radarData: any[];
-  names: string[];
-}) {
-  if (names.length < 2 || !radarData.length) return null;
-  return (
-    <div style={{ ...CARD, marginTop: 20 }}>
-      <div style={CHART_TITLE}>{title}</div>
-      <ResponsiveContainer width="100%" height={360}>
-        <RadarChart data={radarData} margin={{ top: 10, right: 50, left: 50, bottom: 10 }}>
-          <PolarGrid stroke="rgba(255,255,255,0.08)" />
-          <PolarAngleAxis
-            dataKey="subject"
-            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}
-          />
-          <PolarRadiusAxis
-            angle={90}
-            domain={[0, 100]}
-            tick={{ fill: '#4a5a73', fontSize: 9, fontFamily: "'IBM Plex Mono', monospace" }}
-            tickCount={4}
-          />
-          {names.map((name, i) => (
-            <Radar
-              key={name}
-              name={name}
-              dataKey={name}
-              stroke={PALETTE[i % PALETTE.length]}
-              fill={PALETTE[i % PALETTE.length]}
-              fillOpacity={0.12}
-              strokeWidth={2}
-            />
-          ))}
-          <Legend
-            wrapperStyle={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", paddingTop: 12 }}
-            verticalAlign="bottom"
-            align="center"
-          />
-          <Tooltip
-            contentStyle={{ background: '#0d1628', border: '1px solid rgba(0,212,184,0.2)', borderRadius: 6, fontSize: 11 }}
-            labelStyle={{ color: '#9ca3af', fontFamily: "'IBM Plex Mono', monospace" }}
-            itemStyle={{ fontFamily: "'IBM Plex Mono', monospace" }}
-            formatter={(v: number) => [`${Number(v).toFixed(1)}`, '']}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// ── Financial charts section ──────────────────────────────────────────────────
-
-function FinancialChartsSection({
-  selected,
-  municipalities,
-  mode,
-}: {
-  selected: string[];
-  municipalities: any[];
-  mode: 'muni' | 'dept';
-}) {
-  const { fiscalYear: finYear, setFiscalYear: setFinYear } = useNavbar(); // año global
-
-  // Which years have at least one record for any selected entity
-  const yearsWithData = useMemo(() => {
-    const s = new Set<number>();
-    municipalities.forEach(m => {
-      const match = mode === 'muni'
-        ? selected.includes(muniId(m))
-        : selected.includes(m.department ?? '');
-      if (match) s.add(m.year);
-    });
-    return s;
-  }, [selected, municipalities, mode]);
-
-  // Año sin filas SEFIN (2019/2020) → aviso, sin saltar a otro año.
-  const effectiveFinYear = finYear;
-  const finNoData = !yearsWithData.has(finYear);
-
-  const barData = useMemo(() => {
-    if (!selected.length) return [];
-    const labels = mode === 'muni' ? muniLabels(selected) : {};
-    return selected.map(entity => {
-      const recs = mode === 'muni'
-        ? municipalities.filter(m => muniId(m) === entity && m.year === effectiveFinYear)
-        : municipalities.filter(m => m.department === entity && m.year === effectiveFinYear);
-      if (!recs.length || (mode === 'muni' && sinLiquidacion(recs[0]))) return null;
-      const fc = mode === 'muni' ? getFinCats(recs[0]) : getAggFinCats(recs);
-      return { name: mode === 'muni' ? labels[entity] : nombreDepartamento(entity), ...fc };
-    }).filter(Boolean) as any[];
-  }, [selected, municipalities, effectiveFinYear, mode]);
-  // Montos agregados por departamento que incluyen filas sin Art. 91 o con rendición parcial.
-  const notaFin = mode === 'muni' ? null
-    : notaTotales(municipalities.filter((m) => selected.includes(m.department) && m.year === effectiveFinYear));
-
-  const radarData = useMemo(() => {
-    if (selected.length < 2 || !barData.length) return [];
-    return RADAR_AXES.map(subject => {
-      const row: any = { subject };
-      barData.forEach((d: any) => {
-        if (subject === 'Autonomía')                     row[d.name] = d.autonomiaPct;
-        if (subject === 'Dependencia de transferencias') row[d.name] = d.dependenciaPct;
-        if (subject === 'Funcionamiento / corrientes')   row[d.name] = d.funcionamientoPct;
-        if (subject === 'Inversión / gasto')             row[d.name] = d.inversionPct;
-      });
-      return row;
-    });
-  }, [selected, barData]);
-
-  if (!selected.length) return null;
-
-  return (
-    <>
-      <div style={{ ...CARD, marginTop: 20 }}>
-        <span style={FLABEL}>
-          AÑO PARA ANÁLISIS FINANCIERO
-          {finNoData && (
-            <span style={{ color: '#f59e0b', marginLeft: 8, fontWeight: 400, textTransform: 'none' }}>
-              ({NO_DATA_MSG})
-            </span>
-          )}
-        </span>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {YEARS.map(y => (
-            <button
-              key={y}
-              className={effectiveFinYear === y ? 'rk-pill rk-pill--active' : 'rk-pill'}
-              onClick={() => setFinYear(y)}
-              style={{ opacity: yearsWithData.size > 0 && !yearsWithData.has(y) ? 0.4 : 1 }}
-            >{y}</button>
-          ))}
-        </div>
-      </div>
-
-      {finNoData ? (
-        <div style={{ ...CARD, marginTop: 20, textAlign: 'center', color: '#f59e0b', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700 }}>
-          ⚠ {NO_DATA_MSG} ({finYear})
-        </div>
-      ) : (
-        <>
-          <ComposicionFinancieraCard
-            title={`COMPOSICIÓN FINANCIERA · ${effectiveFinYear}`}
-            data={barData}
-          />
-          <IncomeBarCard
-            title={`COMPOSICIÓN DE INGRESOS · ${effectiveFinYear}`}
-            data={barData}
-          />
-          <GastosBarCard
-            title={`ESTRUCTURA DE GASTOS · ${effectiveFinYear}`}
-            data={barData}
-          />
-          <RadarCard
-            title="PERFIL FINANCIERO COMPARATIVO"
-            radarData={radarData}
-            names={barData.map((d: any) => d.name)}
-          />
-          {notaFin && <div style={{ marginTop: 10, fontSize: 12, color: '#f0a33a', fontFamily: "'IBM Plex Mono', monospace" }}>Montos {effectiveFinYear}: {notaFin}</div>}
-        </>
-      )}
-    </>
-  );
-}
-
-// ── Mode 1: Municipios vs Municipios ──────────────────────────────────────────
-
-function ModeMusVsMus({ municipalities }: { municipalities: any[] }) {
-  // deptSections: one entry per group (up to 2), value is the dept name or '' if unselected
-  const [deptSections, setDeptSections] = useState<string[]>(['']);
-  const [selected, setSelected]         = useState<string[]>([]); // ids "DEPARTAMENTO|nombre"
-  const [years, setYears]               = useState<number[]>([...ANIOS_SEFIN]);
-  const [metric, setMetric]             = useState<MetricKey>('presupuesto');
-
-  // Preselección desde la Ficha Municipal: /comparativos?municipio=0318 (código INE).
+export default function ComparativesPage() {
+  const { fiscalYear } = useNavbar();
   const [params] = useSearchParams();
-  const ineInicial = params.get('municipio');
-  const preseleccionado = useRef(false); // se aplica una sola vez: el usuario puede quitarlo después
-  useEffect(() => {
-    if (!ineInicial || preseleccionado.current) return;
-    const m = municipalities.find(x => codigoINE(x.department, x.code) === ineInicial);
-    if (!m) return;
-    preseleccionado.current = true;
-    setDeptSections([m.department]);
-    setSelected([muniId(m)]);
-  }, [ineInicial, municipalities]);
+  // Preselección desde la Ficha Municipal: /comparativos?municipio=0318 (código INE).
+  const [ines, setInes] = useState<string[]>(() => {
+    const p = params.get('municipio');
+    return p && /^\d{4}$/.test(p) ? [p] : [];
+  });
+  const { municipalities: filasAnio, loading } = useMunicipalitiesMultiYear([fiscalYear]);
+  const sinDatos = !loading && filasAnio.length === 0;
 
-  const departments = useMemo(() =>
-    [...new Set(municipalities.map(m => m.department).filter(Boolean))].sort(),
-    [municipalities]
+  const elegidos = useMemo(
+    () => ines.map((ine) => ({ ine, fila: filasAnio.find((m) => ineDe(m) === ine) ?? null })),
+    [ines, filasAnio],
   );
+  const conFila = useMemo(() => elegidos.filter((e): e is { ine: string; fila: Municipality } => e.fila != null), [elegidos]);
 
-  // Per-section muni lists, derived from deptSections
-  const muniListsPerSection = useMemo(() =>
-    deptSections.map(dept =>
-      dept
-        ? [...new Set(
-            municipalities.filter(m => m.department === dept).map(m => m.name).filter(Boolean)
-          )].sort()
-        : []
-    ),
-    [deptSections, municipalities]
+  // comps[ine][clave]: percentil y mediana del municipio en su categoría.
+  const comps = useMemo(() => Object.fromEntries(conFila.map(({ ine, fila }) => [
+    ine, Object.fromEntries(FILAS.map((k) => [k, comparacionPares(filasAnio, fila, k as keyof Indicadores)])) as Record<Clave, Comparacion>,
+  ])), [conFila, filasAnio]);
+
+  // Una columna "Mediana cat. X" por categoría presente (los percentiles son siempre dentro de la propia categoría).
+  const categorias = useMemo(() => {
+    const vistas = new Map<string, string>(); // categoría → ine de un municipio de esa categoría
+    conFila.forEach(({ ine, fila }) => { if (fila.category && !vistas.has(fila.category)) vistas.set(fila.category, ine); });
+    return Array.from(vistas.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([cat, ine]) => ({ cat, ine }));
+  }, [conFila]);
+
+  const agregar = (ine: string) => setInes((xs) => (!/^\d{4}$/.test(ine) || xs.includes(ine) || xs.length >= MAX ? xs : [...xs, ine]));
+  const quitar = (ine: string) => setInes((xs) => xs.filter((x) => x !== ine));
+  // Pares de la categoría en el año (sin excluidos, incluido el municipio), como en comparacionPares.
+  const nPares = (fila: Municipality) => filasAnio.filter((m) => m.year === fila.year && m.category === fila.category && !excluirDeRazones(m)).length;
+  const base = conFila.find(({ fila }) => !excluirDeRazones(fila))?.fila ?? conFila[0]?.fila ?? null;
+  const sugeridos = useMemo(
+    () => (base ? paresSugeridos(filasAnio, base, conFila.map((e) => e.fila), MAX - ines.length) : []),
+    [base, filasAnio, conFila, ines.length],
   );
+  const color = (ine: string) => COLORES[ines.indexOf(ine) % COLORES.length];
+  const conAvisos = conFila.map(({ ine, fila }) => ({ ine, fila, avisos: avisos(fila) })).filter((x) => x.avisos.length);
 
-  const handleDeptChange = (sectionIdx: number, newDept: string) => {
-    const oldDept = deptSections[sectionIdx];
-    if (oldDept) setSelected(prev => prev.filter(id => splitMuniId(id)[0] !== oldDept));
-    setDeptSections(prev => prev.map((d, i) => i === sectionIdx ? newDept : d));
+  const boton: React.CSSProperties = {
+    minHeight: 44, padding: '0 16px', borderRadius: 8, border: `1px solid ${C.turquesa}`, background: 'transparent',
+    color: C.turquesa, fontFamily: COND, fontSize: 16, fontWeight: 600, cursor: 'pointer',
   };
-
-  const removeSection = (sectionIdx: number) => {
-    const deptToRemove = deptSections[sectionIdx];
-    if (deptToRemove) setSelected(prev => prev.filter(id => splitMuniId(id)[0] !== deptToRemove));
-    setDeptSections(prev => prev.filter((_, i) => i !== sectionIdx));
-  };
-
-  const toggleMuni = (id: string) => {
-    setSelected(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id)
-        : prev.length < MAX_MUNIS ? [...prev, id] : prev
-    );
-  };
-
-  const labels = useMemo(() => muniLabels(selected), [selected]);
-
-  const chartData = useMemo(() => {
-    if (!selected.length || !years.length) return [];
-    const grouped: Record<number, any> = {};
-    municipalities.forEach(m => {
-      const id = muniId(m);
-      if (!selected.includes(id) || !years.includes(m.year) || sinLiquidacion(m)) return;
-      if (!grouped[m.year]) grouped[m.year] = { year: m.year };
-      grouped[m.year][labels[id]] = Math.round(getMetricValue(m, metric) * 10) / 10;
-    });
-    return Object.values(grouped).sort((a: any, b: any) => a.year - b.year);
-  }, [municipalities, selected, labels, years, metric]);
-
-  const tableRows = useMemo(() => {
-    return selected.map(id => {
-      const row: any = { label: labels[id] };
-      years.forEach(y => {
-        const rec = municipalities.find(m => muniId(m) === id && m.year === y);
-        row[`y_${y}`] = !rec ? null : sinLiquidacion(rec) ? ROTULO_SIN_LIQUIDACION
-          : formatValue(metric, getMetricValue(rec, metric)) + (notaDatoIncompleto(rec) ? ' ⚠' : '');
-        row[`n_${y}`] = rec ? notaDatoIncompleto(rec) : null; // tooltip del ⚠
-      });
-      return row;
-    });
-  }, [municipalities, selected, labels, years, metric]);
-
-  const hasDeptSelected = deptSections.some(d => d !== '');
+  const th: React.CSSProperties = { padding: '10px 12px', background: C.panel2, borderBottom: `1px solid ${C.borde2}`, textAlign: 'right', verticalAlign: 'bottom', minWidth: 140 };
+  const fija = (bg: string): React.CSSProperties => ({ position: 'sticky', left: 0, zIndex: 1, background: bg, boxShadow: `1px 0 0 ${C.borde2}`, textAlign: 'left' });
 
   return (
-    <>
-      <div style={CARD}>
+    <div className="simho-scroll" style={{ flex: 1, overflowY: 'auto', background: C.fondo, color: C.texto, fontFamily: SANS }}>
+      <div style={{ padding: '24px clamp(16px, 3vw, 32px)', display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1240 }}>
+        <header style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: 2, color: C.turquesa }}>SIMHO — SEFIN {fiscalYear}</div>
+            <h1 style={{ margin: '4px 0 0', fontFamily: COND, fontSize: 'clamp(30px, 5vw, 38px)', fontWeight: 700 }}>Comparar municipios</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: C.suave }}>
+              ¿Cómo está cada municipio frente a sus pares? Pares: misma categoría ({ROTULO_CATEGORIA}) y mismo año.
+            </p>
+          </div>
+          <SelectorAnio alto />
+        </header>
 
-        {/* ── Dept section groups ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
-          {deptSections.map((dept, sectionIdx) => {
-            const color      = SECTION_COLORS[sectionIdx];
-            const rgbColor   = sectionIdx === 0 ? '45,212,191' : '245,158,11';
-            const usedDepts  = deptSections.filter((_, i) => i !== sectionIdx).filter(Boolean);
-            const muniList   = muniListsPerSection[sectionIdx];
-            const sectionSel = selected.filter(id => splitMuniId(id)[0] === dept);
+        <section aria-label="Municipios a comparar" style={{ ...panel, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            {ines.length < MAX
+              ? <BuscadorMunicipio filas={filasAnio} onElegir={(o) => agregar(o.ine)} />
+              : <span style={{ fontSize: 14, color: C.suave }}>Máximo {MAX} municipios.</span>}
+            <button type="button" style={{ ...boton, opacity: sugeridos.length ? 1 : 0.5, cursor: sugeridos.length ? 'pointer' : 'default' }}
+              disabled={!sugeridos.length} onClick={() => sugeridos.forEach((m) => agregar(ineDe(m)))}
+              title={base ? `Misma categoría que ${base.name}, población más cercana` : 'Elegí primero un municipio'}>
+              Agregar pares sugeridos
+            </button>
+          </div>
+          {base && sugeridos.length > 0 && (
+            <div style={{ fontSize: 13, color: C.suave }}>
+              Sugeridos para {base.name} (categoría {base.category}, población más cercana): {sugeridos.map((m) => m.name).join(', ')}.
+            </div>
+          )}
+          {ines.length > 0 && (
+            <ul style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: 0, padding: 0, listStyle: 'none' }}>
+              {elegidos.map(({ ine, fila }) => (
+                <li key={ine} style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${color(ine)}`, borderRadius: 999, padding: '0 4px 0 12px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: color(ine) }} aria-hidden="true" />
+                  <span style={{ fontSize: 14 }}>{fila ? `${fila.name} — ${nombreDepartamento(fila.department)}` : loading ? 'Cargando…' : `${ine} (sin datos ${fiscalYear})`}</span>
+                  <button type="button" onClick={() => quitar(ine)} aria-label={`Quitar ${fila?.name ?? ine}`}
+                    className="boton-quitar" style={{ all: 'unset', cursor: 'pointer', width: 44, height: 44, display: 'grid', placeItems: 'center', color: C.suave, fontSize: 18 }}>×</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div style={{ fontSize: 13, color: C.suave }}>
+            Para comparar departamentos, ver <Link to="/dashboard" style={{ color: C.turquesa }}>Panorama Nacional</Link>.
+          </div>
+        </section>
 
-            return (
-              <div
-                key={sectionIdx}
-                style={{
-                  border: `1px solid ${color}30`,
-                  borderLeft: `3px solid ${color}`,
-                  borderRadius: 8,
-                  padding: '14px 16px',
-                  background: `rgba(${rgbColor},0.04)`,
-                }}
-              >
-                {/* Section header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <span style={{
-                    fontSize: 9, fontFamily: "'IBM Plex Mono', monospace",
-                    letterSpacing: '0.14em', textTransform: 'uppercase',
-                    color, fontWeight: 600,
-                  }}>
-                    ● Grupo {sectionIdx + 1}
-                  </span>
-                  {sectionIdx > 0 && (
-                    <button
-                      onClick={() => removeSection(sectionIdx)}
-                      style={{
-                        background: 'none', border: 'none', color: '#4a5a73',
-                        cursor: 'pointer', fontSize: 10,
-                        fontFamily: "'IBM Plex Mono', monospace", padding: '2px 6px',
-                      }}
-                    >
-                      ✕ Remover
-                    </button>
-                  )}
-                </div>
-
-                {/* Dept dropdown */}
-                <div style={{ marginBottom: dept ? 14 : 0 }}>
-                  <span style={FLABEL}>DEPARTAMENTO</span>
-                  <select
-                    className="simho-select"
-                    value={dept}
-                    onChange={e => handleDeptChange(sectionIdx, e.target.value)}
-                  >
-                    <option value="">— Selecciona Departamento —</option>
-                    {departments
-                      .filter(d => !usedDepts.includes(d))
-                      .map(d => <option key={d} value={d}>{nombreDepartamento(d)}</option>)}
-                  </select>
-                </div>
-
-                {/* Empty state hint */}
-                {!dept && (
-                  <div style={{ marginTop: 10, color: '#4a5a73', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}>
-                    Selecciona un departamento para ver sus municipios
-                  </div>
-                )}
-
-                {/* Muni grid */}
-                {dept && muniList.length > 0 && (
-                  <>
-                    <div style={{ marginBottom: 8 }}>
-                      <span style={{ ...FLABEL, marginBottom: 0 }}>
-                        MUNICIPIOS ({sectionSel.length}/{MAX_MUNIS})
-                        {selected.length >= MAX_MUNIS && sectionSel.length === 0 && (
-                          <span style={{ color: '#f87171', marginLeft: 8, fontSize: 8, fontWeight: 400 }}>
-                            máx. {MAX_MUNIS} total
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: 5,
-                    }}>
-                      {muniList.map(name => {
-                        const id         = `${dept}|${name}`;
-                        const isSelected = selected.includes(id);
-                        const isDisabled = !isSelected && selected.length >= MAX_MUNIS;
+        {loading ? <div style={{ fontFamily: MONO, color: C.suave }}>Cargando datos SEFIN…</div>
+          : sinDatos ? <div style={{ fontFamily: MONO, color: C.ambar }}>⚠ {NO_DATA_MSG}</div>
+          : !ines.length ? <div style={{ ...panel, color: C.suave }}>Buscá un municipio para empezar. Podés comparar hasta {MAX}.</div>
+          : (
+          <>
+            <section aria-label="Tabla comparativa" style={{ ...panel, padding: 0, overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      <th scope="col" className="col-fija" style={{ ...th, ...fija(C.panel2), minWidth: 170, ...rotulo }}>Indicador</th>
+                      {elegidos.map(({ ine, fila }) => {
+                        const av = fila ? avisos(fila) : [];
+                        const ruta = rutaFicha(ine);
                         return (
-                          <label
-                            key={name}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 8,
-                              padding: '8px 10px', borderRadius: 6,
-                              border: `1px solid ${isSelected ? color + 'a0' : 'rgba(255,255,255,0.07)'}`,
-                              background: isSelected ? color + '18' : 'rgba(255,255,255,0.02)',
-                              cursor: isDisabled ? 'not-allowed' : 'pointer',
-                              opacity: isDisabled ? 0.35 : 1,
-                              fontSize: 11,
-                              color: isSelected ? color : '#8493ab',
-                              fontFamily: "'IBM Plex Mono', monospace",
-                              userSelect: 'none',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              disabled={isDisabled}
-                              onChange={() => toggleMuni(id)}
-                              style={{
-                                accentColor: color,
-                                width: 12, height: 12,
-                                cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                flexShrink: 0,
-                              }}
-                            />
-                            {name}
-                          </label>
+                          <th key={ine} scope="col" style={{ ...th, borderTop: `3px solid ${color(ine)}` }}>
+                            {ruta ? <Link to={ruta} style={{ fontFamily: COND, fontSize: 17, color: C.texto, textDecoration: 'none' }}>{fila?.name ?? ine}</Link> : ine}
+                            {av.length > 0 && <span title={av.join(' · ')} aria-label={`Aviso: ${av.join(' · ')}`} style={{ color: C.ambar, marginLeft: 4 }}>⚠</span>}
+                            <div style={{ fontSize: 11, color: C.suave, fontWeight: 400 }}>
+                              {fila ? `${nombreDepartamento(fila.department)} · ${fila.category ? `Cat. ${fila.category} · ${nPares(fila)} pares` : 'Sin categoría'}` : `Sin datos ${fiscalYear}`}
+                            </div>
+                          </th>
                         );
                       })}
-                    </div>
-                  </>
-                )}
+                      {categorias.map(({ cat }) => (
+                        <th key={cat} scope="col" style={{ ...th, color: C.suave, fontFamily: COND, fontSize: 16 }}>Mediana cat. {cat}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {FILAS.map((k) => (
+                      <tr key={k}>
+                        <th scope="row" className="col-fija" style={{ ...fija(C.panel), padding: '8px 12px', fontFamily: SANS, fontWeight: 500, fontSize: 14, borderTop: `1px solid ${C.borde}` }}>
+                          {etiqueta(k)}
+                        </th>
+                        {elegidos.map(({ ine, fila }) => {
+                          const td: React.CSSProperties = { padding: '8px 12px', textAlign: 'right', borderTop: `1px solid ${C.borde}`, whiteSpace: 'nowrap' };
+                          if (!fila) return <td key={ine} style={{ ...td, color: C.gris }}>—</td>;
+                          if (sinLiquidacion(fila)) return <td key={ine} style={{ ...td, color: C.ambar }}>Sin liquidación</td>;
+                          const v = indicadoresMunicipio(fila)[k];
+                          const c = comps[ine][k];
+                          if (SIN_PERCENTIL.includes(k)) return (
+                            <td key={ine} style={td}>
+                              <span style={{ color: C.texto, fontWeight: 600 }}>{fmt(k, v)}</span>
+                              <div style={{ fontSize: 11, color: C.suave }}>monto, sin percentil</div>
+                            </td>
+                          );
+                          return (
+                            <td key={ine} style={td}>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                                <span style={{ color: C.texto, fontWeight: 600 }}>{fmt(k, v)}</span>
+                                <Punto clave={k} valor={v} comp={c} />
+                              </div>
+                              <div style={{ fontSize: 11, color: C.suave }}>{c.percentil != null ? `P${c.percentil}` : 'sin percentil'}</div>
+                            </td>
+                          );
+                        })}
+                        {categorias.map(({ cat, ine }) => (
+                          <td key={cat} style={{ padding: '8px 12px', textAlign: 'right', borderTop: `1px solid ${C.borde}`, color: C.suave, whiteSpace: 'nowrap' }}>
+                            {fmt(k, comps[ine][k].mediana)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            );
-          })}
+              <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
+                P = percentil en su categoría (% de pares con valor menor). Punto: <span style={{ color: C.turquesa }}>●</span> sobre la mediana ·{' '}
+                <span style={{ color: C.gris }}>●</span> en la mediana · <span style={{ color: C.ambar }}>●</span> bajo la mediana o alerta, según el sentido favorable del indicador.
+                La ejecución no tiene sentido favorable ("sin dirección"). Ahorro corriente y resultado sin balance son montos: sin percentil ni punto.
+              </div>
+            </section>
 
-          {/* Add second department */}
-          {deptSections.length < 2 && (
-            <button
-              onClick={() => setDeptSections(prev => [...prev, ''])}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: 'none',
-                border: '1px dashed rgba(255,255,255,0.12)',
-                borderRadius: 8, padding: '10px 16px',
-                color: '#4a5a73', cursor: 'pointer',
-                fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
-                letterSpacing: '0.06em',
-              }}
-            >
-              <span style={{ fontSize: 15, lineHeight: 1, color: '#f59e0b' }}>+</span>
-              Agregar departamento
-            </button>
-          )}
-        </div>
+            {conAvisos.length > 0 && (
+              <section role="note" aria-label="Avisos" style={{ ...panel, borderColor: C.ambar, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {conAvisos.map(({ ine, fila, avisos: av }) => (
+                  <div key={ine} style={{ fontSize: 14, color: '#f5e3c4' }}><span style={{ color: C.ambar }}>⚠ {fila.name}:</span> {av.join(' · ')}</div>
+                ))}
+              </section>
+            )}
 
-        {/* Divider */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: 18 }} />
-
-        {/* Years */}
-        <div style={{ marginBottom: 18 }}>
-          <span style={FLABEL}>AÑOS</span>
-          <YearPills selected={years} onChange={setYears} />
-        </div>
-
-        {/* Metric */}
-        <div>
-          <span style={FLABEL}>MÉTRICA</span>
-          <MetricTabs value={metric} onChange={setMetric} />
-        </div>
-      </div>
-
-      {/* ── Selected pills below card ── */}
-      {selected.length > 0 && (
-        <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ ...FLABEL, marginBottom: 0 }}>
-            MUNICIPIOS {selected.length}/{MAX_MUNIS}
-          </span>
-          {selected.map((id, i) => {
-            const [deptName, name] = splitMuniId(id);
-            const sIdx     = deptSections.indexOf(deptName);
-            const color    = sIdx >= 0 ? SECTION_COLORS[sIdx] : PALETTE[i % PALETTE.length];
-            return (
-              <SelectedPill
-                key={id}
-                label={`${name} · ${deptName}`}
-                color={color}
-                onRemove={() => setSelected(p => p.filter(x => x !== id))}
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Hint messages */}
-      {!hasDeptSelected && (
-        <div style={{ marginTop: 16, padding: '14px 18px', background: 'rgba(0,212,184,0.05)', borderLeft: '3px solid rgba(0,212,184,0.3)', borderRadius: 4 }}>
-          <span style={{ color: '#5eead4', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
-            Selecciona un departamento para ver sus municipios y comparar hasta {MAX_MUNIS}
-          </span>
-        </div>
-      )}
-      {hasDeptSelected && selected.length === 0 && (
-        <div style={{ marginTop: 16, padding: '14px 18px', background: 'rgba(0,212,184,0.05)', borderLeft: '3px solid rgba(0,212,184,0.3)', borderRadius: 4 }}>
-          <span style={{ color: '#5eead4', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
-            Selecciona hasta {MAX_MUNIS} municipios para ver la comparativa
-          </span>
-        </div>
-      )}
-
-      <ChartCard
-        title={`COMPARATIVA — ${getMetricLabel(metric).toUpperCase()}`}
-        data={chartData}
-        keys={selected.map(id => labels[id])}
-      />
-      <ComparisonTable rows={tableRows} years={years} metric={metric} />
-      <FinancialChartsSection selected={selected} municipalities={municipalities} mode="muni" />
-    </>
-  );
-}
-
-// ── Mode 2: Departamentos ─────────────────────────────────────────────────────
-
-function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
-  const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
-  const [years, setYears]                 = useState<number[]>([...ANIOS_SEFIN]);
-  const [metric, setMetric]               = useState<MetricKey>('presupuesto');
-
-  const departments = useMemo(() =>
-    [...new Set(municipalities.map(m => m.department).filter(Boolean))].sort(),
-    [municipalities]
-  );
-
-  const toggleDept = (d: string) => {
-    setSelectedDepts(prev =>
-      prev.includes(d) ? prev.filter(x => x !== d)
-        : prev.length < MAX_DEPTS ? [...prev, d] : prev
-    );
-  };
-
-  const chartData = useMemo(() => {
-    if (!selectedDepts.length || !years.length) return [];
-    return years
-      .map(y => {
-        const row: any = { year: y };
-        selectedDepts.forEach(d => {
-          const recs = municipalities.filter(m => m.department === d && m.year === y);
-          if (recs.length) row[nombreDepartamento(d)] = Math.round(getAggMetricValue(recs, metric) * 10) / 10;
-        });
-        return Object.keys(row).length > 1 ? row : null;
-      })
-      .filter(Boolean)
-      .sort((a: any, b: any) => a.year - b.year);
-  }, [municipalities, selectedDepts, years, metric]);
-
-  const tableRows = useMemo(() => {
-    return selectedDepts.map(dept => {
-      const row: any = { label: nombreDepartamento(dept) };
-      years.forEach(y => {
-        const recs = municipalities.filter(m => m.department === dept && m.year === y);
-        if (!recs.length) return;
-        row[`y_${y}`] = formatValue(metric, getAggMetricValue(recs, metric));
-      });
-      return row;
-    });
-  }, [municipalities, selectedDepts, years, metric]);
-
-  return (
-    <>
-      <div style={CARD}>
-        {/* Row 1 */}
-        <div style={{ marginBottom: 18 }}>
-          <span style={FLABEL}>
-            DEPARTAMENTOS
-            <span style={{ color: '#2dd4bf', marginLeft: 6 }}>
-              {selectedDepts.length > 0 && `${selectedDepts.length}/${MAX_DEPTS}`}
-            </span>
-          </span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {departments.map(d => {
-              const active   = selectedDepts.includes(d);
-              const disabled = !active && selectedDepts.length >= MAX_DEPTS;
-              return (
-                <button
-                  key={d}
-                  className={active ? 'rk-pill rk-pill--active' : 'rk-pill'}
-                  disabled={disabled}
-                  onClick={() => toggleDept(d)}
-                  style={{ opacity: disabled ? 0.4 : 1 }}
-                >{nombreDepartamento(d)}</button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Row 2 */}
-        <div style={{ marginBottom: 18 }}>
-          <span style={FLABEL}>AÑOS</span>
-          <YearPills selected={years} onChange={setYears} />
-        </div>
-
-        {/* Row 3 */}
-        <div>
-          <span style={FLABEL}>MÉTRICA</span>
-          <MetricTabs value={metric} onChange={setMetric} />
-        </div>
-
-        {/* Selected pills */}
-        {selectedDepts.length > 0 && (
-          <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {selectedDepts.map(d => (
-              <SelectedPill key={d} label={d} onRemove={() => setSelectedDepts(p => p.filter(x => x !== d))} />
-            ))}
-          </div>
+            <section aria-label="Gráficos por indicador" style={grilla(340)}>
+              {FILAS.map((k) => {
+                const datos = conFila.filter(({ fila }) => !sinLiquidacion(fila))
+                  .map(({ ine, fila }) => ({ ine, nombre: `${avisos(fila).length ? '⚠ ' : ''}${fila.name ?? ine}`, valor: indicadoresMunicipio(fila)[k] }))
+                  .filter((d): d is { ine: string; nombre: string; valor: number } => d.valor != null);
+                const tick = (v: number) => (esMonto(k) ? fmtLGrafico(v) : `${Math.round(v)} %`);
+                const sentido = k === 'ejecucion' ? 'sin dirección' : SEMAFORO[k] === 'mayor' ? 'mayor es mejor' : 'menor es mejor';
+                return (
+                  <figure key={k} style={{ ...panel, margin: 0 }}>
+                    <figcaption style={{ fontFamily: COND, fontSize: 17, fontWeight: 600 }}>
+                      {etiqueta(k)} <span style={{ fontFamily: MONO, fontSize: 11, color: C.suave, fontWeight: 400 }}>· {sentido}</span>
+                    </figcaption>
+                    {datos.length ? (
+                      <ResponsiveContainer width="100%" height={52 + datos.length * 34}>
+                        <BarChart data={datos} layout="vertical" margin={{ top: 18, right: 24, left: 0, bottom: 0 }}>
+                          <CartesianGrid horizontal={false} stroke={C.borde} />
+                          <XAxis type="number" tickFormatter={tick} tick={{ fill: C.suave, fontSize: 11 }} stroke={C.borde2} />
+                          <YAxis type="category" dataKey="nombre" width={110} tick={{ fill: C.texto2, fontSize: 12 }} stroke={C.borde2} />
+                          <Tooltip formatter={(v) => fmt(k, Number(v))} contentStyle={{ background: C.panel2, border: `1px solid ${C.borde2}` }} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                          <Bar dataKey="valor" name={etiqueta(k)} isAnimationActive={false} barSize={18}>
+                            {datos.map((d) => <Cell key={d.ine} fill={color(d.ine)} />)}
+                          </Bar>
+                          {categorias.map(({ cat, ine }) => {
+                            const med = comps[ine][k].mediana;
+                            return med == null ? null : (
+                              <ReferenceLine key={cat} x={med} ifOverflow="extendDomain" stroke={C.texto2} strokeDasharray="4 3"
+                                label={{ value: `Med. ${cat}`, position: 'top', fill: C.texto2, fontSize: 11 }} />
+                            );
+                          })}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : <div style={{ fontSize: 13, color: C.suave, padding: '12px 0' }}>Sin datos para graficar.</div>}
+                  </figure>
+                );
+              })}
+            </section>
+          </>
         )}
       </div>
-
-      {selectedDepts.length === 0 && (
-        <div style={{ marginTop: 16, padding: '14px 18px', background: 'rgba(0,212,184,0.05)', borderLeft: '3px solid rgba(0,212,184,0.3)', borderRadius: 4 }}>
-          <span style={{ color: '#5eead4', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
-            Selecciona hasta {MAX_DEPTS} departamentos para comparar
-          </span>
-        </div>
-      )}
-
-      <ChartCard
-        title={`DEPARTAMENTOS — ${getMetricLabel(metric).toUpperCase()} TOTAL`}
-        data={chartData}
-        keys={selectedDepts.map(nombreDepartamento)}
-      />
-      <ComparisonTable rows={tableRows} years={years} metric={metric} />
-      {metric !== 'autonomia' && years.map((y) => {
-        const t = notaTotales(municipalities.filter((m) => selectedDepts.includes(m.department) && m.year === y));
-        return t ? <div key={y} style={{ marginTop: 10, fontSize: 12, color: '#f0a33a', fontFamily: "'IBM Plex Mono', monospace" }}>{y}: {t}</div> : null;
-      })}
-
-      <FinancialChartsSection selected={selectedDepts} municipalities={municipalities} mode="dept" />
-    </>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
-
-export default function ComparativosPage() {
-  const { municipalities, loading, error } = useMunicipalitiesMultiYear(YEARS);
-  const [mode, setMode] = useState<CompMode>('municipios');
-
-  const MODES: { key: CompMode; label: string }[] = [
-    { key: 'municipios',    label: 'Municipios vs Municipios' },
-    { key: 'departamentos', label: 'Departamentos' },
-  ];
-
-  if (loading) {
-    return (
-      <DashboardLayout title="Comparativos">
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 320 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            border: '3px solid rgba(0,212,184,0.15)',
-            borderTopColor: '#2dd4bf',
-            animation: 'spin 0.8s linear infinite',
-          }} />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <DashboardLayout title="Comparativos">
-        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: 16, color: '#f87171', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
-          Error: {error}
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  return (
-    <DashboardLayout title="Comparativos">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-
-        {/* ── HEADER ── */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{
-            fontSize: 10, color: '#2dd4bf', fontFamily: "'IBM Plex Mono', monospace",
-            letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4,
-          }}>
-            ANÁLISIS COMPARATIVO
-          </div>
-          <div style={{
-            fontSize: 36, fontWeight: 700, color: '#e8eef6', lineHeight: 1.1,
-            fontFamily: "'Barlow Condensed', sans-serif",
-          }}>
-            Comparativos
-          </div>
-          <div style={{ fontSize: 10.5, color: '#7c8aa3', marginTop: 5, fontFamily: "'IBM Plex Mono', monospace" }}>
-            Compara municipios, departamentos y tendencias históricas
-          </div>
-        </div>
-
-        {/* ── MODE SELECTOR ── */}
-        <div className="rk-tabbar" style={{ marginBottom: 20, marginTop: 0 }}>
-          {MODES.map(m => (
-            <button
-              key={m.key}
-              className={mode === m.key ? 'rk-tab rk-tab--active' : 'rk-tab'}
-              onClick={() => setMode(m.key)}
-            >{m.label}</button>
-          ))}
-        </div>
-
-        {/* ── ACTIVE MODE ── */}
-        {mode === 'municipios'    && <ModeMusVsMus municipalities={municipalities} />}
-        {mode === 'departamentos' && <ModeDepartamentos municipalities={municipalities} />}
-
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 // Análisis: cuadro técnico multianual (alcance País / Departamento / Municipio / Categoría; total o per cápita; nominal o real).
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   BarChart, Bar, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
@@ -12,7 +12,8 @@ import {
   porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda,
 } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
-import { IPC, ipcCompleto } from '../data/ipc';
+import { IPC, ipcCompleto, ANIO_BASE_REAL, ROTULO_PRECIOS_REALES } from '../data/ipc';
+import { useNavbar } from '../context/NavbarContext';
 import { fmtL, fmtLGrafico, fmtPct } from '../lib/formato';
 import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
 import { descargarXlsx, descargarCsv, nombreArchivo, TablaExport, Celda } from '../lib/exportar';
@@ -163,8 +164,11 @@ export default function AnalyticsPage() {
   const { municipalities, loading } = useMunicipalitiesMultiYear(ALL_YEARS);
   const sortedYears = [...selectedYears].sort((a, b) => a - b);
   const ultimo = sortedYears[sortedYears.length - 1];
-  const hayIPC = ipcCompleto(sortedYears);
+  const hayIPC = ipcCompleto([...sortedYears, ANIO_BASE_REAL]);
   const enReal = real && hayIPC;
+  // Pie de fuente global: precios constantes mientras "Real" esté activo en esta página.
+  const { setNotaPie } = useNavbar();
+  useEffect(() => { setNotaPie(enReal ? ROTULO_PRECIOS_REALES : null); return () => setNotaPie(null); }, [enReal, setNotaPie]);
 
   const alcance: Alcance | null = tipo === 'pais' ? { tipo }
     : tipo === 'departamento' ? (cod ? { tipo, cod } : null)
@@ -194,13 +198,13 @@ export default function AnalyticsPage() {
     : tipo === 'municipio' ? (muni?.etiqueta ?? 'Municipio (selecciona)')
     : `Categoría ${categoria} (SGJD 2020)`;
   const agregado = tipo !== 'municipio';
-  const unidad = `${perCapita ? 'Lempiras por habitante' : 'Lempiras'} · ${enReal ? `precios constantes de ${ultimo}` : 'precios corrientes'}`;
+  const unidad = `${perCapita ? 'Lempiras por habitante' : 'Lempiras'} · ${enReal ? `precios constantes de ${ANIO_BASE_REAL}` : 'precios corrientes'}`;
 
   /** Monto tal como se muestra: real (precios del último año) y/o por habitante del mismo año. */
   const ver = (v: number | null | undefined, y: number): number | null => {
     if (v == null) return null;
     let x: number | null = v;
-    if (enReal) x = deflactar(x, y, ultimo, IPC.valores);
+    if (enReal) x = deflactar(x, y, ANIO_BASE_REAL, IPC.valores);
     if (perCapita) x = porCapita(x, yearDataMap[y]?.poblacion);
     return x;
   };
@@ -208,7 +212,7 @@ export default function AnalyticsPage() {
   const variacion = (row: TRow) => (sortedYears.length < 2 ? null
     : variacionPct(valor(row, sortedYears[sortedYears.length - 2]), valor(row, ultimo)));
   const crecimiento = (row: TRow) => (sortedYears.length < 2 ? null : tcac(valor(row, sortedYears[0]), valor(row, ultimo), ultimo - sortedYears[0]));
-  const verInd = (k: IndicadorAnalisis, v: number | null, y: number) => (IND_LPH.has(k) && enReal ? deflactar(v, y, ultimo, IPC.valores) : v);
+  const verInd = (k: IndicadorAnalisis, v: number | null, y: number) => (IND_LPH.has(k) && enReal ? deflactar(v, y, ANIO_BASE_REAL, IPC.valores) : v);
   const fmtInd = (k: IndicadorAnalisis, v: number | null) => (IND_LPH.has(k) ? fmtL(v) : fmtPct(v));
   const fmtMonto = (v: number | null) => (v == null || v === 0 ? '—' : fmtL(v));
   // Totales que incluyen filas sin Art. 91 o con rendición parcial (alcances agregados).
@@ -276,7 +280,7 @@ export default function AnalyticsPage() {
         nota: (agregado
           ? `Mediana municipal y agregado (Σ numeradores ÷ Σ denominadores) de ${scopeLabel}, sin municipios sin liquidación, sin transferencia Art. 91 ni con rendición parcial. Los montos de la hoja Datos son totales: solo excluyen las filas sin liquidación.`
           : `Valores de ${scopeLabel}.`)
-          + (perCapita || enReal ? ` Montos por habitante ${enReal ? `a precios de ${ultimo}` : 'nominales'}.` : '')
+          + (perCapita || enReal ? ` Montos por habitante ${enReal ? `a precios de ${ANIO_BASE_REAL}` : 'nominales'}.` : '')
           + (deudaCero ? ` ${notaMedianaDeuda()}` : ''),
       },
       columnas: [
@@ -306,7 +310,7 @@ export default function AnalyticsPage() {
       ['Años', sortedYears.join(', ')],
       ['Unidad', unidad],
       ['Per cápita', perCapita ? 'Sí: cada monto se divide entre la población del mismo año del alcance' : 'No'],
-      ['Precios', enReal ? `Reales, a precios de ${ultimo}, con el IPC del BCH (promedio anual)` : 'Nominales (corrientes)'],
+      ['Precios', enReal ? `Reales: ${ROTULO_PRECIOS_REALES}` : 'Nominales (corrientes)'],
       ['Indicadores', agregado ? 'Mediana municipal y agregado Σ/Σ del alcance' : 'Valor del municipio'],
       ...notasTotales.map(([y, t]) => [`Totales ${y}`, t] as [string, string]),
       ['Excluidos', excl.length ? excl.join(' · ') : (agregado ? 'Ninguno en el alcance y años seleccionados' : 'No aplica (vista de un municipio: se muestran sus cifras)')],

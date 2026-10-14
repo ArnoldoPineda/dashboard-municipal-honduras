@@ -1,6 +1,12 @@
-// Índice de Precios al Consumidor de Honduras, promedio anual, para expresar montos a precios del último año.
+// Índice de Precios al Consumidor de Honduras, promedio anual, para expresar montos a precios constantes de 2025.
 // Fuente local: docs/fuentes/IPC_BCH_serie_mensual_promedio_anual.xlsx (fila "Promedio Anual", hoja "DIC.2025 =100").
 import type { SerieIPC } from '../lib/indicadores';
+import { ANIO_ACTUAL } from './anios';
+
+/** Año base de los precios constantes ("Real"): monto × IPC[ANIO_BASE_REAL] ÷ IPC[año]. */
+export const ANIO_BASE_REAL = ANIO_ACTUAL;
+/** Pie de fuente con "Real" activo. */
+export const ROTULO_PRECIOS_REALES = `Precios constantes de ${ANIO_BASE_REAL} — IPC promedio anual BCH (dic-2025 = 100)`;
 
 export const IPC = {
   fuente: 'Banco Central de Honduras (BCH) — IPC, promedio anual',

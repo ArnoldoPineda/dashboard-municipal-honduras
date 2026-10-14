@@ -90,9 +90,10 @@ describe('casos borde', () => {
   it('pieTabla: grupo vacío o sin valores → null', () => {
     expect(pieTabla([], [{ clave: 'x', agregacion: 'suma', valor: () => 1 }]).x).toBeNull();
   });
-  it('IPC: la serie está pendiente (no se inventan valores) y "Real" queda deshabilitado', () => {
-    expect(Object.values(IPC.valores).every((v) => v == null)).toBe(true);
-    expect(ipcCompleto([2021, 2025])).toBe(false);
+  it('IPC: serie BCH 2021–2025 cargada; un año sin IPC deja "Real" deshabilitado', () => {
+    expect(Object.values(IPC.valores).every((v) => typeof v === 'number' && v > 0)).toBe(true);
+    expect(ipcCompleto([2021, 2025])).toBe(true);
+    expect(ipcCompleto([2020, 2025])).toBe(false);
   });
   it('fmtPct y fmtNum', () => {
     expect(fmtPct(60.06)).toBe('60.1 %');

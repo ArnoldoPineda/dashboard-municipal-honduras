@@ -130,3 +130,12 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
 - Build: `.npmrc` con `legacy-peer-deps=true`, por el conflicto TypeScript 5 / react-scripts 5. Playwright está fijado en 1.63.0.
 
 ## 9. Fase 7b: desglose de Impuestos e IBI bajo G1 en Análisis ✅ completada (2026-10-14, PR #12, merge `d228d99`, bundle `main.e200cf29.js`)
+
+## 10. Fase 7c: desglose de los 8 impuestos de G1 en Análisis ✅ completada (2026-10-14, PR #14, merge `e37fb82`, bundle `main.9f0406f9.js`)
+
+- Bajo «de los cuales: Impuestos» van los 8 impuestos, desde la lista central `IMPUESTOS_G1`:
+  - IBI;
+  - Industria, comercio y servicios (subtotal), con Industria · Comercio · Servicios;
+  - Personal o vecinal, Telecomunicaciones, Extracción y Pecuario.
+- Una fila se oculta si vale 0 en todos los años visibles. La exportación lleva siempre todas.
+- Distrito Central registra Industria/Comercio/Servicios en un solo renglón que cambia entre años (`ATIPICOS.md` §9). Si el alcance lo incluye, esas filas llevan ⚠ y conviene usar el subtotal.

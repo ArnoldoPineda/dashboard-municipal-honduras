@@ -31,8 +31,8 @@ export default function App() {
               <Route path="municipio/:deptId/:code" element={<FichaMunicipal />} />
               <Route path="dashboard"             element={<DashboardNacional />}  />
               <Route path="muni-detalle"          element={<UltimaFicha />}        />
-              <Route path="financiero"            element={<BaseDatosPage />}      />
               <Route path="base-datos"            element={<BaseDatosPage />}      />
+              <Route path="financiero"            element={<Navigate to="/base-datos" replace />} />
               <Route path="analisis"              element={<AnalyticsPage />}      />
               <Route path="comparativos"          element={<ComparativesPage />}   />
               <Route path="rankings"              element={<RankingsPage />}       />

@@ -63,6 +63,41 @@ describe('libro .xlsx', () => {
   });
 });
 
+describe('hoja Resumen (totales y medianas fuera de Datos)', () => {
+  const conResumen: TablaExport = {
+    ...tabla,
+    resumen: {
+      columnas: [
+        { clave: 'campo', titulo: 'Campo', tipo: 'texto' }, { clave: 'columna', titulo: 'Columna', tipo: 'texto' },
+        { clave: 'criterio', titulo: 'Criterio', tipo: 'texto' }, { clave: 'valor', titulo: 'Valor', tipo: 'variable' },
+      ],
+      filas: [['population', 'Población', 'Total', 175345], ['ingresosCorrientes', 'Ingresos corrientes (L)', 'Total', 99999999.1], ['autonomia', 'Autonomía (%)', 'Mediana', 43.9]],
+      tipoFila: ['entero', 'monto', 'pct'],
+      nota: 'Totales de montos; medianas de razones; sin excluidos.',
+    },
+  };
+  const wb = XLSX.read(XLSX.write(libro(XLSX, conResumen, notas), { type: 'buffer', bookType: 'xlsx' }), { type: 'buffer', cellNF: true });
+  it('cuatro hojas en orden: Datos, Resumen, Diccionario, Notas', () => {
+    expect(wb.SheetNames).toEqual(['Datos', 'Resumen', 'Diccionario', 'Notas']);
+  });
+  it('Datos: exactamente una fila por registro (sin fila de total)', () => {
+    const d = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets.Datos, { header: 1 });
+    expect(d).toHaveLength(tabla.filas.length + 1);
+    expect(d.flat().some((v) => typeof v === 'string' && /TOTAL|MEDIANA/.test(v))).toBe(false);
+  });
+  it('Resumen: valores numéricos con su formato y la nota del criterio al final', () => {
+    const ws = wb.Sheets.Resumen;
+    expect(ws.D2.t).toBe('n'); expect(ws.D2.z).toBe('#,##0');
+    expect(ws.D3.z).toBe('#,##0');
+    expect(ws.D4.z).toBe('0.0'); expect(ws.D4.v).toBeCloseTo(43.9);
+    const r = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
+    expect(r[r.length - 1]).toEqual(['Criterio', 'Totales de montos; medianas de razones; sin excluidos.']);
+  });
+  it('sin resumen, el libro conserva 3 hojas', () => {
+    expect(releer().SheetNames).toEqual(['Datos', 'Diccionario', 'Notas']);
+  });
+});
+
 describe('CSV y nombre de archivo', () => {
   it('CSV con BOM, separador ";", tildes y comillas escapadas; números sin formato', () => {
     const t = csv(tabla);

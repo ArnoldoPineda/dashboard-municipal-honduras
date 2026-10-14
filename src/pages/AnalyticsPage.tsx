@@ -9,7 +9,7 @@ import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipali
 import {
   sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION,
   Indicadores, Alcance, filasDeAlcance, indicadoresPorAnio, INDICADORES_ANALISIS, IndicadorAnalisis,
-  porCapita, deflactar, variacionPct, tcac,
+  porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda,
 } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 import { IPC, ipcCompleto } from '../data/ipc';
@@ -209,6 +209,8 @@ export default function AnalyticsPage() {
   const verInd = (k: IndicadorAnalisis, v: number | null, y: number) => (IND_LPH.has(k) && enReal ? deflactar(v, y, ultimo, IPC.valores) : v);
   const fmtInd = (k: IndicadorAnalisis, v: number | null) => (IND_LPH.has(k) ? fmtL(v) : fmtPct(v));
   const fmtMonto = (v: number | null) => (v == null || v === 0 ? '—' : fmtL(v));
+  // Mediana del servicio de deuda en 0 en algún año (alcances agregados): más de la mitad sin pagos de deuda.
+  const deudaCero = agregado && sortedYears.some((y) => indicadores[y]?.servicioDeudaSobreCorrientes.mediana === 0);
 
   function toggleYear(y: number) {
     setSelectedYears((prev) => (prev.includes(y) ? (prev.length > 1 ? prev.filter((p) => p !== y) : prev) : [...prev, y]));
@@ -243,32 +245,42 @@ export default function AnalyticsPage() {
 
   // ── Exportación: el cuadro tal como se ve ──
   function tablaExport(): TablaExport {
-    const filas: Celda[][] = [];
-    const tipoFila: TablaExport['tipoFila'] = [];
+    // Datos: exactamente una fila por concepto (sin filas de título); el bloque va en la columna Grupo.
     const tMonto = perCapita ? 'lph' : 'monto';
-    TABLE_ROWS.forEach((row) => {
-      if (row.variant === 'group') { filas.push([row.label, ...sortedYears.map(() => null), null, null]); tipoFila.push(tMonto); return; }
-      filas.push([row.label.replace(/ /g, ' '), ...sortedYears.map((y) => valor(row, y)), variacion(row), crecimiento(row)]);
-      tipoFila.push(tMonto);
+    let grupoActual = '';
+    const filas: Celda[][] = TABLE_ROWS.flatMap((row) => {
+      if (row.variant === 'group') { grupoActual = row.label.charAt(0) + row.label.slice(1).toLowerCase(); return []; }
+      return [[grupoActual, row.label.replace(/\u00a0/g, ' ').trim(), ...sortedYears.map((y) => valor(row, y)), variacion(row), crecimiento(row)]];
     });
-    filas.push(['INDICADORES', ...sortedYears.map(() => null), null, null]); tipoFila.push('pct');
-    INDICADORES_ANALISIS.forEach((k) => {
-      const tipoInd = IND_LPH.has(k) ? 'lph' : 'pct';
-      const series: ['mediana' | 'agregado', string][] = agregado ? [['mediana', ' — mediana municipal'], ['agregado', ' — agregado']] : [['agregado', '']];
-      series.forEach(([s, suf]) => {
-        filas.push([ETIQUETA_IND[k] + suf, ...sortedYears.map((y) => verInd(k, indicadores[y]?.[k][s] ?? null, y)), null, null]);
-        tipoFila.push(tipoInd);
-      });
-    });
+    // Resumen: indicadores (mediana municipal y agregado del alcance, o el valor del municipio).
+    const series: ['mediana' | 'agregado', string][] = agregado ? [['mediana', 'Mediana municipal'], ['agregado', 'Agregado (Σ/Σ)']] : [['agregado', 'Valor del municipio']];
+    const resFilas: Celda[][] = [], resTipos: ('pct' | 'lph')[] = [];
+    INDICADORES_ANALISIS.forEach((k) => series.forEach(([s, t]) => {
+      resFilas.push([ETIQUETA_IND[k], t, ...sortedYears.map((y) => verInd(k, indicadores[y]?.[k][s] ?? null, y))]);
+      resTipos.push(IND_LPH.has(k) ? 'lph' : 'pct');
+    }));
     return {
+      resumen: {
+        columnas: [
+          { clave: 'indicador', titulo: 'Indicador', tipo: 'texto' }, { clave: 'serie', titulo: 'Serie', tipo: 'texto' },
+          ...sortedYears.map((y) => ({ clave: String(y), titulo: String(y), tipo: 'variable' as const })),
+        ],
+        filas: resFilas, tipoFila: resTipos,
+        nota: (agregado
+          ? `Mediana municipal y agregado (Σ numeradores ÷ Σ denominadores) de ${scopeLabel}, sin municipios excluidos (sin liquidación, sin transferencia Art. 91 o rendición parcial).`
+          : `Valores de ${scopeLabel}.`)
+          + (perCapita || enReal ? ` Montos por habitante ${enReal ? `a precios de ${ultimo}` : 'nominales'}.` : '')
+          + (deudaCero ? ` ${notaMedianaDeuda()}` : ''),
+      },
       columnas: [
+        { clave: 'grupo', titulo: 'Grupo', tipo: 'texto' },
         { clave: 'concepto', titulo: `Concepto (${unidad})`, tipo: 'texto' },
         ...sortedYears.map((y) => ({ clave: String(y), titulo: String(y), tipo: 'variable' as const })),
         { clave: 'var', titulo: 'Var. % último año', tipo: 'pct' },
         { clave: 'tcac', titulo: 'Crec. promedio anual (%)', tipo: 'pct' },
       ],
-      filas, tipoFila,
-      campos: ['concepto', ...Array.from(new Set([...TABLE_ROWS.flatMap((r) => (r.field ? [r.field] : [])), ...INDICADORES_ANALISIS])), 'var', 'tcac'],
+      filas, tipoFila: filas.map(() => tMonto),
+      campos: ['grupo', 'concepto', ...Array.from(new Set([...TABLE_ROWS.flatMap((r) => (r.field ? [r.field] : [])), ...INDICADORES_ANALISIS])), 'var', 'tcac'],
     };
   }
   function notasExport(): [string, string][] {
@@ -439,6 +451,11 @@ export default function AnalyticsPage() {
                   </tbody>
                 </table>
               </div>
+              {deudaCero && (
+                <div style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.suave }}>
+                  Servicio de deuda ÷ corrientes, mediana en 0.0 %: {notaMedianaDeuda()}
+                </div>
+              )}
             </section>
 
             {/* Gráficos */}

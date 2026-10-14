@@ -6,7 +6,7 @@ import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
 import {
   ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, Indicadores, indicadoresMunicipio, insumos,
-  excluirDeEstadisticas, notaDatoIncompleto, pieTabla,
+  excluirDeEstadisticas, notaDatoIncompleto, pieTabla, notaMedianaDeuda,
 } from '../lib/indicadores';
 import { fmtL, fmtPct, fmtNum } from '../lib/formato';
 import { DEPARTAMENTOS, nombreDepartamento, codigoINE } from '../data/departamentos';
@@ -185,6 +185,9 @@ export default function BaseDatosPage() {
     valor: (m: Municipality) => { const v = c.valor(m); return typeof v === 'number' ? v : null; },
   }))), [filas, cols]);
   const nEst = filas.filter((m) => !excluirDeEstadisticas(m)).length;
+  const esSuma = (c: Col) => c.tipo === 'monto' || c.tipo === 'entero';
+  const numericas = cols.filter((c) => c.tipo !== 'texto');
+  const deudaCero = cols.some((c) => c.clave === 'servicioDeudaSobreCorrientes') && pie.servicioDeudaSobreCorrientes === 0;
   const excluidas = filas.filter(excluirDeEstadisticas);
 
   const ordenar = (clave: string) => setOrden((o) => (o?.clave === clave ? { clave, dir: o.dir === 1 ? -1 : 1 } : { clave, dir: 1 }));
@@ -208,10 +211,21 @@ export default function BaseDatosPage() {
         ...cols.map((c) => ({ clave: c.clave, titulo: c.titulo, tipo: c.tipo })),
         { clave: 'nota', titulo: 'Nota (⚠ excluido)', tipo: 'texto' },
       ],
-      filas: [
-        ...ordenadas.map((m) => [m.name ?? '', ...cols.map((c) => c.valor(m) as Celda), motivo(m)]),
-        [`TOTAL / MEDIANA (${nEst} en estadísticas)`, ...cols.map((c) => pie[c.clave] ?? null), null],
-      ],
+      filas: ordenadas.map((m) => [m.name ?? '', ...cols.map((c) => c.valor(m) as Celda), motivo(m)]),
+      resumen: {
+        columnas: [
+          { clave: 'campo', titulo: 'Campo', tipo: 'texto' }, { clave: 'columna', titulo: 'Columna', tipo: 'texto' },
+          { clave: 'criterio', titulo: 'Criterio', tipo: 'texto' }, { clave: 'valor', titulo: 'Valor', tipo: 'variable' },
+        ],
+        filas: [
+          ['n', 'Municipios en estadísticas', 'Conteo', nEst],
+          ...numericas.map((c) => [c.clave, c.titulo, esSuma(c) ? 'Total' : 'Mediana', pie[c.clave] ?? null] as Celda[]),
+        ],
+        tipoFila: ['entero', ...numericas.map((c) => c.tipo as 'entero' | 'monto' | 'pct' | 'lph')],
+        nota: `Totales de montos y población; medianas de porcentajes y montos por habitante. Sin los ${excluidas.length} municipios excluidos `
+          + `(sin liquidación, sin transferencia Art. 91 o rendición parcial). Grupo: año ${fiscalYear} · ${alcance}.`
+          + (deudaCero ? ` ${notaMedianaDeuda()}` : ''),
+      },
     };
   }
   function notasExport(): [string, string][] {
@@ -219,7 +233,7 @@ export default function BaseDatosPage() {
       ['Página', `Base de Datos — vista ${VISTAS[vista].etiqueta}`],
       ['Filtros', `Año ${fiscalYear} · ${alcance}${texto.trim() ? ` · búsqueda "${texto.trim()}"` : ''}`],
       ['Filas', `${filas.length} municipios; ${nEst} en estadísticas`],
-      ['Pie', 'Última fila: TOTAL en montos y población; MEDIANA en porcentajes y montos por habitante; sin los excluidos.'],
+      ['Resumen', 'Hoja Resumen: totales de montos y población, y medianas de porcentajes y montos por habitante, sin los excluidos.'],
       ['Excluidos', excluidas.length ? excluidas.map((m) => `${m.name} (${codigoINE(m.department, m.code)}): ${motivo(m)}`).join(' · ') : 'Ninguno'],
     ];
   }
@@ -334,6 +348,7 @@ export default function BaseDatosPage() {
             </table>
           </div>
         </section>
+        {deudaCero && <p style={{ margin: 0, fontSize: 13, color: C.suave }}>Mediana del servicio de deuda en 0.0 %: {notaMedianaDeuda()}</p>}
         <p style={{ margin: 0, fontSize: 13, color: C.suave }}>
           ⚠ Filas fuera de totales y medianas (sin liquidación, sin transferencia Art. 91 o rendición parcial). Clic en un municipio para abrir su ficha.
         </p>

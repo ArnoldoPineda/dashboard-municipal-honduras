@@ -13,6 +13,8 @@ export interface TablaExport {
   tipoFila?: Exclude<TipoColumna, 'variable'>[];
   /** Campos que describe el Diccionario (por defecto, las claves de las columnas). */
   campos?: string[];
+  /** Hoja "Resumen": totales y medianas del grupo (fuera de "Datos", que lleva una fila por municipio o concepto). */
+  resumen?: { columnas: ColumnaExport[]; filas: Celda[][]; tipoFila?: Exclude<TipoColumna, 'variable'>[]; nota: string };
 }
 export interface EntradaDiccionario { definicion: string; unidad: string; fuente: string }
 
@@ -34,6 +36,14 @@ export const DICCIONARIO: Record<string, EntradaDiccionario> = {
   population:  { definicion: ROTULO_POBLACION + '. Columna de población de SEFIN.', unidad: 'Habitantes', fuente: SEFIN },
   nota:        { definicion: 'Motivo por el que la fila queda fuera de totales y medianas (⚠): sin liquidación, sin transferencia Art. 91 o rendición parcial.', unidad: 'Texto', fuente: 'SIMHO (docs/ATIPICOS.md)' },
   concepto:    { definicion: 'Renglón del cuadro presupuestario.', unidad: 'Texto', fuente: 'SIMHO' },
+  // Hoja Resumen
+  campo:       { definicion: 'Clave del campo resumido (ver su definición en esta misma hoja o en el catálogo de SIMHO).', unidad: 'Texto', fuente: 'SIMHO' },
+  columna:     { definicion: 'Nombre de la columna tal como aparece en la hoja Datos.', unidad: 'Texto', fuente: 'SIMHO' },
+  criterio:    { definicion: 'Cómo se resume la columna: Total (suma) en montos y población; Mediana en porcentajes y montos por habitante; sin excluidos.', unidad: 'Texto', fuente: 'SIMHO' },
+  valor:       { definicion: 'Resultado del criterio sobre el grupo filtrado.', unidad: 'Según la columna', fuente: 'SIMHO' },
+  indicador:   { definicion: 'Indicador SIMHO (ver su fórmula en esta hoja).', unidad: 'Texto', fuente: 'SIMHO' },
+  serie:       { definicion: 'Mediana municipal o agregado Σ/Σ del alcance (o el valor del municipio).', unidad: 'Texto', fuente: 'SIMHO' },
+  grupo:       { definicion: 'Bloque del cuadro al que pertenece el renglón (Presupuesto, Ingresos, Transferencias, Egresos, Resultado).', unidad: 'Texto', fuente: 'SIMHO' },
   // SEFIN: montos
   presupuesto_municipal:     col('PRESUPUESTO MUNICIPAL'),
   gastos_presupuestados:     col('GASTOS PRESUPUESTADOS'),
@@ -104,7 +114,7 @@ export const DICCIONARIO: Record<string, EntradaDiccionario> = {
 
 const FORMATO: Record<Exclude<TipoColumna, 'texto' | 'variable'>, string> = { entero: '#,##0', monto: '#,##0', lph: '#,##0', pct: '0.0' };
 
-/** Contenido de las 3 hojas como matrices (sin depender de SheetJS; es lo que prueban los tests). */
+/** Contenido de las hojas como matrices (sin depender de SheetJS; es lo que prueban los tests). */
 export function hojas(tabla: TablaExport, notas: [string, string][]) {
   const campos = tabla.campos ?? tabla.columnas.map((c) => c.clave);
   const diccionario: Celda[][] = [['Campo', 'Definición o fórmula', 'Unidad', 'Fuente'],
@@ -116,24 +126,31 @@ export function hojas(tabla: TablaExport, notas: [string, string][]) {
     ['Exclusiones', 'Las filas sin liquidación, sin transferencia Art. 91 o con rendición parcial no entran en totales ni medianas.'],
     ['Generado', new Date().toLocaleString('es-HN', { dateStyle: 'long', timeStyle: 'short' }) + ' (hora local)'],
   ];
-  return { datos: [tabla.columnas.map((c) => c.titulo), ...tabla.filas] as Celda[][], diccionario, notas: notasHoja };
+  const r = tabla.resumen;
+  const resumen = r ? [r.columnas.map((c) => c.titulo), ...r.filas, [], ['Criterio', r.nota]] as Celda[][] : null;
+  return { datos: [tabla.columnas.map((c) => c.titulo), ...tabla.filas] as Celda[][], resumen, diccionario, notas: notasHoja };
 }
 
 /** Libro de SheetJS: números como números, con formato de miles; anchos de columna legibles. */
 export function libro(XLSX: typeof import('xlsx'), tabla: TablaExport, notas: [string, string][]) {
   const h = hojas(tabla, notas);
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(h.datos);
-  tabla.filas.forEach((fila, i) => fila.forEach((v, j) => {
-    if (typeof v !== 'number') return;
-    const c = tabla.columnas[j];
-    const tipo = c.tipo === 'variable' ? (tabla.tipoFila?.[i] ?? 'monto') : c.tipo;
-    if (tipo === 'texto') return;
-    const celda = ws[XLSX.utils.encode_cell({ r: i + 1, c: j })];
-    if (celda) celda.z = FORMATO[tipo];
-  }));
-  ws['!cols'] = tabla.columnas.map((c) => ({ wch: c.tipo === 'texto' || c.tipo === 'variable' ? Math.max(14, c.titulo.length) : Math.max(14, Math.min(28, c.titulo.length)) }));
-  XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+  // Hoja con formato numérico por columna (o por fila en las columnas 'variable').
+  const hoja = (aoa: Celda[][], t: { columnas: ColumnaExport[]; filas: Celda[][]; tipoFila?: TablaExport['tipoFila'] }) => {
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    t.filas.forEach((fila, i) => fila.forEach((v, j) => {
+      if (typeof v !== 'number') return;
+      const c = t.columnas[j];
+      const tipo = c?.tipo === 'variable' ? (t.tipoFila?.[i] ?? 'monto') : c?.tipo;
+      if (!tipo || tipo === 'texto') return;
+      const celda = ws[XLSX.utils.encode_cell({ r: i + 1, c: j })];
+      if (celda) celda.z = FORMATO[tipo];
+    }));
+    ws['!cols'] = t.columnas.map((c) => ({ wch: c.tipo === 'texto' || c.tipo === 'variable' ? Math.max(14, c.titulo.length) : Math.max(14, Math.min(28, c.titulo.length)) }));
+    return ws;
+  };
+  XLSX.utils.book_append_sheet(wb, hoja(h.datos, tabla), 'Datos');
+  if (tabla.resumen && h.resumen) XLSX.utils.book_append_sheet(wb, hoja(h.resumen, tabla.resumen), 'Resumen');
   const wd = XLSX.utils.aoa_to_sheet(h.diccionario);
   wd['!cols'] = [{ wch: 30 }, { wch: 90 }, { wch: 22 }, { wch: 48 }];
   XLSX.utils.book_append_sheet(wb, wd, 'Diccionario');

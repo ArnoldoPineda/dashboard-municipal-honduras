@@ -541,3 +541,7 @@ export function pieTabla(filas: Municipality[], columnas: ColumnaPie[]): Record<
     return [c.clave, v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2];
   }));
 }
+
+/** Nota cuando la mediana del servicio de deuda ÷ corrientes es 0 (más de la mitad sin pagos de deuda en el año). */
+export const notaMedianaDeuda = (categoria?: string | null) =>
+  `Más de la mitad de los municipios${categoria ? ` de la categoría ${categoria}` : ''} no registra servicio de deuda en el año.`;

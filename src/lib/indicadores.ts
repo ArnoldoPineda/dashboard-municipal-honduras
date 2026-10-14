@@ -271,6 +271,65 @@ export function semaforo(clave: ClaveSemaforo, valor: number | null, percentil: 
   return { etiqueta: 'EN LA MEDIANA', tono: 'gris' };
 }
 
+// ── Rankings y Comparar (Fase 6) ─────────────────────────────────────────────
+
+/** Rótulo corto del ⚠ de una fila excluida de razones; null si entra en las estadísticas. */
+export const motivoExcluido = (m: Municipality): string | null =>
+  sinLiquidacion(m) ? ROTULO_SIN_LIQUIDACION : notaDatoIncompleto(m);
+
+export interface FilaRanking {
+  fila:      Municipality;
+  valor:     number | null;
+  /** Posición dentro de `visibles` (empates comparten posición: 1, 2, 2, 4); null si excluida o sin dato. */
+  posicion:  number | null;
+  /** Percentil en su categoría completa del año (comparacionPares, igual que la Ficha). */
+  percentil: number | null;
+  /** Motivo del ⚠ (excluida de razones); null si no está excluida. */
+  motivo:    string | null;
+}
+
+/**
+ * Ranking de un indicador. `filasAnio`: todo el año (base del percentil por categoría); `visibles`: el filtro
+ * (categoría, departamento) sobre el que se cuenta la posición. "Mejor" según SEMAFORO. Orden: rankeadas,
+ * luego sin dato y al final las excluidas (excluirDeRazones), ambas sin posición.
+ */
+export function rankear(filasAnio: Municipality[], visibles: Municipality[], clave: ClaveSemaforo): FilaRanking[] {
+  const signo = SEMAFORO[clave] === 'mayor' ? -1 : 1;
+  const todas = visibles.map((fila) => ({
+    fila, valor: indicadoresMunicipio(fila)[clave], posicion: null as number | null,
+    percentil: comparacionPares(filasAnio, fila, clave).percentil, motivo: motivoExcluido(fila),
+  }));
+  const grupo = (r: FilaRanking) => (r.motivo ? 2 : r.valor == null ? 1 : 0);
+  todas.sort((a, b) => grupo(a) - grupo(b)
+    || (grupo(a) === 0 ? signo * (a.valor! - b.valor!) : 0)
+    || (a.fila.name ?? '').localeCompare(b.fila.name ?? '', 'es'));
+  todas.forEach((r, i) => {
+    if (grupo(r) !== 0) return;
+    r.posicion = i > 0 && todas[i - 1].valor === r.valor ? todas[i - 1].posicion : i + 1;
+  });
+  return todas;
+}
+
+/** Filas excluidas de razones, por motivo. */
+export function contarExcluidos(filas: Municipality[]) {
+  const sinLiq = filas.filter(sinLiquidacion).length;
+  const s91 = filas.filter(sinArt91).length;
+  const rp = filas.filter(rendicionParcial).length;
+  return { total: sinLiq + s91 + rp, sinLiquidacion: sinLiq, sinArt91: s91, rendicionParcial: rp };
+}
+
+const mismoMunicipio = (a: Municipality, b: Municipality) => a.department === b.department && a.code === b.code;
+
+/** Pares sugeridos: misma categoría y año, sin excluidos ni los ya elegidos, los más cercanos en población. */
+export function paresSugeridos(filasAnio: Municipality[], fila: Municipality, yaElegidos: Municipality[], cuantos: number): Municipality[] {
+  const pob = n(fila.population);
+  return filasAnio
+    .filter((m) => m.year === fila.year && m.category === fila.category && !excluirDeRazones(m)
+      && !mismoMunicipio(m, fila) && !yaElegidos.some((y) => mismoMunicipio(m, y)))
+    .sort((a, b) => Math.abs(n(a.population) - pob) - Math.abs(n(b.population) - pob) || (a.name ?? '').localeCompare(b.name ?? '', 'es'))
+    .slice(0, Math.max(0, cuantos));
+}
+
 const pctTxt = (v: number) => `${v.toFixed(1)} %`;
 
 /** Plantillas de fortaleza (percentil favorable ≥ 70), en orden de prioridad. */

@@ -3,9 +3,9 @@ import React, { useRef, useState } from 'react';
 import type { Municipality } from '../../hooks/useMunicipalities';
 import {
   indicadoresMunicipio, insumos, semaforo, sinLiquidacion, ClaveSemaforo, ROTULO_SIN_LIQUIDACION,
-  notaMedianaDeuda,
+  notaMedianaDeuda, asignacionesGlobales,
 } from '../../lib/indicadores';
-import { fmtL } from '../../lib/formato';
+import { fmtL, fmtPct } from '../../lib/formato';
 import { BarraPercentil, BarraValor } from './Barras';
 import { Comparaciones, ETIQUETAS, fmtIndicador } from './TarjetasIndicadores';
 import { C, MONO, COND, rotulo, cifra, grilla, h2, nota, TONO_COLOR } from './estilo';
@@ -325,6 +325,18 @@ const CLAVES_PARES: ClaveSemaforo[] = [
   'inversionSobreGasto', 'inversionPerCapita', 'servicioDeudaSobreCorrientes', 'balanceSobreIngresos', 'resultadoSinBalance',
 ];
 
+/** Dato secundario bajo la inversión por habitante; el aviso va como texto visible (no tooltip: también en celular). */
+function NotaAsignaciones({ fila }: { fila: Municipality }) {
+  const ag = asignacionesGlobales(fila);
+  if (ag.pctGasto == null) return null;
+  return (
+    <div data-testid="nota-asignaciones" style={{ flex: '1 1 100%', fontSize: 13, lineHeight: 1.4, color: C.suave }}>
+      Asignaciones globales: {fmtPct(ag.pctGasto)} del gasto ({fmtL(ag.porHabitante)} por habitante)
+      {ag.aviso && <div style={{ color: C.ambar, marginTop: 4 }}>⚠ {ag.aviso}</div>}
+    </div>
+  );
+}
+
 function TabPares({ fila, comps, excluida }: Props) {
   const r = indicadoresMunicipio(fila);
   const n = comps.autonomia?.n ?? 0;
@@ -351,6 +363,7 @@ function TabPares({ fila, comps, excluida }: Props) {
             <div style={{ flex: '0 0 100px', fontFamily: MONO, fontSize: 13, textAlign: 'right', color: C.suave }}>{fmtIndicador(k, c?.mediana)}</div>
             <div style={{ flex: '1 1 180px' }}><BarraPercentil percentil={c?.percentil ?? null} color={color} /></div>
             <div style={{ flex: '0 0 44px', fontFamily: MONO, fontSize: 12, color: C.suave, textAlign: 'right' }}>{c?.percentil != null ? `P${c.percentil}` : '—'}</div>
+            {k === 'inversionPerCapita' && <NotaAsignaciones fila={fila} />}
           </div>
         );
       })}

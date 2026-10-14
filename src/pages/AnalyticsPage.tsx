@@ -9,7 +9,7 @@ import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipali
 import {
   sumarTotales, insumos, calcular, sinLiquidacion, excluirDeTotales, excluirDeRazones, notaDatoIncompleto, notaTotales, ROTULO_SIN_LIQUIDACION,
   Indicadores, Alcance, filasDeAlcance, indicadoresPorAnio, INDICADORES_ANALISIS, IndicadorAnalisis,
-  porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda, impuestosG1,
+  porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda, impuestosG1, impuestosICS, IMPUESTOS_G1, CAMPOS_IMPUESTOS_G1,
 } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 import { IPC, ipcCompleto, ANIO_BASE_REAL, ROTULO_PRECIOS_REALES, tituloGrafico } from '../data/ipc';
@@ -46,7 +46,7 @@ function aggregate(all: Municipality[], unMunicipio = false): YearData {
   const s = (k: keyof Municipality) => sumField(rows, k);
   const ins = unMunicipio && rows.length === 1 ? insumos(rows[0]) : sumarTotales(rows);
   const campos: (keyof Municipality)[] = [
-    'presupuesto_municipal', 'ingresos_tributarios', 'impuesto_bi', 'tasas_servicios', 'derechos', 'ingresos_no_tributarios', 'ingresos_capital',
+    'presupuesto_municipal', 'ingresos_tributarios', ...CAMPOS_IMPUESTOS_G1, 'tasas_servicios', 'derechos', 'ingresos_no_tributarios', 'ingresos_capital',
     'transferencias_art91', 'otras_transferencias', 'gastos_funcionamiento', 'servicios_personales', 'servicios_no_personales',
     'materiales_suministro', 'transferencias_corrientes', 'otros_gastos', 'gastos_capital_deuda', 'bienes_capitalizables',
     'transferencias_capital', 'activos_financieros', 'servicios_deuda', 'otros_gastos_capital', 'asignaciones_globales', 'total_egresos',
@@ -56,6 +56,7 @@ function aggregate(all: Municipality[], unMunicipio = false): YearData {
     ...calcular(ins),
     ...Object.fromEntries(campos.map((k) => [k, s(k)])),
     impuestos:           rows.reduce((acc, r) => acc + impuestosG1(r), 0),
+    impuestos_ics:       rows.reduce((acc, r) => acc + impuestosICS(r), 0),
     ingresos_recaudados: ins.ingresosTotales,
     transferencias:      ins.transferencias,
     recursos_balance:    ins.recursosBalance,
@@ -66,7 +67,20 @@ function aggregate(all: Municipality[], unMunicipio = false): YearData {
 // ── Filas del cuadro ──────────────────────────────────────────────────────────
 
 type RowVariant = 'group' | 'main' | 'sub' | 'highlight' | 'signed';
-interface TRow { key: string; label: string; variant: RowVariant; field?: string }
+/** `ocultarSiCero`: filas de impuestos que no se muestran si valen 0 o nulo en todos los años visibles (en la exportación van siempre). */
+interface TRow { key: string; label: string; variant: RowVariant; field?: string; ocultarSiCero?: boolean }
+
+/** Espacio duro: la flecha ↳ nunca queda sola en una línea. */
+const NBSP = String.fromCharCode(160);
+const sangria = (nivel: number) => ' '.repeat(4 * nivel);
+/** Los 8 impuestos de G1, desde la lista central: IBI, subtotal ICS (Industria · Comercio · Servicios) y el resto. */
+const FILAS_IMPUESTOS: TRow[] = IMPUESTOS_G1.flatMap((i, k): TRow[] => {
+  const fila: TRow = { key: i.campo, label: `${sangria(i.ics ? 3 : 2)}↳ ${i.etiqueta}`, variant: 'sub', field: i.campo, ocultarSiCero: true };
+  const primeraICS = i.ics && !IMPUESTOS_G1[k - 1]?.ics;
+  return primeraICS
+    ? [{ key: 'impuestos_ics', label: `${sangria(2)}↳ Industria, comercio y servicios`, variant: 'sub', field: 'impuestos_ics', ocultarSiCero: true }, fila]
+    : [fila];
+});
 
 const TABLE_ROWS: TRow[] = [
   { key: 'g_pres',  label: 'PRESUPUESTO',                   variant: 'group' },
@@ -78,7 +92,7 @@ const TABLE_ROWS: TRow[] = [
   { key: 'ing_c',   label: 'Ingresos Corrientes',            variant: 'main',      field: 'ingresosCorrientes' },
   { key: 'ing_t',   label: '↳ Ingresos Tributarios (G1)',    variant: 'sub',       field: 'ingresos_tributarios' },
   { key: 'imp',     label: '    ↳ de los cuales: Impuestos', variant: 'sub', field: 'impuestos' },
-  { key: 'ibi',     label: '        ↳ IBI (bienes inmuebles)', variant: 'sub', field: 'impuesto_bi' },
+  ...FILAS_IMPUESTOS,
   { key: 'tasas',   label: '    ↳ de los cuales: Tasas por Servicios', variant: 'sub', field: 'tasas_servicios' },
   { key: 'derech',  label: '    ↳ de los cuales: Derechos', variant: 'sub', field: 'derechos' },
   { key: 'ing_nt',  label: '↳ Ingresos No Tributarios (G2)', variant: 'sub',       field: 'ingresos_no_tributarios' },
@@ -215,6 +229,8 @@ export default function AnalyticsPage() {
     return x;
   };
   const valor = (row: TRow, y: number) => (row.field && !sinLiqYears.has(y) ? ver(yearDataMap[y]?.[row.field] as number | null, y) : null);
+  // Filas de impuestos en 0 o nulo en todos los años visibles: fuera del cuadro (no de la exportación).
+  const filasVisibles = TABLE_ROWS.filter((row) => !row.ocultarSiCero || sortedYears.some((y) => { const v = valor(row, y); return v != null && v !== 0; }));
   const variacion = (row: TRow) => (sortedYears.length < 2 ? null
     : variacionPct(valor(row, sortedYears[sortedYears.length - 2]), valor(row, ultimo)));
   const crecimiento = (row: TRow) => (sortedYears.length < 2 ? null : tcac(valor(row, sortedYears[0]), valor(row, ultimo), ultimo - sortedYears[0]));
@@ -407,17 +423,19 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {TABLE_ROWS.map((row, idx) => {
+                    {filasVisibles.map((row, idx) => {
                       const isGroup = row.variant === 'group', isSub = row.variant === 'sub', isHi = row.variant === 'highlight';
+                      // Sangría del rótulo (espacios iniciales) como margen: el texto que se corta en dos líneas queda alineado.
+                      const nivel = (row.label.match(/^\s*/)?.[0].length ?? 0) / 4;
                       const bg = isGroup ? C.panel2 : isHi ? '#10302d' : idx % 2 === 0 ? '#111a2b' : C.panel;
                       const color = (v: number | null) => (row.variant === 'signed' && v != null && v !== 0 ? (v > 0 ? '#4ade80' : '#ff7a6b') : isSub ? C.texto2 : C.texto);
                       return (
                         <tr key={row.key} style={{ background: bg }}>
                           <th scope="row" className="col-fija" style={{
-                            padding: isSub ? '7px 16px 7px 28px' : '8px 16px', textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: bg,
+                            padding: isSub ? `7px 16px 7px ${esMovil ? 12 + nivel * 8 : 28 + nivel * 18}px` : '8px 16px', textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: bg,
                             color: isGroup ? C.suave : isSub ? C.texto2 : C.texto, fontSize: isGroup ? 11 : isSub ? 12 : 13,
                             fontWeight: isGroup || isHi ? 700 : isSub ? 400 : 500, letterSpacing: isGroup ? '0.14em' : 0,
-                          }}>{row.label}</th>
+                          }}>{row.label.trimStart().replace(/^↳ /, '↳' + NBSP)}</th>
                           {sortedYears.map((y) => { const v = valor(row, y); return (
                             <td key={y} style={{ padding: '8px 12px', textAlign: 'right', fontSize: isSub ? 12 : 13, fontWeight: isHi ? 700 : 400, color: color(v), whiteSpace: 'nowrap' }}>
                               {isGroup ? '' : fmtMonto(v)}
@@ -436,6 +454,11 @@ export default function AnalyticsPage() {
               {notasTotales.map(([y, t]) => (
                 <div key={y} style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.ambar }}>{y}: {t}</div>
               ))}
+              {filasVisibles.length < TABLE_ROWS.length && (
+                <div style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontFamily: MONO, fontSize: 11, color: C.suave }}>
+                  Se ocultan impuestos sin recaudación en los años mostrados.
+                </div>
+              )}
               <div style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontFamily: MONO, fontSize: 11, color: C.suave }}>
                 Var. %: último año frente al anterior seleccionado. Crecimiento promedio anual (TCAC) entre {sortedYears[0]} y {ultimo}; "—" si algún extremo es ≤ 0.{enReal ? ' En modo Real son variaciones a precios constantes (sin inflación).' : ''}
               </div>

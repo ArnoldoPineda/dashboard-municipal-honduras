@@ -1,16 +1,16 @@
 // Índice de Precios al Consumidor de Honduras, promedio anual, para expresar montos a precios del último año.
-// [PENDIENTE] Valores oficiales: cargar desde el BCH. Mientras haya años en null, "Real" queda deshabilitado.
+// Fuente local: docs/fuentes/IPC_BCH_serie_mensual_promedio_anual.xlsx (fila "Promedio Anual", hoja "DIC.2025 =100").
 import type { SerieIPC } from '../lib/indicadores';
 
 export const IPC = {
   fuente: 'Banco Central de Honduras (BCH) — IPC, promedio anual',
-  base: '[PENDIENTE]',
+  base: 'Diciembre de 2025 = 100',
   valores: {
-    2021: null,
-    2022: null,
-    2023: null,
-    2024: null,
-    2025: null,
+    2021: 77.12,
+    2022: 84.13,
+    2023: 89.74,
+    2024: 93.87,
+    2025: 98.18,
   } as SerieIPC,
 };
 

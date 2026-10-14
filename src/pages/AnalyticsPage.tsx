@@ -19,6 +19,7 @@ import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
 import { descargarXlsx, descargarCsv, nombreArchivo, TablaExport, Celda } from '../lib/exportar';
 import BuscadorMunicipio from '../components/ficha/BuscadorMunicipio';
 import TablaScroll from '../components/TablaScroll';
+import { useEsMovil } from '../hooks/useMediaQuery';
 import { C, MONO, COND, SANS, panel } from '../components/ficha/estilo';
 
 const ALL_YEARS = ANIOS_SEFIN;
@@ -169,6 +170,7 @@ export default function AnalyticsPage() {
   const enReal = real && hayIPC;
   // Pie de fuente global: precios constantes mientras "Real" esté activo en esta página.
   const { setNotaPie } = useNavbar();
+  const esMovil = useEsMovil();
   useEffect(() => { setNotaPie(enReal ? ROTULO_PRECIOS_REALES : null); return () => setNotaPie(null); }, [enReal, setNotaPie]);
 
   const alcance: Alcance | null = tipo === 'pais' ? { tipo }
@@ -487,7 +489,7 @@ export default function AnalyticsPage() {
                   <BarChart data={chart1} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="28%">
                     <CartesianGrid {...GRID} /><XAxis dataKey="year" tick={TICK} tickLine={false} axisLine={false} />
                     <YAxis tick={TICK} tickLine={false} axisLine={false} width={104} tickFormatter={(v) => fmtLGrafico(v)} />
-                    <RTooltip content={<DarkTooltip fmtVal={fmtGraf} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} />
+                    <RTooltip content={<DarkTooltip fmtVal={fmtGraf} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} verticalAlign="bottom" />
                     <Bar dataKey="Ing. Corrientes" stackId="i" fill={COLORES.teal} maxBarSize={36} />
                     <Bar dataKey="Transferencias" stackId="i" fill={COLORES.amber} maxBarSize={36} />
                     <Bar dataKey="Otros del año" stackId="i" fill={COLORES.blue} maxBarSize={36} />
@@ -497,7 +499,7 @@ export default function AnalyticsPage() {
                   <LineChart data={chart2} margin={{ top: 4, right: 14, left: 2, bottom: 4 }}>
                     <CartesianGrid {...GRID} /><XAxis dataKey="year" tick={TICK} tickLine={false} axisLine={false} />
                     <YAxis tick={TICK} tickLine={false} axisLine={false} width={44} tickFormatter={(v) => `${v}%`} />
-                    <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtPct(v)} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} />
+                    <RTooltip content={<DarkTooltip fmtVal={(v: number) => fmtPct(v)} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} verticalAlign="bottom" />
                     {agregado && <Line type="monotone" dataKey="Mediana" stroke={COLORES.amber} strokeWidth={2} dot={{ r: 4, fill: COLORES.amber, strokeWidth: 0 }} />}
                     <Line type="monotone" dataKey="Agregado" name={agregado ? 'Agregado' : 'Autonomía'} stroke={COLORES.teal} strokeWidth={2} dot={{ r: 4, fill: COLORES.teal, strokeWidth: 0 }} />
                   </LineChart>) },
@@ -505,7 +507,7 @@ export default function AnalyticsPage() {
                   <BarChart data={chart3} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="38%">
                     <CartesianGrid {...GRID} /><XAxis dataKey="year" tick={TICK} tickLine={false} axisLine={false} />
                     <YAxis tick={TICK} tickLine={false} axisLine={false} width={104} tickFormatter={(v) => fmtLGrafico(v)} />
-                    <RTooltip content={<DarkTooltip fmtVal={fmtGraf} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} />
+                    <RTooltip content={<DarkTooltip fmtVal={fmtGraf} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} verticalAlign="bottom" />
                     <Bar dataKey="Funcionamiento" stackId="e" fill={COLORES.pink} maxBarSize={36} />
                     <Bar dataKey="Capital y Deuda" stackId="e" fill={COLORES.violet} radius={[3, 3, 0, 0]} maxBarSize={36} />
                   </BarChart>) },
@@ -513,7 +515,7 @@ export default function AnalyticsPage() {
                   <BarChart data={chart4} margin={{ top: 4, right: 14, left: 2, bottom: 4 }} barCategoryGap="30%">
                     <CartesianGrid {...GRID} /><XAxis dataKey="year" tick={TICK} tickLine={false} axisLine={false} />
                     <YAxis tick={TICK} tickLine={false} axisLine={false} width={104} tickFormatter={(v) => fmtLGrafico(v)} />
-                    <RTooltip content={<DarkTooltip fmtVal={fmtGraf} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} />
+                    <RTooltip content={<DarkTooltip fmtVal={fmtGraf} />} wrapperStyle={TT_WRAP} /><Legend formatter={LEG} iconSize={8} verticalAlign="bottom" />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.25)" />
                     <Bar dataKey="Con balance" fill={COLORES.teal} maxBarSize={30} />
                     <Bar dataKey="Sin balance" fill={COLORES.amber} maxBarSize={30} />
@@ -524,7 +526,7 @@ export default function AnalyticsPage() {
                     <YAxis yAxisId="l" tick={TICK} tickLine={false} axisLine={false} width={104} tickFormatter={(v) => fmtLGrafico(v)} />
                     <YAxis yAxisId="p" orientation="right" tick={TICK} tickLine={false} axisLine={false} width={44} tickFormatter={(v) => `${v}%`} />
                     <RTooltip content={<DarkTooltip fmtVal={(v: number, k: string) => (k === 'Deuda ÷ corrientes (%)' ? fmtPct(v) : fmtL(v))} />} wrapperStyle={TT_WRAP} />
-                    <Legend formatter={LEG} iconSize={8} />
+                    <Legend formatter={LEG} iconSize={8} verticalAlign="bottom" />
                     <Bar yAxisId="l" dataKey="Ingresos corrientes" fill={COLORES.teal} maxBarSize={30} />
                     <Bar yAxisId="l" dataKey="Servicio de deuda" fill={COLORES.red} maxBarSize={30} />
                     <Line yAxisId="p" type="monotone" dataKey="Deuda ÷ corrientes (%)" stroke={COLORES.amber} strokeWidth={2} dot={{ r: 4, fill: COLORES.amber, strokeWidth: 0 }} />
@@ -534,7 +536,8 @@ export default function AnalyticsPage() {
                   <h3 style={{ margin: '0 0 10px 6px', fontFamily: MONO, fontSize: 12, color: C.suave, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>
                     {tituloGrafico(g.titulo, perCapita, enReal)}
                   </h3>
-                  <ResponsiveContainer width="100%" height={240}>{g.chart}</ResponsiveContainer>
+                  {/* En celular la leyenda ocupa más líneas: más alto para que el área del gráfico siga legible. */}
+                  <ResponsiveContainer width="100%" height={esMovil ? 300 : 240}>{g.chart}</ResponsiveContainer>
                 </div>
               ))}
             </section>

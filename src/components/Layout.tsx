@@ -81,7 +81,7 @@ const NAV_ITEMS = [
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
-function Sidebar({ enDrawer = false }: { enDrawer?: boolean }) {
+function Sidebar({ enDrawer = false, onNavegar }: { enDrawer?: boolean; onNavegar?: () => void }) {
   const location = useLocation();
 
   return (
@@ -117,6 +117,7 @@ function Sidebar({ enDrawer = false }: { enDrawer?: boolean }) {
               end={item.exact}
               aria-label={item.label}
               title={item.label}
+              onClick={onNavegar}
               style={({ isActive: routerIsActive }) => {
                 const active = item.exact ? routerIsActive : location.pathname.startsWith(item.to) || (!!item.alias && location.pathname.startsWith(item.alias));
                 return {
@@ -125,6 +126,7 @@ function Sidebar({ enDrawer = false }: { enDrawer?: boolean }) {
                   alignItems: 'center',
                   gap: 11,
                   padding: '10px 12px',
+                  ...(enDrawer ? { minHeight: 44, boxSizing: 'border-box' as const } : {}),
                   borderRadius: 10,
                   cursor: 'pointer',
                   fontSize: 13.5,
@@ -257,7 +259,7 @@ function Drawer({ onCerrar }: { onCerrar: () => void }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
       <div onClick={onCerrar} style={{ position: 'absolute', inset: 0, background: 'rgba(4,7,14,0.7)' }} />
       <div ref={ref} role="dialog" aria-modal="true" aria-label="Navegación" style={{ position: 'absolute', top: 0, bottom: 0, left: 0 }}>
-        <Sidebar enDrawer />
+        <Sidebar enDrawer onNavegar={onCerrar} />
       </div>
     </div>
   );

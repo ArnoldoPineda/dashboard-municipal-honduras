@@ -49,6 +49,8 @@ test('PWA: solo estáticos del build en caché, nunca Supabase', async ({ page }
   await page.waitForFunction(() => !/Cargando/.test(document.body.innerText), null, { timeout: 60_000 });
   await page.goto(`${base}/`);
   await page.waitForLoadState('networkidle');
+  // Un /static/ inexistente vuelve como index.html (fallback SPA): no se guarda como estático.
+  await page.evaluate(() => fetch('/static/js/no-existe.123.chunk.js'));
 
   const { claves, urls } = await contenidoCaches(page);
   expect(claves).toHaveLength(1);
@@ -60,6 +62,7 @@ test('PWA: solo estáticos del build en caché, nunca Supabase', async ({ page }
     expect(url.pathname).toMatch(/^\/(index\.html|manifest\.json|static\/|icons\/|data\/)/);
   }
   expect(urls.some((u) => u.includes('/static/js/main.'))).toBe(true);
+  expect(urls.some((u) => u.includes('no-existe'))).toBe(false);
   expect(urls.some((u) => u.includes('/data/honduras-municipios-topo.json'))).toBe(true);
 });
 

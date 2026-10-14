@@ -45,4 +45,15 @@ test('390 px: el menú ☰ abre el drawer con los nombres completos', async ({ p
   await menu.getByRole('link', { name: 'Rankings' }).click();
   await expect(page).toHaveURL(/\/rankings$/);
   await expect(menu).toBeHidden();
+  // Tocar la página en la que ya estás también cierra el menú y devuelve el foco al ☰.
+  const boton = page.getByRole('button', { name: 'Abrir menú' });
+  await boton.click();
+  await menu.getByRole('link', { name: 'Rankings' }).click();
+  await expect(menu).toBeHidden();
+  await expect(boton).toBeFocused();
+  // Objetivos táctiles de al menos 44 px en el drawer.
+  await boton.click();
+  for (const alto of await menu.getByRole('link').evaluateAll((ls) => ls.map((l) => l.getBoundingClientRect().height))) {
+    expect(alto).toBeGreaterThanOrEqual(44);
+  }
 });

@@ -1,6 +1,6 @@
 // Service worker de SIMHO: guarda en caché SOLO los archivos estáticos del build (mismo origen).
 // Los datos (Supabase, otro origen) nunca pasan por aquí: van siempre a la red y no se guardan.
-// VERSION y ENTRADAS los reemplaza scripts/version-sw.js después de `npm run build` (hash del asset-manifest):
+// VERSION y ENTRADAS los reemplaza scripts/version-sw.js después de `npm run build` (hash de todo el build):
 // cada deploy con archivos distintos crea un caché nuevo y borra el anterior.
 const VERSION = 'dev';
 const ENTRADAS = [];
@@ -36,7 +36,8 @@ self.addEventListener('fetch', (e) => {
   if (!esEstatico(url)) return;
   // Estáticos con hash: primero el caché; si falta, red y se guarda.
   e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-    if (res.ok && res.type === 'basic') {
+    // Un archivo inexistente vuelve como index.html (fallback SPA de Netlify, 200): eso no se guarda como estático.
+    if (res.ok && res.type === 'basic' && !(res.headers.get('content-type') || '').includes('text/html')) {
       const copia = res.clone();
       caches.open(CACHE).then((c) => c.put(req, copia));
     }

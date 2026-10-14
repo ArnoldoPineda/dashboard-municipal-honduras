@@ -55,8 +55,10 @@ export function useEsMovil(): boolean {
     if (!q) return;
     const f = () => setMovil(q.matches);
     f();
-    q.addEventListener('change', f);
-    return () => q.removeEventListener('change', f);
+    // Safari < 14 solo tiene addListener/removeListener.
+    if (q.addEventListener) { q.addEventListener('change', f); return () => q.removeEventListener('change', f); }
+    q.addListener(f);
+    return () => q.removeListener(f);
   }, []);
   return movil;
 }

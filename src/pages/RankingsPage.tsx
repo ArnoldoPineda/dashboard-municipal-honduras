@@ -218,7 +218,7 @@ export default function RankingsPage() {
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: C.texto }}>
                             {r.fila.name}
-                            {r.motivo && <span title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
+                            {r.motivo && <span role="img" title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
                             {atipico(r) && (
                               <span style={{ marginLeft: 6, fontFamily: MONO, fontSize: 11, fontWeight: 400, color: C.ambar, border: `1px solid ${C.ambar}`, borderRadius: 4, padding: '0 4px' }}>atípico</span>
                             )}
@@ -273,7 +273,7 @@ export default function RankingsPage() {
                         <td style={{ ...td, ...fija('posicion', fondo), textAlign: 'right', color: r.posicion != null && r.posicion <= 3 ? C.turquesa : C.texto2 }}>{r.posicion ?? '—'}</td>
                         <td style={{ ...td, ...fija('municipio', fondo), fontFamily: SANS, fontSize: 14, whiteSpace: 'normal', minWidth: 150 }}>
                           {ruta ? <Link to={ruta} onClick={(e) => e.stopPropagation()} style={{ color: C.texto, textDecoration: 'none' }}>{r.fila.name}</Link> : r.fila.name}
-                          {r.motivo && <span title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
+                          {r.motivo && <span role="img" title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
                           {atipico(r) && (
                             <span title={rotuloInversionCasiNula(r.fila)} style={{ marginLeft: 6, fontFamily: MONO, fontSize: 11, color: C.ambar, border: `1px solid ${C.ambar}`, borderRadius: 4, padding: '0 4px' }}>
                               atípico<span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>: {rotuloInversionCasiNula(r.fila)}</span>

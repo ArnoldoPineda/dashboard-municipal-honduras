@@ -5,7 +5,6 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer, ReferenceLine, Legend,
 } from 'recharts';
-import { DEPARTAMENTOS } from '../data/departamentos';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import {
   sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION,
@@ -15,7 +14,7 @@ import {
 import { ANIOS_SEFIN } from '../data/anios';
 import { IPC, ipcCompleto } from '../data/ipc';
 import { fmtL, fmtLGrafico, fmtPct } from '../lib/formato';
-import { codigoINE } from '../data/departamentos';
+import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
 import { descargarXlsx, descargarCsv, nombreArchivo, TablaExport, Celda } from '../lib/exportar';
 import BuscadorMunicipio from '../components/ficha/BuscadorMunicipio';
 import { C, MONO, COND, SANS, panel } from '../components/ficha/estilo';
@@ -203,7 +202,7 @@ export default function AnalyticsPage() {
     if (perCapita) x = porCapita(x, yearDataMap[y]?.poblacion);
     return x;
   };
-  const valor = (row: TRow, y: number) => (row.field ? ver(yearDataMap[y]?.[row.field] as number | null, y) : null);
+  const valor = (row: TRow, y: number) => (row.field && !sinLiqYears.has(y) ? ver(yearDataMap[y]?.[row.field] as number | null, y) : null);
   const variacion = (row: TRow) => (sortedYears.length < 2 ? null
     : variacionPct(valor(row, sortedYears[sortedYears.length - 2]), valor(row, ultimo)));
   const crecimiento = (row: TRow) => (sortedYears.length < 2 ? null : tcac(valor(row, sortedYears[0]), valor(row, ultimo), ultimo - sortedYears[0]));
@@ -216,11 +215,11 @@ export default function AnalyticsPage() {
   }
 
   // ── Gráficos (lempiras tal como se muestran en la tabla) ──
-  const serie = (field: string) => (y: number) => ver(yearDataMap[y]?.[field] as number, y) ?? 0;
+  const serie = (field: string) => (y: number): number | null => (sinLiqYears.has(y) ? null : ver(yearDataMap[y]?.[field] as number, y));
   const chart1 = sortedYears.map((y) => {
-    const d = yearDataMap[y];
     const corr = serie('ingresosCorrientes')(y), tr = serie('transferencias')(y), anio = serie('ingresosDelAnio')(y), tot = serie('ingresos_recaudados')(y);
-    return { year: String(y), 'Ing. Corrientes': corr, 'Transferencias': tr, 'Otros del año': anio - corr - tr, 'Balance y financ.': d ? tot - anio : 0 };
+    const ok = corr != null && tr != null && anio != null && tot != null;
+    return { year: String(y), 'Ing. Corrientes': corr, 'Transferencias': tr, 'Otros del año': ok ? anio - corr - tr : null, 'Balance y financ.': ok ? tot - anio : null };
   });
   const chart2 = sortedYears.map((y) => ({ year: String(y), Mediana: indicadores[y]?.autonomia.mediana, Agregado: indicadores[y]?.autonomia.agregado }));
   const chart3 = sortedYears.map((y) => ({ year: String(y), Funcionamiento: serie('gastos_funcionamiento')(y), 'Capital y Deuda': serie('gastos_capital_deuda')(y) }));

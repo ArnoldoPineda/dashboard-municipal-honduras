@@ -463,7 +463,7 @@ export function clasesQuintil(valores: (number | null | undefined)[], direccion:
 
 /** Monto por habitante; null si la población es ≤ 0 o falta el monto. */
 export const porCapita = (monto: number | null | undefined, poblacion: number | null | undefined) =>
-  monto == null || !poblacion || poblacion <= 0 ? null : fin(monto / poblacion);
+  monto == null || poblacion == null || !Number.isFinite(poblacion) || poblacion <= 0 ? null : fin(monto / poblacion);
 
 /** Serie anual del IPC (índice, cualquier base). Años sin dato: null. */
 export type SerieIPC = Record<number, number | null | undefined>;
@@ -471,7 +471,7 @@ export type SerieIPC = Record<number, number | null | undefined>;
 /** Lempiras del año `anio` a precios de `anioBase`: monto × IPC[base] ÷ IPC[año]. null si falta algún IPC. */
 export function deflactar(monto: number | null | undefined, anio: number, anioBase: number, ipc: SerieIPC): number | null {
   const a = ipc[anio], b = ipc[anioBase];
-  if (monto == null || a == null || b == null || !(a > 0) || !(b > 0)) return null;
+  if (monto == null || a == null || b == null || ![monto, a, b].every(Number.isFinite) || !(a > 0) || !(b > 0)) return null;
   return fin((monto * b) / a);
 }
 
@@ -483,7 +483,7 @@ export function variacionPct(anterior: number | null | undefined, actual: number
 
 /** Tasa de crecimiento anual compuesta, en %: ((último ÷ primero)^(1/años) − 1) × 100. null con extremos ≤ 0. */
 export function tcac(primero: number | null | undefined, ultimo: number | null | undefined, anios: number): number | null {
-  if (primero == null || ultimo == null || !(primero > 0) || !(ultimo > 0) || !(anios >= 1)) return null;
+  if (primero == null || ultimo == null || ![primero, ultimo, anios].every(Number.isFinite) || !(primero > 0) || !(ultimo > 0) || !(anios >= 1)) return null;
   return fin(((ultimo / primero) ** (1 / anios) - 1) * 100);
 }
 

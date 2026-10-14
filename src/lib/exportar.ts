@@ -114,7 +114,7 @@ export function hojas(tabla: TablaExport, notas: [string, string][]) {
     ['Población', `${ROTULO_POBLACION}: columna de población de SEFIN, pendiente de reemplazar por la proyección del INE.`],
     ['Categoría', ROTULO_CATEGORIA],
     ['Exclusiones', 'Las filas sin liquidación, sin transferencia Art. 91 o con rendición parcial no entran en totales ni medianas.'],
-    ['Generado', new Date().toISOString().slice(0, 16).replace('T', ' ')],
+    ['Generado', new Date().toLocaleString('es-HN', { dateStyle: 'long', timeStyle: 'short' }) + ' (hora local)'],
   ];
   return { datos: [tabla.columnas.map((c) => c.titulo), ...tabla.filas] as Celda[][], diccionario, notas: notasHoja };
 }
@@ -148,16 +148,17 @@ export function nombreArchivo(vista: string, alcance: string, anios: number[], e
   const limpio = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const a = [...anios].sort((x, y) => x - y);
   const rango = !a.length ? 'sin-anio' : a.length === 1 ? String(a[0]) : `${a[0]}-${a[a.length - 1]}`;
-  const vistaPascal = limpio(vista).split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
-  return `SIMHO_${vistaPascal}_${limpio(alcance) || 'Pais'}_${rango}.${ext}`;
+  const vistaPascal = limpio(vista).split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('') || 'Datos';
+  return `SIMHO_${vistaPascal.slice(0, 60)}_${limpio(alcance).slice(0, 100).replace(/-$/, '') || 'Pais'}_${rango}.${ext}`;
 }
 
 /** CSV de la hoja Datos: UTF-8 con BOM (Excel lee las tildes), separador ";" y números sin formato. */
 export function csv(tabla: TablaExport): string {
   const esc = (v: Celda) => {
     if (v == null) return '';
-    if (typeof v === 'number') return String(v);
-    return /[";\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    if (typeof v === 'number') return Number.isFinite(v) ? String(v) : '';
+    const seguro = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v; // Excel no evalúa la celda como fórmula
+    return /[";\r\n]/.test(seguro) ? `"${seguro.replace(/"/g, '""')}"` : seguro;
   };
   return '﻿' + [tabla.columnas.map((c) => c.titulo), ...tabla.filas].map((f) => f.map(esc).join(';')).join('\r\n');
 }
@@ -171,8 +172,12 @@ function bajar(blob: Blob, nombre: string) {
 }
 
 export async function descargarXlsx(tabla: TablaExport, notas: [string, string][], nombre: string) {
-  const XLSX = await import('xlsx');
-  XLSX.writeFile(libro(XLSX, tabla, notas), nombre, { compression: true });
+  try {
+    const XLSX = await import('xlsx');
+    XLSX.writeFile(libro(XLSX, tabla, notas), nombre, { compression: true });
+  } catch {
+    window.alert('No se pudo generar el Excel. Recargá la página e intentá de nuevo, o descargá el CSV.');
+  }
 }
 
 export function descargarCsv(tabla: TablaExport, nombre: string) {

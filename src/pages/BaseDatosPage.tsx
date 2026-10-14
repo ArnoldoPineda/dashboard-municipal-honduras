@@ -174,8 +174,8 @@ export default function BaseDatosPage() {
     if (!col) return base;
     return base.sort((a, b) => {
       const x = col.valor(a), y = col.valor(b);
-      if (x == null || x === '') return 1;   // sin dato siempre al final
-      if (y == null || y === '') return -1;
+      const nx = x == null || x === '', ny = y == null || y === '';
+      if (nx || ny) return nx && ny ? 0 : nx ? 1 : -1; // sin dato siempre al final
       return orden.dir * (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'es'));
     });
   }, [filas, orden, cols]);
@@ -282,7 +282,7 @@ export default function BaseDatosPage() {
               <thead style={{ position: 'sticky', top: 0, zIndex: 3 }}>
                 {grupos && (
                   <tr>
-                    <th style={{ ...thBase, ...fija(C.panel2, 4) }} />
+                    <th aria-hidden="true" style={{ ...thBase, ...fija(C.panel2, 4) }} />
                     {grupos.map((g, i) => (
                       <th key={i} colSpan={g.n} scope="colgroup" style={{ ...thBase, textAlign: 'left', padding: '6px 10px', color: C.turquesa, borderLeft: `1px solid ${C.borde2}` }}>{g.g}</th>
                     ))}
@@ -307,8 +307,8 @@ export default function BaseDatosPage() {
                   return (
                     <tr key={m.id ?? `${m.department}|${m.code}`} style={{ background: bg }}>
                       <th scope="row" className="col-fija" style={{ ...fija(bg), textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontFamily: SANS, fontSize: 14 }}>
-                        {ruta ? <Link to={ruta} style={{ color: C.texto }}>{m.name}</Link> : m.name}
-                        {nota && <span title={nota} aria-label={`Excluido: ${nota}`} style={{ color: C.ambar, marginLeft: 6, cursor: 'help' }}>⚠</span>}
+                        {ruta ? <Link to={ruta} style={{ color: C.texto, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>{m.name}</Link> : m.name}
+                        {nota && <span role="img" title={nota} aria-label={`Excluido de totales y medianas: ${nota}`} style={{ color: C.ambar, marginLeft: 6, cursor: 'help' }}>⚠</span>}
                       </th>
                       {cols.map((c) => (
                         <td key={c.clave} style={{ padding: '8px 10px', textAlign: c.tipo === 'texto' ? 'left' : 'right', whiteSpace: 'nowrap', color: nota ? C.suave : C.texto }}>

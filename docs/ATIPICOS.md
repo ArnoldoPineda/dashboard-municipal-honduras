@@ -204,3 +204,28 @@ Efecto en el agregado País 2025 (cuadro de Análisis, precios corrientes):
 **Dónde se muestra:** en el cuadro de Análisis aparece ⚠, con un aviso, en las filas Industria, Comercio y Servicios cuando el alcance incluye a Distrito Central. Eso ocurre con el municipio, con Francisco Morazán, con País y con la categoría A.
 
 **Otros municipios con el mismo patrón (revisión 2021–2025):** ninguno. La regla fue: una de las tres filas en 0 un año que el año siguiente concentra al menos el 90 % del subtotal, con subtotal > L 1 M. El resultado no cambia si se exige el subtotal solo en el año siguiente, ni si se acepta "casi 0" (< 1 % del subtotal) en lugar de 0 exacto.
+
+## 10. Asignaciones globales junto a la inversión (Fase 7e)
+
+**Pregunta:** ¿la inversión por habitante (bienes capitalizables ÷ población) subestima la inversión real porque parte del gasto de capital queda en Asignaciones globales? Datos de `public.municipalities` 2021–2025, leídos el 2026-10-14 con la anon key y solo lectura. Se aplicaron las mismas exclusiones que en SIMHO: totales sin las filas sin liquidación; medianas, correlaciones y quintiles sin las filas excluidas de estadísticas (§7).
+
+**Peso nacional:**
+
+| Año | Asignaciones globales (M L) | % del gasto total | % de gastos de capital y deuda | Bienes capitalizables (M L) | Asignaciones ÷ bienes capitalizables |
+|---|---|---|---|---|---|
+| 2021 | 1,801 | 9.4 % | 14.1 % | 4,770 | 0.38 |
+| 2022 | 1,773 | 9.8 % | 15.7 % | 4,013 | 0.44 |
+| 2023 | 1,895 | 9.1 % | 14.2 % | 5,496 | 0.34 |
+| 2024 | 2,487 | 9.7 % | 14.2 % | 7,084 | 0.35 |
+| 2025 | 2,296 | 8.7 % | 12.7 % | 6,390 | 0.36 |
+
+- **Por categoría (2025, mediana / agregado del % del gasto):** A 13.4 % / 3.8 %; B 13.2 % / 15.5 %; C 20.9 % / 19.8 %; D 23.5 % / 22.8 %. El peso está en las categorías C y D; en la A, las ciudades grandes casi no usan este renglón.
+- **Distribución 2025 (295 municipios en estadísticas):** 212 con asignaciones ≥ 10 % del gasto, 54 con ≥ 30 % y 7 con ≥ 50 %.
+- **Sustitución:** la correlación entre el % de asignaciones globales y el % de bienes capitalizables es de **−0.65** (Pearson y Spearman, 2021–2025 juntos; entre −0.62 y −0.68 en cada año). La suma de los dos porcentajes varía menos entre municipios que cada uno por separado.
+- **Escenario "inversión ampliada" 2025** ((bienes capitalizables + asignaciones globales) ÷ población): la mediana nacional pasa de L 635 a L 1,151 por habitante (**+81 %**), y **148 de 295 municipios** cambiarían de quintil en el mapa (65 suben, 83 bajan, 36 saltan dos quintiles o más).
+
+**Decisión (2026-10-14):** (b) fila aparte; (c) inversión ampliada queda pendiente de verificar el contenido de Asignaciones globales con liquidaciones de muestra. El indicador, el mapa y los rankings no cambian.
+
+**Dónde se muestra:**
+- Análisis: la fila «Asignaciones Globales» va debajo de «Bienes Capitalizables», al mismo nivel; hereda per cápita, Real, Var. %, crecimiento anual y exportación.
+- Ficha Municipal (pestaña Pares): bajo «Inversión por habitante», «Asignaciones globales: X % del gasto (L Y por habitante)». Desde el 30 % del gasto (`UMBRAL_ASIGNACIONES_GLOBALES`, el mismo umbral de §8) se agrega como texto visible, también en celular: "Parte del gasto de capital puede estar registrado en Asignaciones globales; la inversión por habitante podría estar subestimada." Ejemplo: Ahuas 2025, con 47.5 % del gasto y L 2,015 por habitante.

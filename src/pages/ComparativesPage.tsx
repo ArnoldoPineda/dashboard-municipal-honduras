@@ -86,7 +86,7 @@ export default function ComparativesPage() {
   const agregar = (ine: string) => setInes((xs) => (!/^\d{4}$/.test(ine) || xs.includes(ine) || xs.length >= MAX ? xs : [...xs, ine]));
   const quitar = (ine: string) => setInes((xs) => xs.filter((x) => x !== ine));
   // Pares de la categoría en el año (sin excluidos, incluido el municipio), como en comparacionPares.
-  const nPares = (fila: Municipality) => filasAnio.filter((m) => m.category === fila.category && !excluirDeRazones(m)).length;
+  const nPares = (fila: Municipality) => filasAnio.filter((m) => m.year === fila.year && m.category === fila.category && !excluirDeRazones(m)).length;
   const base = conFila.find(({ fila }) => !excluirDeRazones(fila))?.fila ?? conFila[0]?.fila ?? null;
   const sugeridos = useMemo(
     () => (base ? paresSugeridos(filasAnio, base, conFila.map((e) => e.fila), MAX - ines.length) : []),
@@ -168,7 +168,7 @@ export default function ComparativesPage() {
                             {ruta ? <Link to={ruta} style={{ fontFamily: COND, fontSize: 17, color: C.texto, textDecoration: 'none' }}>{fila?.name ?? ine}</Link> : ine}
                             {av.length > 0 && <span title={av.join(' · ')} aria-label={`Aviso: ${av.join(' · ')}`} style={{ color: C.ambar, marginLeft: 4 }}>⚠</span>}
                             <div style={{ fontSize: 11, color: C.suave, fontWeight: 400 }}>
-                              {fila ? `${nombreDepartamento(fila.department)} · Cat. ${fila.category ?? '—'} · ${nPares(fila)} pares` : `Sin datos ${fiscalYear}`}
+                              {fila ? `${nombreDepartamento(fila.department)} · ${fila.category ? `Cat. ${fila.category} · ${nPares(fila)} pares` : 'Sin categoría'}` : `Sin datos ${fiscalYear}`}
                             </div>
                           </th>
                         );

@@ -53,6 +53,14 @@ export interface Insumos {
   poblacion:         number;
 }
 
+/** Impuestos de G1 (columnas SEFIN IMPUESTO SOBRE BI … DE TELECOMUNICACIONES). G1 = impuestos + tasas por servicios + derechos. */
+export const CAMPOS_IMPUESTOS_G1 = [
+  'impuesto_bi', 'impuesto_personal', 'impuesto_industria', 'impuesto_comercio',
+  'impuesto_servicios', 'impuesto_pecuario', 'impuesto_extraccion', 'impuesto_telecomunicaciones',
+] as const;
+/** Suma de los impuestos de G1 (sin tasas ni derechos); nulos cuentan como 0. */
+export const impuestosG1 = (m: Municipality) => CAMPOS_IMPUESTOS_G1.reduce((acc, c) => acc + n(m[c]), 0);
+
 export function insumos(m: Municipality): Insumos {
   const ingresosTotales = n(m.ingresos_recaudados);
   const recursosBalance = n(m.recursos_balance);
@@ -230,8 +238,7 @@ export function atipicos(m: Municipality): string[] {
   if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');
   // ponytail: umbral fijo 2× el aprobado; ajustar si aparecen ampliaciones presupuestarias legítimas.
   if (r.ejecucion !== null && r.ejecucion > 200) out.push('Egresos > 2 × presupuesto aprobado');
-  const g1 = suma(m, ['impuesto_bi', 'impuesto_personal', 'impuesto_industria', 'impuesto_comercio', 'impuesto_servicios',
-    'impuesto_pecuario', 'impuesto_extraccion', 'impuesto_telecomunicaciones', 'tasas_servicios', 'derechos']);
+  const g1 = suma(m, [...CAMPOS_IMPUESTOS_G1, 'tasas_servicios', 'derechos']);
   if (Math.abs(g1 - n(m.ingresos_tributarios)) > TOL) out.push('Tributarios ≠ suma de renglones');
   if (Math.abs(i.ingresosCorrientes - n(m.ingresos_corrientes)) > TOL) out.push('Corrientes SEFIN ≠ G1 + G2');
   const func = suma(m, ['servicios_personales', 'servicios_no_personales', 'materiales_suministro', 'transferencias_corrientes', 'otros_gastos']);

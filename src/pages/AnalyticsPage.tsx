@@ -9,7 +9,7 @@ import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipali
 import {
   sumarTotales, insumos, calcular, sinLiquidacion, excluirDeTotales, excluirDeRazones, notaDatoIncompleto, notaTotales, ROTULO_SIN_LIQUIDACION,
   Indicadores, Alcance, filasDeAlcance, indicadoresPorAnio, INDICADORES_ANALISIS, IndicadorAnalisis,
-  porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda,
+  porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda, impuestosG1,
 } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 import { IPC, ipcCompleto, ANIO_BASE_REAL, ROTULO_PRECIOS_REALES, tituloGrafico } from '../data/ipc';
@@ -46,7 +46,7 @@ function aggregate(all: Municipality[], unMunicipio = false): YearData {
   const s = (k: keyof Municipality) => sumField(rows, k);
   const ins = unMunicipio && rows.length === 1 ? insumos(rows[0]) : sumarTotales(rows);
   const campos: (keyof Municipality)[] = [
-    'presupuesto_municipal', 'ingresos_tributarios', 'tasas_servicios', 'derechos', 'ingresos_no_tributarios', 'ingresos_capital',
+    'presupuesto_municipal', 'ingresos_tributarios', 'impuesto_bi', 'tasas_servicios', 'derechos', 'ingresos_no_tributarios', 'ingresos_capital',
     'transferencias_art91', 'otras_transferencias', 'gastos_funcionamiento', 'servicios_personales', 'servicios_no_personales',
     'materiales_suministro', 'transferencias_corrientes', 'otros_gastos', 'gastos_capital_deuda', 'bienes_capitalizables',
     'transferencias_capital', 'activos_financieros', 'servicios_deuda', 'otros_gastos_capital', 'asignaciones_globales', 'total_egresos',
@@ -55,6 +55,7 @@ function aggregate(all: Municipality[], unMunicipio = false): YearData {
   return {
     ...calcular(ins),
     ...Object.fromEntries(campos.map((k) => [k, s(k)])),
+    impuestos:           rows.reduce((acc, r) => acc + impuestosG1(r), 0),
     ingresos_recaudados: ins.ingresosTotales,
     transferencias:      ins.transferencias,
     recursos_balance:    ins.recursosBalance,
@@ -76,6 +77,8 @@ const TABLE_ROWS: TRow[] = [
   // Jerarquía SEFIN: Corrientes = Tributarios (G1, ya incluye Tasas y Derechos) + No Tributarios (G2).
   { key: 'ing_c',   label: 'Ingresos Corrientes',            variant: 'main',      field: 'ingresosCorrientes' },
   { key: 'ing_t',   label: '↳ Ingresos Tributarios (G1)',    variant: 'sub',       field: 'ingresos_tributarios' },
+  { key: 'imp',     label: '    ↳ de los cuales: Impuestos', variant: 'sub', field: 'impuestos' },
+  { key: 'ibi',     label: '        ↳ IBI (bienes inmuebles)', variant: 'sub', field: 'impuesto_bi' },
   { key: 'tasas',   label: '    ↳ de los cuales: Tasas por Servicios', variant: 'sub', field: 'tasas_servicios' },
   { key: 'derech',  label: '    ↳ de los cuales: Derechos', variant: 'sub', field: 'derechos' },
   { key: 'ing_nt',  label: '↳ Ingresos No Tributarios (G2)', variant: 'sub',       field: 'ingresos_no_tributarios' },

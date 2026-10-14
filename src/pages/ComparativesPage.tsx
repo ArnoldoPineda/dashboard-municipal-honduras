@@ -18,6 +18,7 @@ import { rutaFicha } from '../lib/municipios';
 import { NO_DATA_MSG } from '../utils/sefin';
 import SelectorAnio from '../components/SelectorAnio';
 import BuscadorMunicipio from '../components/ficha/BuscadorMunicipio';
+import TablaScroll from '../components/TablaScroll';
 import { motivoExclusion } from '../components/ficha/FranjaExcluido';
 import { ETIQUETAS, fmtIndicador } from '../components/ficha/TarjetasIndicadores';
 import { C, MONO, COND, SANS, panel, rotulo, grilla, TONO_COLOR } from '../components/ficha/estilo';
@@ -155,7 +156,7 @@ export default function ComparativesPage() {
           : (
           <>
             <section aria-label="Tabla comparativa" style={{ ...panel, padding: 0, overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
+              <TablaScroll>
                 <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 13 }}>
                   <thead>
                     <tr>
@@ -215,7 +216,7 @@ export default function ComparativesPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TablaScroll>
               <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
                 P = percentil en su categoría (% de pares con valor menor). Punto: <span style={{ color: C.turquesa }}>●</span> sobre la mediana ·{' '}
                 <span style={{ color: C.gris }}>●</span> en la mediana · <span style={{ color: C.ambar }}>●</span> bajo la mediana o alerta, según el sentido favorable del indicador.

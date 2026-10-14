@@ -14,6 +14,8 @@ import { rutaFicha } from '../lib/municipios';
 import { NO_DATA_MSG } from '../utils/sefin';
 import { descargarXlsx, descargarCsv, nombreArchivo, TablaExport } from '../lib/exportar';
 import SelectorAnio from '../components/SelectorAnio';
+import OrdenMovil from '../components/OrdenMovil';
+import { useEsMovil } from '../hooks/useMediaQuery';
 import { ETIQUETAS, fmtIndicador } from '../components/ficha/TarjetasIndicadores';
 import { C, MONO, COND, SANS, panel } from '../components/ficha/estilo';
 
@@ -56,6 +58,7 @@ const celda = (r: FilaRanking, col: Col): string | number | null => {
 export default function RankingsPage() {
   const { fiscalYear } = useNavbar();
   const navigate = useNavigate();
+  const esMovil = useEsMovil();
   const [clave, setClave] = useState<ClaveSemaforo>('autonomia');
   const [categoria, setCategoria] = useState('');
   const [depto, setDepto] = useState('');
@@ -197,6 +200,55 @@ export default function RankingsPage() {
                 {vista !== 'todos' && excluidos.length > 0 ? ' (ver Todos)' : ''}
               </div>
             </div>
+            {esMovil ? (
+              <>
+                <div style={{ padding: '12px 14px', borderBottom: `1px solid ${C.borde2}` }}>
+                  <OrdenMovil opciones={COLS.map(({ col, titulo }) => ({ clave: col, titulo }))}
+                    orden={orden && { clave: orden.col, dir: orden.dir }}
+                    onCambio={(o) => setOrden(o && { col: o.clave as Col, dir: o.dir })} />
+                </div>
+                <ul aria-label={`Ranking: ${ETIQUETAS[clave]}`} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {filas.map((r) => {
+                    const ruta = rutaFicha(codigoINE(r.fila.department, r.fila.code));
+                    const contenido = (
+                      <>
+                        <span style={{ fontFamily: COND, fontSize: 22, fontWeight: 700, minWidth: 34, textAlign: 'right', color: r.posicion != null && r.posicion <= 3 ? C.turquesa : C.texto2 }}>
+                          {r.posicion ?? '—'}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: C.texto }}>
+                            {r.fila.name}
+                            {r.motivo && <span title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
+                            {atipico(r) && (
+                              <span style={{ marginLeft: 6, fontFamily: MONO, fontSize: 11, fontWeight: 400, color: C.ambar, border: `1px solid ${C.ambar}`, borderRadius: 4, padding: '0 4px' }}>atípico</span>
+                            )}
+                          </span>
+                          <span style={{ display: 'block', fontFamily: MONO, fontSize: 12, color: C.suave, marginTop: 2 }}>
+                            {nombreDepartamento(r.fila.department)} · Cat. {r.fila.category ?? '—'} · {fmtNum(r.fila.population)} hab.
+                          </span>
+                          {(r.motivo || atipico(r)) && (
+                            <span style={{ display: 'block', fontSize: 12, color: C.ambar, marginTop: 4 }}>{r.motivo ?? rotuloInversionCasiNula(r.fila)}</span>
+                          )}
+                        </span>
+                        <span style={{ textAlign: 'right', fontFamily: MONO, flexShrink: 0 }}>
+                          <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: r.motivo ? C.gris : C.texto }}>
+                            {sinLiquidacion(r.fila) ? ROTULO_SIN_LIQUIDACION : fmtIndicador(clave, r.valor)}
+                          </span>
+                          <span style={{ display: 'block', fontSize: 12, color: C.suave, marginTop: 2 }}>{r.percentil != null ? `P${r.percentil}` : '—'}</span>
+                        </span>
+                      </>
+                    );
+                    const caja: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', color: 'inherit', textDecoration: 'none' };
+                    return (
+                      <li key={`${r.fila.department}|${r.fila.code}`} style={{ borderTop: `1px solid ${C.borde}`, background: r.motivo ? '#1a1610' : C.panel }}>
+                        {ruta ? <Link to={ruta} style={caja}>{contenido}</Link> : <div style={caja}>{contenido}</div>}
+                      </li>
+                    );
+                  })}
+                  {!filas.length && <li style={{ padding: 24, textAlign: 'center', color: C.suave }}>Sin municipios para este filtro.</li>}
+                </ul>
+              </>
+            ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 13 }}>
                 <thead>
@@ -243,6 +295,7 @@ export default function RankingsPage() {
                 </tbody>
               </table>
             </div>
+            )}
             {excluidos.length > 0 && (
               <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
                 ⚠ {REGLA_EXCLUSION}

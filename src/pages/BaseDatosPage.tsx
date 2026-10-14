@@ -14,6 +14,8 @@ import { ANIOS_SEFIN } from '../data/anios';
 import { opcionesMunicipios, buscarMunicipios, rutaFicha } from '../lib/municipios';
 import { descargarXlsx, descargarCsv, nombreArchivo, TablaExport, Celda } from '../lib/exportar';
 import { C, MONO, COND, SANS, panel } from '../components/ficha/estilo';
+import OrdenMovil from '../components/OrdenMovil';
+import { useEsMovil } from '../hooks/useMediaQuery';
 
 type Tipo = 'texto' | 'entero' | 'monto' | 'pct' | 'lph';
 interface Col { clave: string; titulo: string; tipo: Tipo; valor: (m: Municipality) => string | number | null; grupo?: string }
@@ -145,11 +147,29 @@ type Vista = keyof typeof VISTAS;
 const motivo = (m: Municipality) => (excluirDeEstadisticas(m) ? notaDatoIncompleto(m) ?? ROTULO_SIN_LIQUIDACION : null);
 const fmtCelda = (tipo: Tipo, v: string | number | null) =>
   tipo === 'texto' ? (v ?? '') : tipo === 'pct' ? fmtPct(v as number | null) : tipo === 'entero' ? fmtNum(v as number | null) : fmtL(v as number | null, { completo: true });
+/** Tarjetas (celular): con más de este número de columnas, los valores van en un bloque plegable. */
+const MAX_COLS_ABIERTAS = 12;
+
+/** Pares rótulo–valor de una tarjeta (celular), en dos columnas. */
+function Valores({ cols, valor, sufijo }: { cols: Col[]; valor: (c: Col) => React.ReactNode; sufijo?: (c: Col) => string }) {
+  return (
+    <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', margin: '10px 0 0' }}>
+      {cols.map((c) => (
+        <div key={c.clave} style={{ minWidth: 0 }}>
+          <dt style={{ fontFamily: MONO, fontSize: 11, color: C.suave, overflowWrap: 'anywhere' }}>{c.titulo}{sufijo ? ` · ${sufijo(c)}` : ''}</dt>
+          <dd style={{ margin: 0, fontFamily: MONO, fontSize: 13, color: C.texto, overflowWrap: 'anywhere' }}>{valor(c)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 const ROTULO: React.CSSProperties = { fontFamily: MONO, display: 'block', fontSize: 11, color: C.suave, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 };
 const control: React.CSSProperties = { minHeight: 44, fontSize: 14 };
 
 export default function BaseDatosPage() {
   const { fiscalYear, setFiscalYear } = useNavbar();
+  const esMovil = useEsMovil();
   const { municipalities, loading } = useMunicipalitiesMultiYear(ANIOS_SEFIN);
   const [depto, setDepto] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -294,6 +314,40 @@ export default function BaseDatosPage() {
           ))}
         </div>
 
+        {esMovil ? (
+          <section aria-label={`Lista: ${VISTAS[vista].etiqueta}`} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <OrdenMovil opciones={[{ clave: 'name', titulo: 'Municipio' }, ...cols.map((c) => ({ clave: c.clave, titulo: c.titulo }))]}
+              orden={orden} onCambio={setOrden} />
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {ordenadas.map((m) => {
+                const nota = motivo(m);
+                const ruta = rutaFicha(codigoINE(m.department, m.code));
+                const valores = <Valores cols={cols} valor={(c) => fmtCelda(c.tipo, c.valor(m))} />;
+                return (
+                  <li key={m.id ?? `${m.department}|${m.code}`} style={{ ...panel, padding: '12px 14px', color: nota ? C.suave : C.texto }}>
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>
+                      {ruta ? <Link to={ruta} style={{ color: C.texto, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>{m.name}</Link> : m.name}
+                      {nota && <span aria-hidden="true" style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
+                    </div>
+                    {nota && (
+                      <div style={{ fontSize: 12, color: C.ambar }}>
+                        {excluirDeTotales(m) ? 'Fuera de totales y medianas' : 'Suma en los totales, fuera de las medianas'}: {nota}
+                      </div>
+                    )}
+                    {cols.length > MAX_COLS_ABIERTAS
+                      ? <details><summary style={{ cursor: 'pointer', minHeight: 44, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.turquesa }}>Ver {cols.length} columnas</summary>{valores}</details>
+                      : valores}
+                  </li>
+                );
+              })}
+            </ul>
+            <div style={{ ...panel, padding: '12px 14px', background: '#10302d', border: `1px solid ${C.turquesa}` }}>
+              <div style={{ fontFamily: MONO, fontSize: 12, color: C.turquesa, fontWeight: 700 }}>TOTAL / MEDIANA</div>
+              <div style={{ fontFamily: MONO, fontSize: 11, color: C.suave }}>{nTot} en totales · {nEst} en medianas</div>
+              <Valores cols={numericas} valor={(c) => fmtCelda(c.tipo, pie[c.clave])} sufijo={(c) => (esSuma(c) ? 'total' : 'mediana')} />
+            </div>
+          </section>
+        ) : (
         <section aria-label={`Tabla: ${VISTAS[vista].etiqueta}`} style={{ ...panel, padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto', maxHeight: '70vh', overflowY: 'auto' }}>
             <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 13 }}>
@@ -352,6 +406,7 @@ export default function BaseDatosPage() {
             </table>
           </div>
         </section>
+        )}
         {notaTot && <p style={{ margin: 0, fontSize: 13, color: C.ambar }}>Totales: {notaTot}</p>}
         {deudaCero && <p style={{ margin: 0, fontSize: 13, color: C.suave }}>Mediana del servicio de deuda en 0.0 %: {notaMedianaDeuda()}</p>}
         <p style={{ margin: 0, fontSize: 13, color: C.suave }}>

@@ -329,3 +329,18 @@ th button:focus-visible { outline: 2px solid #3fd6c0; outline-offset: -2px; }
 
 /* Celular (< 768 px): margen lateral de 16 px en el pie. */
 @media (max-width: 767px) { .pie-fuente { padding: 6px 16px !important; } }
+
+/* Tablas con scroll horizontal (TablaScroll) en celular: degradado con › mientras haya más columnas a la derecha,
+   y sombra en la columna fija al desplazar. En Panorama la primera columna queda fija solo en celular. */
+@media (max-width: 767px) {
+  .tabla-scroll-marco { position: relative; }
+  .tabla-scroll-marco[data-mas-der]::after {
+    content: '›'; position: absolute; top: 0; right: 0; bottom: 0; width: 32px; z-index: 4; pointer-events: none;
+    display: flex; align-items: flex-start; justify-content: flex-end; padding: 10px 6px 0 0; box-sizing: border-box;
+    font-size: 22px; color: #3fd6c0; background: linear-gradient(to right, rgba(10,15,26,0), rgba(10,15,26,0.92) 70%);
+  }
+  .tabla-scroll .col-fija-movil { position: sticky; left: 0; z-index: 2; background: #0f1726; }
+  .tabla-scroll thead .col-fija-movil { background: #0c1320; }
+  .tabla-scroll[data-desplazada] .col-fija,
+  .tabla-scroll[data-desplazada] .col-fija-movil { box-shadow: 6px 0 8px -4px rgba(0,0,0,0.75) !important; }
+}

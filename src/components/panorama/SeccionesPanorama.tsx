@@ -12,6 +12,7 @@ import { deptSlug } from '../../utils/sefin';
 import { C, MONO, COND, panel, rotulo, cifra, h2, nota } from '../ficha/estilo';
 import MapaDepartamentos, { datosDepartamentos, valorTexto } from './MapaDepartamentos';
 import SelectorMetrica from '../SelectorMetrica';
+import TablaScroll from '../TablaScroll';
 
 const pct = (v: number | null | undefined) => (v == null ? '—' : `${v.toFixed(1)} %`);
 const seccion: React.CSSProperties = { ...panel, padding: 'clamp(14px, 3vw, 20px)', display: 'flex', flexDirection: 'column', gap: 14 };
@@ -97,10 +98,10 @@ export function TablaCategorias({ r }: { r: ResumenNacional }) {
         <h2 style={{ ...h2, fontSize: 22 }}>Por categoría municipal (SGJD 2020)</h2>
         <div style={sub}>Medianas municipales · {r.anio}</div>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+      <TablaScroll>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 460, fontSize: 14, color: C.texto }}>
           <thead><tr>
-            <th scope="col" style={{ ...th, textAlign: 'left' }}>CAT.</th>
+            <th scope="col" className="col-fija-movil" style={{ ...th, textAlign: 'left' }}>CAT.</th>
             <th scope="col" style={th}>MUNIC.</th><th scope="col" style={th}>POBLACIÓN</th>
             <th scope="col" style={{ ...th, textAlign: 'left', paddingLeft: 14 }}>AUTONOMÍA</th>
             <th scope="col" style={th}>PROPIOS / HAB.</th><th scope="col" style={th}>DEPENDENCIA</th>
@@ -108,7 +109,7 @@ export function TablaCategorias({ r }: { r: ResumenNacional }) {
           <tbody>
             {r.categorias.map((x) => (
               <tr key={x.categoria} style={{ borderTop: `1px solid ${C.borde}` }}>
-                <th scope="row" style={{ textAlign: 'left', padding: '12px 6px', fontFamily: COND, fontSize: 18 }}>{x.categoria}</th>
+                <th scope="row" className="col-fija-movil" style={{ textAlign: 'left', padding: '12px 6px', fontFamily: COND, fontSize: 18 }}>{x.categoria}</th>
                 <td style={td}>{x.n}</td>
                 <td style={td}>{x.poblacion.toLocaleString('en-US')}</td>
                 <td style={{ padding: '12px 6px 12px 14px', minWidth: 150 }}>
@@ -125,7 +126,7 @@ export function TablaCategorias({ r }: { r: ResumenNacional }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </TablaScroll>
       {r.notaTotales && <p style={{ ...nota, fontSize: 13, color: C.ambar }}>Población (total): {r.notaTotales} "Munic." y las medianas cuentan solo los municipios en estadísticas.</p>}
       {c && (
         <p style={nota}>
@@ -198,22 +199,22 @@ export function TendenciaAutonomia({ filas, anios }: { filas: Municipality[]; an
   return (
     <section aria-label="Tendencia" style={seccion}>
       <h2 style={{ ...h2, fontSize: 22 }}>Autonomía {anios[0]}–{anios[anios.length - 1]}: municipio típico frente al agregado</h2>
-      <div style={{ overflowX: 'auto', border: `1px solid ${C.borde}`, borderRadius: 12 }}>
+      <TablaScroll style={{ border: `1px solid ${C.borde}`, borderRadius: 12 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520, fontSize: 14, color: C.texto }}>
           <thead><tr style={{ background: C.panel2 }}>
-            <th scope="col" style={{ ...th, textAlign: 'left', fontSize: 11, letterSpacing: 1.2, color: C.suave, fontWeight: 500 }}>INDICADOR</th>
+            <th scope="col" className="col-fija-movil" style={{ ...th, textAlign: 'left', fontSize: 11, letterSpacing: 1.2, color: C.suave, fontWeight: 500 }}>INDICADOR</th>
             {anios.map((y) => <th key={y} scope="col" style={{ ...th, textAlign: 'right', color: C.turquesa }}>{y}</th>)}
           </tr></thead>
           <tbody>
             {filasTabla.map(([label, f]) => (
               <tr key={label} style={{ borderTop: `1px solid ${C.borde}` }}>
-                <th scope="row" style={{ textAlign: 'left', padding: '11px 14px', fontWeight: 500 }}>{label}</th>
+                <th scope="row" className="col-fija-movil" style={{ textAlign: 'left', padding: '11px 14px', fontWeight: 500 }}>{label}</th>
                 {anios.map((y) => <td key={y} style={{ textAlign: 'right', padding: '11px 14px', fontFamily: MONO }}>{f(y)}</td>)}
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </TablaScroll>
       <p style={{ ...nota, fontSize: 13, color: C.suave }}>La mediana describe al municipio típico; el agregado (Σ/Σ) lo dominan los municipios grandes.</p>
     </section>
   );

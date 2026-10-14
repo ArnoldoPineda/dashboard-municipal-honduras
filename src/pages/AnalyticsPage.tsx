@@ -18,6 +18,7 @@ import { fmtL, fmtLGrafico, fmtPct } from '../lib/formato';
 import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
 import { descargarXlsx, descargarCsv, nombreArchivo, TablaExport, Celda } from '../lib/exportar';
 import BuscadorMunicipio from '../components/ficha/BuscadorMunicipio';
+import TablaScroll from '../components/TablaScroll';
 import { C, MONO, COND, SANS, panel } from '../components/ficha/estilo';
 
 const ALL_YEARS = ANIOS_SEFIN;
@@ -382,7 +383,7 @@ export default function AnalyticsPage() {
                 <h2 style={{ margin: 0, fontFamily: COND, fontSize: 22, fontWeight: 600 }}>Ejecución presupuestaria — {scopeLabel}</h2>
                 <div style={{ fontFamily: MONO, fontSize: 12, color: C.suave, marginTop: 4 }}>{unidad}{loading ? ' · Cargando…' : ''}</div>
               </div>
-              <div style={{ overflowX: 'auto' }}>
+              <TablaScroll>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560, fontFamily: MONO }}>
                   <thead>
                     <tr style={{ background: C.panel2 }}>
@@ -426,7 +427,7 @@ export default function AnalyticsPage() {
                     })}
                   </tbody>
                 </table>
-              </div>
+              </TablaScroll>
               {notasTotales.map(([y, t]) => (
                 <div key={y} style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.ambar }}>{y}: {t}</div>
               ))}
@@ -443,7 +444,7 @@ export default function AnalyticsPage() {
                   {agregado ? 'Mediana municipal y agregado (Σ/Σ) del alcance, sin municipios sin liquidación, sin Art. 91 ni con rendición parcial' : 'Valores del municipio'}
                 </div>
               </div>
-              <div style={{ overflowX: 'auto' }}>
+              <TablaScroll>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560, fontFamily: MONO, fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: C.panel2 }}>
@@ -471,7 +472,7 @@ export default function AnalyticsPage() {
                     }))}
                   </tbody>
                 </table>
-              </div>
+              </TablaScroll>
               {deudaCero && (
                 <div style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.suave }}>
                   Servicio de deuda ÷ corrientes, mediana en 0.0 %: {notaMedianaDeuda()}

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RANGO_ANIOS } from '../data/anios';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import PieFuente from './PieFuente';
+import { useEsMovil } from '../hooks/useMediaQuery';
+import { useEnLinea } from '../hooks/useEnLinea';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -79,12 +81,12 @@ const NAV_ITEMS = [
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
-function Sidebar() {
+function Sidebar({ enDrawer = false, onNavegar }: { enDrawer?: boolean; onNavegar?: () => void }) {
   const location = useLocation();
 
   return (
-    <aside className="simho-sidebar" style={{
-      width: 220,
+    <aside className={enDrawer ? undefined : 'simho-sidebar'} style={{
+      width: enDrawer ? 'min(280px, 82vw)' : 220,
       flexShrink: 0,
       height: '100%',
       borderRight: '1px solid rgba(0,212,184,0.14)',
@@ -115,6 +117,7 @@ function Sidebar() {
               end={item.exact}
               aria-label={item.label}
               title={item.label}
+              onClick={onNavegar}
               style={({ isActive: routerIsActive }) => {
                 const active = item.exact ? routerIsActive : location.pathname.startsWith(item.to) || (!!item.alias && location.pathname.startsWith(item.alias));
                 return {
@@ -123,6 +126,7 @@ function Sidebar() {
                   alignItems: 'center',
                   gap: 11,
                   padding: '10px 12px',
+                  ...(enDrawer ? { minHeight: 44, boxSizing: 'border-box' as const } : {}),
                   borderRadius: 10,
                   cursor: 'pointer',
                   fontSize: 13.5,
@@ -173,7 +177,15 @@ function Sidebar() {
 
 // ── Top Navbar ───────────────────────────────────────────────────────────────
 
-function TopNavbar() {
+function IconMenu() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+function TopNavbar({ onMenu, botonRef }: { onMenu?: () => void; botonRef?: React.Ref<HTMLButtonElement> }) {
   // Año e indicador ya no viven aquí: cada página tiene su SelectorAnio (estado global).
   return (
     <header style={{
@@ -182,15 +194,22 @@ function TopNavbar() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 20px',
+      padding: onMenu ? '0 16px 0 8px' : '0 20px',
       borderBottom: '1px solid rgba(0,212,184,0.18)',
       background: 'rgba(8,12,24,0.88)',
       backdropFilter: 'blur(8px)',
       position: 'relative',
       zIndex: 10,
     }}>
-      {/* Logo */}
+      {/* Logo (en celular, precedido por el botón del menú) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {onMenu && (
+          <button ref={botonRef} type="button" onClick={onMenu} aria-label="Abrir menú" style={{
+            all: 'unset', cursor: 'pointer', width: 44, height: 44, display: 'grid', placeItems: 'center', color: '#aab6c9', borderRadius: 10,
+          }}>
+            <IconMenu />
+          </button>
+        )}
         <div style={{
           width: 32,
           height: 32,
@@ -215,10 +234,47 @@ function TopNavbar() {
   );
 }
 
+// ── Drawer (celular) ─────────────────────────────────────────────────────────
+
+/** Menú lateral completo sobre el contenido; se cierra con Esc, con el fondo o al navegar. */
+function Drawer({ onCerrar }: { onCerrar: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const panel = ref.current;
+    panel?.querySelector<HTMLElement>('a')?.focus();
+    const teclas = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onCerrar(); return; }
+      if (e.key !== 'Tab' || !panel) return;
+      // Foco atrapado dentro del menú mientras está abierto.
+      const links = Array.from(panel.querySelectorAll<HTMLElement>('a'));
+      const [primero, ultimo] = [links[0], links[links.length - 1]];
+      if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
+      else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
+    };
+    document.addEventListener('keydown', teclas);
+    return () => document.removeEventListener('keydown', teclas);
+  }, [onCerrar]);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+      <div onClick={onCerrar} style={{ position: 'absolute', inset: 0, background: 'rgba(4,7,14,0.7)' }} />
+      <div ref={ref} role="dialog" aria-modal="true" aria-label="Navegación" style={{ position: 'absolute', top: 0, bottom: 0, left: 0 }}>
+        <Sidebar enDrawer onNavegar={onCerrar} />
+      </div>
+    </div>
+  );
+}
+
 // ── Layout ───────────────────────────────────────────────────────────────────
 
 export default function Layout() {
   const location = useLocation();
+  const esMovil = useEsMovil();
+  const enLinea = useEnLinea();
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const botonMenu = useRef<HTMLButtonElement>(null);
+  const cerrarMenu = React.useCallback(() => { setMenuAbierto(false); botonMenu.current?.focus(); }, []);
+  useEffect(() => { setMenuAbierto(false); }, [location.pathname, esMovil]);
 
   return (
     <div style={{
@@ -254,11 +310,21 @@ export default function Layout() {
       }} />
 
       {/* Top navbar (full width) */}
-      <TopNavbar />
+      <TopNavbar onMenu={esMovil ? () => setMenuAbierto(true) : undefined} botonRef={botonMenu} />
+      {esMovil && menuAbierto && <Drawer onCerrar={cerrarMenu} />}
+      {!enLinea && (
+        <div role="status" style={{
+          flexShrink: 0, position: 'relative', zIndex: 9, padding: '8px 16px', textAlign: 'center',
+          background: 'rgba(240,163,58,0.14)', borderBottom: '1px solid rgba(240,163,58,0.5)',
+          color: '#f0a33a', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600,
+        }}>
+          Sin conexión — datos no disponibles
+        </div>
+      )}
 
       {/* Below navbar: sidebar + content */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
-        <Sidebar />
+        {!esMovil && <Sidebar />}
 
         <main
           key={location.pathname}

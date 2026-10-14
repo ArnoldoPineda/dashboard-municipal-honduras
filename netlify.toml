@@ -4,11 +4,24 @@
 
 [build.environment]
   NODE_VERSION = "24"
+  # Playwright es solo para `npm run e2e` local: el build nunca descarga navegadores.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 
 [[headers]]
   for = "/*.html"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
+
+# El service worker y el manifest se revisan en cada visita: así un deploy nuevo reemplaza el caché anterior.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "no-cache"
 
 [[headers]]
   for = "/static/js/*"

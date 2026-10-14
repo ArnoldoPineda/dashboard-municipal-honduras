@@ -16,7 +16,7 @@ export function BarraPercentil({ percentil, color, n }: { percentil: number | nu
         }} />
       </div>
       {n != null && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 10, color: C.gris }}>
+        <div className="barras-escala" style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 10, color: C.gris }}>
           <span>P0</span><span>Percentil {percentil} de {n}</span><span>P100</span>
         </div>
       )}

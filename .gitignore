@@ -31,3 +31,6 @@ test-results/
 
 # Salida de builds (CRA genera build/; dist/ por higiene)
 dist/
+
+# Reportes de Playwright
+playwright-report/

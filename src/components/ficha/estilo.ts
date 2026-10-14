@@ -16,6 +16,7 @@ export const C = {
   ambar:    '#f0a33a',
   coral:    '#ff7a6b',
   pista:    '#1c2a3d',
+  filaAviso: '#1a1610',  // fondo de las filas ⚠ (excluidas) en Rankings
 };
 
 export const MONO = "'IBM Plex Mono', monospace";

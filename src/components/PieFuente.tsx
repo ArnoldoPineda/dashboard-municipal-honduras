@@ -8,7 +8,7 @@ export const TEXTO_FUENTE = `Fuente: SEFIN — Liquidación Presupuestaria Munic
 export default function PieFuente() {
   const { notaPie } = useNavbar();
   return (
-    <footer style={{
+    <footer className="pie-fuente" style={{
       flexShrink: 0, padding: '6px 22px',
       borderTop: '1px solid rgba(0,212,184,0.08)',
       fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#a9b7c8', letterSpacing: '0.04em',

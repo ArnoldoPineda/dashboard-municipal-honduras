@@ -42,3 +42,23 @@ export const useMediaQuery = (): MediaQueryState & { width: number } => {
 
   return state;
 };
+
+/** Celular: por debajo de 768 px (barra superior con menú ☰, tarjetas en lugar de tablas). */
+export const MEDIA_MOVIL = '(max-width: 767px)';
+
+/** true en celular; se lee al montar (sin parpadeo) y sigue los cambios de tamaño. */
+export function useEsMovil(): boolean {
+  const consulta = () => typeof window !== 'undefined' && !!window.matchMedia?.(MEDIA_MOVIL).matches;
+  const [movil, setMovil] = useState(consulta);
+  useEffect(() => {
+    const q = window.matchMedia?.(MEDIA_MOVIL);
+    if (!q) return;
+    const f = () => setMovil(q.matches);
+    f();
+    // Safari < 14 solo tiene addListener/removeListener.
+    if (q.addEventListener) { q.addEventListener('change', f); return () => q.removeEventListener('change', f); }
+    q.addListener(f);
+    return () => q.removeListener(f);
+  }, []);
+  return movil;
+}

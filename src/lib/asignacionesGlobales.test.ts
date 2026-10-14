@@ -23,7 +23,7 @@ describe('asignacionesGlobales', () => {
     const en = (a: number) => row({ asignaciones_globales: a, total_egresos: 1000, population: 10, bienes_capitalizables: 0 });
     expect(asignacionesGlobales(en(300)).aviso).toBe(AVISO_ASIGNACIONES_GLOBALES);
     expect(asignacionesGlobales(en(299)).aviso).toBeNull();
-    // Los dos avisos se encienden juntos: el rótulo de inversión casi nula nombra las asignaciones desde el mismo %.
+    // Mismo umbral: con inversión casi nula (aquí 0), el rótulo de atípico nombra las asignaciones desde el mismo %.
     expect(rotuloInversionCasiNula(en(300))).toContain('Asignaciones globales (30.0 % del gasto)');
     expect(rotuloInversionCasiNula(en(299))).not.toContain('Asignaciones globales');
   });

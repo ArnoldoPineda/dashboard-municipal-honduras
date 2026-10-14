@@ -128,3 +128,5 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
     - escritorio 8/8.
   - Las capturas de referencia son de Windows (`*-win32.png`): en otro sistema operativo hay que regenerarlas con `--update-snapshots`.
 - Build: `.npmrc` con `legacy-peer-deps=true`, por el conflicto TypeScript 5 / react-scripts 5. Playwright está fijado en 1.63.0.
+
+## 9. Fase 7b: desglose de Impuestos e IBI bajo G1 en Análisis ✅ completada (2026-10-14, PR #12, merge `d228d99`, bundle `main.e200cf29.js`)

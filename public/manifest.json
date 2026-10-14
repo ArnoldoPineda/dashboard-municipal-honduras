@@ -1,0 +1,16 @@
+{
+  "name": "SIMHO — Inteligencia Municipal Honduras",
+  "short_name": "SIMHO",
+  "description": "Finanzas municipales de Honduras (SEFIN): mapa, fichas, comparaciones y rankings.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "icons": [
+    { "src": "/icons/simho-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/simho-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/simho-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

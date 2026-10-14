@@ -12,6 +12,17 @@
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
+# El service worker y el manifest se revisan en cada visita: así un deploy nuevo reemplaza el caché anterior.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 [[headers]]
   for = "/static/js/*"
   [headers.values]

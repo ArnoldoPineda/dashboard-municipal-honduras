@@ -3,6 +3,7 @@ import { RANGO_ANIOS } from '../data/anios';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import PieFuente from './PieFuente';
 import { useEsMovil } from '../hooks/useMediaQuery';
+import { useEnLinea } from '../hooks/useEnLinea';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -267,6 +268,7 @@ function Drawer({ onCerrar }: { onCerrar: () => void }) {
 export default function Layout() {
   const location = useLocation();
   const esMovil = useEsMovil();
+  const enLinea = useEnLinea();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const botonMenu = useRef<HTMLButtonElement>(null);
   const cerrarMenu = React.useCallback(() => { setMenuAbierto(false); botonMenu.current?.focus(); }, []);
@@ -308,6 +310,15 @@ export default function Layout() {
       {/* Top navbar (full width) */}
       <TopNavbar onMenu={esMovil ? () => setMenuAbierto(true) : undefined} botonRef={botonMenu} />
       {esMovil && menuAbierto && <Drawer onCerrar={cerrarMenu} />}
+      {!enLinea && (
+        <div role="status" style={{
+          flexShrink: 0, position: 'relative', zIndex: 9, padding: '8px 16px', textAlign: 'center',
+          background: 'rgba(240,163,58,0.14)', borderBottom: '1px solid rgba(240,163,58,0.5)',
+          color: '#f0a33a', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600,
+        }}>
+          Sin conexión — datos no disponibles
+        </div>
+      )}
 
       {/* Below navbar: sidebar + content */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative', zIndex: 1 }}>

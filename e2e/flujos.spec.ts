@@ -122,3 +122,21 @@ test('Análisis en escritorio: el aviso de Distrito Central queda solo como tool
   await expect(cuadro.getByRole('img', { name: /^Aviso: Distrito Central/ })).toHaveCount(3);
   await expect(cuadro.getByRole('note')).toHaveCount(0);
 });
+
+test('Análisis: Asignaciones Globales va justo debajo de Bienes Capitalizables, en pantalla y en el CSV', async ({ page }) => {
+  const { conceptos, valor } = await cuadroDe(page, 'Ahuas');
+  const iBC = conceptos.indexOf('↳ Bienes Capitalizables');
+  expect(conceptos.slice(iBC, iBC + 3)).toEqual(['↳ Bienes Capitalizables', '↳ Asignaciones Globales', '↳ Transferencias ejecutadas']);
+  expect(valor('↳ Asignaciones Globales', 2025)).toBe(13222135);
+});
+
+// Ahuas 2025: asignaciones globales 47.5 % del gasto (≥ 30 %): dato secundario y aviso junto a la inversión por habitante.
+const AVISO_AG = 'Parte del gasto de capital puede estar registrado en Asignaciones globales; la inversión por habitante podría estar subestimada.';
+test('Ficha: Ahuas 2025 muestra Asignaciones globales y el aviso junto a la inversión por habitante', async ({ page }) => {
+  await abrir(page, '/municipio/gracias-a-dios/3');
+  await page.getByRole('tab', { name: 'Pares' }).click();
+  await expect(page.getByRole('heading', { name: /· 2025$/ })).toBeVisible();
+  const nota = page.getByTestId('nota-asignaciones');
+  await expect(nota).toHaveText(`Asignaciones globales: 47.5 % del gasto (L 2,015 por habitante)⚠ ${AVISO_AG}`);
+  await expect(nota).toBeVisible();
+});

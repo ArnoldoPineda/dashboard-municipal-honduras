@@ -145,3 +145,10 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
 - En pantallas de menos de 768 px, el aviso ⚠ de Distrito Central va como nota visible bajo el cuadro de Análisis, porque el tooltip no se ve al tocar.
 - En escritorio queda solo el tooltip.
 - e2e: a 390 px con alcance País se ve la nota; en escritorio no aparece.
+
+## 12. Fase 7e: Asignaciones globales junto a la inversión ✅ completada (2026-10-14, PR #18, merge `5f4518b`, bundle `main.ba6d475c.js`)
+
+- Opción (b) del análisis de `docs/ATIPICOS.md` §10: Asignaciones globales se muestra junto a la inversión. El indicador de inversión por habitante, el mapa y los rankings no cambian.
+- Análisis: la fila «Asignaciones Globales» va debajo de «Bienes Capitalizables», al mismo nivel. Hereda per cápita, Real, Var. %, crecimiento anual y exportación.
+- Ficha Municipal (pestaña Pares): bajo «Inversión por habitante», «Asignaciones globales: X % del gasto (L Y por habitante)». Desde el 30 % (`UMBRAL_ASIGNACIONES_GLOBALES`) se agrega un aviso visible, también en celular.
+- Pendiente: la opción (c), inversión ampliada, requiere verificar el contenido de Asignaciones globales con liquidaciones de muestra.

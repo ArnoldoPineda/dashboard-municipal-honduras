@@ -81,3 +81,30 @@ test('Análisis: Siguatepeque — G1 con los 8 impuestos desglosados (Pecuario o
   expect(valor('↳ de los cuales: Impuestos', 2021)).toBe(30797096);
   await cuadro.screenshot({ path: test.info().outputPath('cuadro-siguatepeque.png') });
 });
+
+test('Análisis: ⚠ en Industria, Comercio y Servicios solo si el alcance incluye a Distrito Central', async ({ page }) => {
+  const AVISO = 'Distrito Central registra este impuesto en un solo renglón, que cambia entre años. Para comparar en el tiempo, usar el subtotal Industria, comercio y servicios.';
+  await abrir(page, '/analisis');
+  const cuadro = page.getByRole('region', { name: 'Cuadro presupuestario' });
+  const avisos = cuadro.getByRole('img', { name: `Aviso: ${AVISO}` });
+  const alcance = page.getByRole('group', { name: 'Alcance' });
+  const conAviso = async () => (await avisos.evaluateAll((els) => els.map((e) => e.closest('th')!.textContent!.replace(/⚠/g, '').trim())));
+  // País (por defecto)
+  await expect(avisos).toHaveCount(3);
+  expect(await conAviso()).toEqual(['↳\u00a0Industria', '↳\u00a0Comercio', '↳\u00a0Servicios']);
+  await expect(avisos.first()).toHaveAttribute('title', AVISO);
+  // Departamento: Francisco Morazán sí; Comayagua no
+  await alcance.getByRole('button', { name: 'Departamento' }).click();
+  const depto = page.getByRole('combobox', { name: /Departamento/ }).or(page.locator('label:has-text("Departamento") select'));
+  await depto.selectOption({ label: 'Francisco Morazán' });
+  await expect(avisos).toHaveCount(3);
+  await depto.selectOption({ label: 'Comayagua' });
+  await expect(avisos).toHaveCount(0);
+  // Municipio: Distrito Central sí
+  await alcance.getByRole('button', { name: 'Municipio' }).click();
+  await page.getByRole('combobox', { name: /municipio/i }).fill('Distrito Central');
+  await page.getByRole('option', { name: /Distrito Central/ }).first().click();
+  await page.waitForFunction(() => !/Cargando/.test(document.body.innerText));
+  await expect(avisos).toHaveCount(3);
+  // El CSV no cambia; el aviso va en las notas del Excel (no se verifica aquí).
+});

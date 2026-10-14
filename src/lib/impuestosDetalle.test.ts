@@ -2,7 +2,8 @@
 // subtotal en los 1,490 municipios-año 2021–2025. Las sumas van campo por campo, sin pasar por los helpers que se prueban.
 import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
-import { IMPUESTOS_G1, CAMPOS_IMPUESTOS_G1, CAMPOS_ICS, impuestosG1, impuestosICS } from './indicadores';
+import { IMPUESTOS_G1, CAMPOS_IMPUESTOS_G1, CAMPOS_ICS, impuestosG1, impuestosICS, INE_RENGLON_ICS_CAMBIANTE } from './indicadores';
+import { codigoINE } from '../data/departamentos';
 import { DICCIONARIO } from './exportar';
 import datos from './__fixtures__/g1_2021_2025.json';
 
@@ -48,5 +49,33 @@ describe('Siguatepeque (valores del Excel SEFIN)', () => {
   });
   it('Pecuario en 0 los 5 años (la fila se oculta con 2021–2025 visibles)', () => {
     expect([2021, 2022, 2023, 2024, 2025].map((y) => num(s(y).impuesto_pecuario))).toEqual([0, 0, 0, 0, 0]);
+  });
+});
+
+describe('Renglón de Industria/Comercio/Servicios que cambia entre años (docs/ATIPICOS.md §9)', () => {
+  // Patrón: una de las tres filas en 0 el año t que el año t+1 concentra ≥ 90 % del subtotal, con subtotal > L 1 M ambos años.
+  const ICS = CAMPOS_ICS;
+  const porMunicipio = new Map<string, Municipality[]>();
+  filas.forEach((m) => { const k = codigoINE(m.department, m.code); porMunicipio.set(k, [...(porMunicipio.get(k) ?? []), m]); });
+  const casos = Array.from(porMunicipio.entries()).flatMap(([ine, ms]) => {
+    const orden = [...ms].sort((a, b) => a.year - b.year);
+    return orden.slice(0, -1).flatMap((t, i) => {
+      const u = orden[i + 1];
+      return ICS.filter((z) => num(t[z]) === 0 && impuestosICS(t) > 1e6 && impuestosICS(u) > 1e6 && num(u[z]) / impuestosICS(u) >= 0.9)
+        .map((z) => `${ine} ${t.name} ${t.year}→${u.year} ${z}`);
+    });
+  });
+  it('solo Distrito Central: Industria 2021–2024 → Comercio 2025', () => {
+    expect(casos).toEqual(['0801 Distrito Central 2024→2025 impuesto_comercio']);
+  });
+  it('la lista de avisos coincide con los municipios que tienen el patrón', () => {
+    expect(INE_RENGLON_ICS_CAMBIANTE).toEqual(Array.from(new Set(casos.map((c) => c.slice(0, 4)))));
+  });
+  it('Distrito Central: renglón usado por año (> 1 % del subtotal; en 2022 Servicios trae L 3,210.58)', () => {
+    const dc = filas.filter((m) => codigoINE(m.department, m.code) === '0801').sort((a, b) => a.year - b.year);
+    expect(dc.map((m) => [m.year, ICS.filter((c) => num(m[c]) > 0.01 * impuestosICS(m))])).toEqual([
+      [2021, ['impuesto_industria']], [2022, ['impuesto_industria']], [2023, ['impuesto_industria']],
+      [2024, ['impuesto_industria']], [2025, ['impuesto_comercio']],
+    ]);
   });
 });

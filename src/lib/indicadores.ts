@@ -19,12 +19,12 @@ export const ROTULO_RENDICION_PARCIAL = 'Dato incompleto (rendición parcial)';
  */
 const RENDICION_PARCIAL = new Set(['GRACIAS A DIOS|6|2021', 'EL PARAISO|11|2022']);
 /**
- * Inversión por habitante bajo este umbral (L): señal de atípico, no exclusión. En la fuente, el gasto de capital
- * de estas filas queda casi todo en "Asignaciones globales" y no en bienes capitalizables (docs/ATIPICOS.md §8).
+ * Bienes capitalizables ÷ total egresos por debajo de este % : señal de atípico, no exclusión. En la fuente, el gasto
+ * de capital de estas filas suele quedar en "Asignaciones globales" y no en bienes capitalizables (docs/ATIPICOS.md §8).
  */
-// ponytail: umbral fijo en lempiras nominales; pasar a umbral real (IPC) o relativo si cambia el nivel de precios.
-export const UMBRAL_INVERSION_PC = 50;
-export const ROTULO_INVERSION_CASI_NULA = 'Inversión casi nula en la fuente — verificar con la liquidación';
+export const UMBRAL_INVERSION_GASTO = 2;
+export const ROTULO_INVERSION_CASI_NULA = 'Inversión en bienes capitalizables casi nula (< 2 % del gasto). '
+  + 'El gasto de capital puede estar registrado en Asignaciones globales — verificar con la liquidación';
 /** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
 export const UMBRAL_EJECUCION = 150;
 
@@ -192,10 +192,10 @@ export function mediana(rows: Municipality[], k: keyof Indicadores): number | nu
   return v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
 }
 
-/** Inversión por habitante < UMBRAL_INVERSION_PC en una fila con liquidación (atípico de fuente, no se excluye). */
+/** Bienes capitalizables < UMBRAL_INVERSION_GASTO % del gasto total, con liquidación (atípico de fuente, no se excluye). */
 export const inversionCasiNula = (m: Municipality) => {
-  const v = indicadoresMunicipio(m).inversionPerCapita;
-  return !sinLiquidacion(m) && v != null && v < UMBRAL_INVERSION_PC;
+  const v = indicadoresMunicipio(m).inversionSobreGasto;
+  return !sinLiquidacion(m) && v != null && v < UMBRAL_INVERSION_GASTO;
 };
 
 /** Diferencia tolerada entre un subtotal SEFIN y la suma de sus renglones (lempiras). */

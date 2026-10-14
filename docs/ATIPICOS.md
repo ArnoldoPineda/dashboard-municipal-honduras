@@ -19,7 +19,7 @@ Hay dos tipos de dato incompleto, con rótulos distintos:
 | Autonomía > 100 % | corrientes > ingresos del año | 0 |
 | Sin transferencia Art. 91 en la fuente | `sinArt91()`: con liquidación, Art. 91 + otras = 0 y corrientes > 0 | 7 |
 | Dato incompleto (rendición parcial) | `rendicionParcial()`: lista fija según notas del Excel (§6) | 2 |
-| Inversión casi nula en la fuente | `inversionCasiNula()`: con liquidación, bienes capitalizables ÷ población < L 50 (§8) | 42 |
+| Inversión en bienes capitalizables casi nula | `inversionCasiNula()`: con liquidación, bienes capitalizables ÷ total egresos < 2 % (§8) | 26 |
 | Sin población | `population` ≤ 0 o nula | 0 |
 | Sin egresos reportados | `total_egresos` ≤ 0 | 4 |
 | Sin ingresos reportados | `ingresos_recaudados` ≤ 0 | 0 |
@@ -146,21 +146,33 @@ Donde un total incluye filas sin Art. 91 se muestra: "Incluye N municipio(s) sin
 
 Efecto: el presupuesto nacional 2023 pasa de L 23.2 a L 28.4 mil M (San Pedro Sula vuelve al total); la autonomía agregada 2023 sigue en 52.1 % y la mediana en 13.7 %.
 
-## 8. Inversión casi nula en la fuente (Fase 6)
+## 8. Inversión en bienes capitalizables casi nula (Fase 6)
 
-Revisión pedida en la Fase 6: municipios 2025 con inversión por habitante menor a L 50. Datos leídos de `public.municipalities` el 2026-10-13 (anon key, solo lectura). Montos en millones de lempiras.
+**Regla (2026-10-13):** `inversionCasiNula()` marca las filas con liquidación en las que bienes capitalizables ÷ total egresos es menor a 2 %. Es una señal de atípico y no excluye la fila. Rótulo: "Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar registrado en Asignaciones globales — verificar con la liquidación". La primera versión usaba "inversión por habitante < L 50"; se cambió al % del gasto porque marcaba como casi nula a Trojes, que invierte L 2.9 M (7 % de su gasto).
 
-| Municipio (2025) | Pob. | Bienes capitalizables | Transf. de capital | Asignaciones globales | Gastos de capital y deuda | Total egresos | Inversión pc |
-|---|---|---|---|---|---|---|---|
-| Nueva Frontera (Santa Bárbara, C) | 14 313 | 0.014 | 5.048 | 19.610 | 24.672 | 31.943 | L 0.98 |
-| Tomalá (Lempira, C) | 7 213 | 0.008 | 7.101 | 11.703 | 19.348 | 24.007 | L 1.07 |
-| Jano (Olancho, C) | 6 267 | 0.068 | 6.026 | 12.012 | 18.106 | 22.521 | L 10.78 |
-| La Unión (Olancho, C) | 8 773 | 0.231 | 5.595 | 3.036 | 8.862 | 19.818 | L 26.34 |
-| Texiguat (El Paraíso, D) | 8 940 | 0.417 | 4.067 | 15.931 | 20.416 | 27.160 | L 46.68 |
-| Trojes (El Paraíso, B) | 58 891 | 2.894 | 6.734 | 16.223 | 25.851 | 41.223 | L 49.15 |
+Hay 26 filas marcadas en 2021–2025: 7 en 2021, 8 en 2022, 3 en 2023, 3 en 2024 y 5 en 2025. Lectura de `public.municipalities` del 2026-10-13, con la anon key y solo lectura.
 
-**Diagnóstico: dato fuente, no cálculo.** En las seis filas los renglones cuadran: bienes capitalizables + transferencias de capital + activos financieros + servicio de deuda + otros gastos de capital + asignaciones globales = gastos de capital y deuda, y funcionamiento + gastos de capital y deuda = total egresos. El gasto de capital está casi todo en **Asignaciones globales** y no en bienes capitalizables, que es el numerador de la inversión de SIMHO (§1 del plan). La inversión real puede estar subregistrada por clasificación; hay que verificarlo con la liquidación.
+| Municipio (2025) | Bienes capitalizables (M L) | % del gasto | Asignaciones globales (M L) | % del gasto | Total egresos (M L) |
+|---|---|---|---|---|---|
+| Tomalá (Lempira, C) | 0.008 | 0.03 % | 11.703 | 48.7 % | 24.007 |
+| Nueva Frontera (Santa Bárbara, C) | 0.014 | 0.04 % | 19.610 | 61.4 % | 31.943 |
+| Jano (Olancho, C) | 0.068 | 0.30 % | 12.012 | 53.3 % | 22.521 |
+| La Unión (Olancho, C) | 0.231 | 1.17 % | 3.036 | 15.3 % | 19.818 |
+| Texiguat (El Paraíso, D) | 0.417 | 1.54 % | 15.931 | 58.7 % | 27.160 |
 
-Contraste con el top 3 de 2025 (el numerador es correcto): Humuya tiene bienes capitalizables por L 16.864 M y una población de 1 557, lo que da L 10 831 por habitante; las asignaciones globales son 0. Yauyupe tiene L 13.588 M y 1 523 habitantes (L 8 922). Lauterique tiene L 23.330 M y 3 252 habitantes (L 7 174). En los tres, los bienes capitalizables equivalen al 50–60 % del gasto total (la mediana nacional es 28.5 %). El per cápita alto viene de poblaciones muy pequeñas, no de un error.
+**Diagnóstico: el problema está en el dato fuente, no en el cálculo.** En todas las filas los renglones cuadran:
+- Bienes capitalizables + transferencias de capital + activos financieros + servicio de deuda + otros gastos de capital + asignaciones globales = gastos de capital y deuda.
+- Funcionamiento + gastos de capital y deuda = total egresos.
 
-**Decisión (2026-10-13):** no se excluyen. `inversionCasiNula()` agrega a `atipicos()` la señal "Inversión casi nula en la fuente — verificar con la liquidación". Comparar la muestra con ⚠ en el encabezado, en las barras y en los avisos. Rankings la muestra como "atípico" en los indicadores de inversión (por habitante y ÷ gasto), sin quitarle la posición. Hay 42 filas en 2021–2025 y 6 en 2025. El umbral está en lempiras nominales y es fijo.
+El gasto de capital queda en Asignaciones globales y no en bienes capitalizables, que es el numerador de la inversión de SIMHO. La Unión es distinta: sus asignaciones son bajas (15 %) y su gasto se concentra en funcionamiento (55 %).
+
+**Top 3 de inversión por habitante 2025: el numerador es correcto.**
+- Humuya: bienes capitalizables L 16.864 M, 1 557 habitantes, L 10 831 por habitante, 60 % del gasto.
+- Yauyupe: L 13.588 M, 1 523 habitantes, L 8 922 por habitante, 50 % del gasto.
+- Lauterique: L 23.330 M, 3 252 habitantes, L 7 174 por habitante, 59 % del gasto.
+
+La mediana nacional de inversión ÷ gasto es 28.5 %. El valor por habitante alto se explica por poblaciones muy pequeñas.
+
+**Dónde se muestra:**
+- Comparar: ⚠ en el encabezado, en las barras y en los avisos.
+- Rankings: marca "atípico" en los indicadores de inversión (por habitante y ÷ gasto). La fila conserva su posición, y la exportación lo indica en la columna Nota.

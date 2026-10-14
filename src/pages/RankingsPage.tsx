@@ -243,7 +243,7 @@ export default function RankingsPage() {
             )}
             {ranking.some(atipico) && (
               <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
-                <span style={{ color: C.ambar }}>atípico</span>: {ROTULO_INVERSION_CASI_NULA} (inversión por habitante menor a L 50).
+                <span style={{ color: C.ambar }}>atípico</span>: {ROTULO_INVERSION_CASI_NULA}.
                 Se rankea igual; no se excluye.
               </div>
             )}

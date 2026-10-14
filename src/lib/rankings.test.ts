@@ -131,10 +131,12 @@ describe('paresSugeridos', () => {
 });
 
 describe('inversión casi nula (atípico de fuente, docs/ATIPICOS.md §8)', () => {
-  it('2025: 6 filas < L 50 por habitante; Pespire (sin liquidación) no cuenta', () => {
+  it('2025: 5 filas con bienes capitalizables < 2 % del gasto; Pespire (sin liquidación) y Trojes (7 %) no cuentan', () => {
     expect(de(2025).filter(inversionCasiNula).map((m) => m.name).sort()).toEqual(
-      ['Jano', 'La Unión', 'Nueva Frontera', 'Texiguat', 'Tomalá', 'Trojes']);
-    expect(filas.filter(inversionCasiNula)).toHaveLength(42);
+      ['Jano', 'La Unión', 'Nueva Frontera', 'Texiguat', 'Tomalá']);
+    expect(filas.filter(inversionCasiNula)).toHaveLength(26);
+    expect(inversionCasiNula({ ...de(2025)[0], bienes_capitalizables: 2, total_egresos: 100 } as Municipality)).toBe(false); // 2 % justo: no
+    expect(inversionCasiNula({ ...de(2025)[0], bienes_capitalizables: 1.99, total_egresos: 100 } as Municipality)).toBe(true);
   });
   it('se marca en atipicos() pero no se excluye ni pierde posición', () => {
     const anio = de(2025);

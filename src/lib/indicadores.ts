@@ -72,6 +72,9 @@ export const CAMPOS_IMPUESTOS_G1 = IMPUESTOS_G1.map((i) => i.campo);
 export const CAMPOS_ICS = IMPUESTOS_G1.filter((i) => i.ics).map((i) => i.campo);
 /** Suma de los impuestos de G1 (sin tasas ni derechos); nulos cuentan como 0. */
 export const impuestosG1 = (m: Municipality) => CAMPOS_IMPUESTOS_G1.reduce((acc, c) => acc + n(m[c]), 0);
+/** Municipios que registran Industria/Comercio/Servicios en un solo renglón que cambia entre años (docs/ATIPICOS.md §9): usar el subtotal. */
+export const INE_RENGLON_ICS_CAMBIANTE = ['0801'];  // Distrito Central
+export const AVISO_RENGLON_ICS = 'Distrito Central registra este impuesto en un solo renglón, que cambia entre años. Para comparar en el tiempo, usar el subtotal Industria, comercio y servicios.';
 /** Subtotal Industria + Comercio + Servicios; nulos cuentan como 0. */
 export const impuestosICS = (m: Municipality) => CAMPOS_ICS.reduce((acc, c) => acc + n(m[c]), 0);
 

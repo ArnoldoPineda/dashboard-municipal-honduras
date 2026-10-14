@@ -9,7 +9,7 @@ import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipali
 import {
   sumarTotales, insumos, calcular, sinLiquidacion, excluirDeTotales, excluirDeRazones, notaDatoIncompleto, notaTotales, ROTULO_SIN_LIQUIDACION,
   Indicadores, Alcance, filasDeAlcance, indicadoresPorAnio, INDICADORES_ANALISIS, IndicadorAnalisis,
-  porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda, impuestosG1, impuestosICS, IMPUESTOS_G1, CAMPOS_IMPUESTOS_G1,
+  porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda, impuestosG1, impuestosICS, IMPUESTOS_G1, CAMPOS_IMPUESTOS_G1, INE_RENGLON_ICS_CAMBIANTE, AVISO_RENGLON_ICS,
 } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
 import { IPC, ipcCompleto, ANIO_BASE_REAL, ROTULO_PRECIOS_REALES, tituloGrafico } from '../data/ipc';
@@ -68,14 +68,15 @@ function aggregate(all: Municipality[], unMunicipio = false): YearData {
 
 type RowVariant = 'group' | 'main' | 'sub' | 'highlight' | 'signed';
 /** `ocultarSiCero`: filas de impuestos que no se muestran si valen 0 o nulo en todos los años visibles (en la exportación van siempre). */
-interface TRow { key: string; label: string; variant: RowVariant; field?: string; ocultarSiCero?: boolean }
+/** `avisoICS`: Industria, Comercio y Servicios llevan ⚠ si el alcance incluye un municipio con renglón cambiante (docs/ATIPICOS.md §9). */
+interface TRow { key: string; label: string; variant: RowVariant; field?: string; ocultarSiCero?: boolean; avisoICS?: boolean }
 
 /** Espacio duro: la flecha ↳ nunca queda sola en una línea. */
 const NBSP = String.fromCharCode(160);
 const sangria = (nivel: number) => NBSP.repeat(4 * nivel);
 /** Los 8 impuestos de G1, desde la lista central: IBI, subtotal ICS (Industria · Comercio · Servicios) y el resto. */
 const FILAS_IMPUESTOS: TRow[] = IMPUESTOS_G1.flatMap((i, k): TRow[] => {
-  const fila: TRow = { key: i.campo, label: `${sangria(i.ics ? 3 : 2)}↳ ${i.etiqueta}`, variant: 'sub', field: i.campo, ocultarSiCero: true };
+  const fila: TRow = { key: i.campo, label: `${sangria(i.ics ? 3 : 2)}↳ ${i.etiqueta}`, variant: 'sub', field: i.campo, ocultarSiCero: true, avisoICS: i.ics };
   const primeraICS = i.ics && !IMPUESTOS_G1[k - 1]?.ics;
   return primeraICS
     ? [{ key: 'impuestos_ics', label: `${sangria(2)}↳ Industria, comercio y servicios`, variant: 'sub', field: 'impuestos_ics', ocultarSiCero: true }, fila]
@@ -229,6 +230,7 @@ export default function AnalyticsPage() {
     return x;
   };
   const valor = (row: TRow, y: number) => (row.field && !sinLiqYears.has(y) ? ver(yearDataMap[y]?.[row.field] as number | null, y) : null);
+  const avisoICS = useMemo(() => filasAlcance.some((m) => INE_RENGLON_ICS_CAMBIANTE.includes(codigoINE(m.department, m.code))), [filasAlcance]);
   // Filas de impuestos en 0 o nulo en todos los años visibles: fuera del cuadro (no de la exportación).
   const filasVisibles = TABLE_ROWS.filter((row) => !row.ocultarSiCero || sortedYears.some((y) => { const v = valor(row, y); return v != null && v !== 0; }));
   const variacion = (row: TRow) => (sortedYears.length < 2 ? null
@@ -335,6 +337,7 @@ export default function AnalyticsPage() {
       ['Precios', enReal ? `Reales: ${ROTULO_PRECIOS_REALES}` : 'Nominales (corrientes)'],
       ['Indicadores', agregado ? 'Mediana municipal y agregado Σ/Σ del alcance' : 'Valor del municipio'],
       ...notasTotales.map(([y, t]) => [`Totales ${y}`, t] as [string, string]),
+      ...(avisoICS ? [['Industria, comercio y servicios', `⚠ ${AVISO_RENGLON_ICS}`] as [string, string]] : []),
       ['Excluidos', excl.length ? excl.join(' · ') : (agregado ? 'Ninguno en el alcance y años seleccionados' : 'No aplica (vista de un municipio: se muestran sus cifras)')],
     ];
   }
@@ -436,7 +439,12 @@ export default function AnalyticsPage() {
                             padding: isSub ? `7px 16px 7px ${esMovil ? 12 + nivel * 8 : 28 + Math.min(nivel, 1) * 29 + Math.max(nivel - 1, 0) * 14}px` : '8px 16px', textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: bg,
                             color: isGroup ? C.suave : isSub ? C.texto2 : C.texto, fontSize: isGroup ? 11 : isSub ? 12 : 13,
                             fontWeight: isGroup || isHi ? 700 : isSub ? 400 : 500, letterSpacing: isGroup ? '0.14em' : 0,
-                          }}>{row.label.trimStart().replace(/^↳ /, '↳' + NBSP)}</th>
+                          }}>
+                            {row.label.trimStart().replace(/^↳ /, '↳' + NBSP)}
+                            {row.avisoICS && avisoICS && (
+                              <span role="img" title={AVISO_RENGLON_ICS} aria-label={`Aviso: ${AVISO_RENGLON_ICS}`} style={{ color: C.ambar, marginLeft: 6, cursor: 'help' }}>⚠</span>
+                            )}
+                          </th>
                           {sortedYears.map((y) => { const v = valor(row, y); return (
                             <td key={y} style={{ padding: '8px 12px', textAlign: 'right', fontSize: isSub ? 12 : 13, fontWeight: isHi ? 700 : 400, color: color(v), whiteSpace: 'nowrap' }}>
                               {isGroup ? '' : fmtMonto(v)}

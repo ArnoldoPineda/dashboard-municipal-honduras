@@ -1,4 +1,4 @@
-# SIMHO — Plan de rediseño (Fases 0–1)
+# SIMHO — Plan de rediseño (Fases 0–6)
 
 Objetivo de la Fase 1: cada indicador se calcula en un solo lugar (`src/lib/indicadores.ts`), con una sola fórmula, y todas las páginas muestran las mismas cifras para el mismo municipio y año.
 
@@ -74,9 +74,29 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
 - Código no enrutado (inventario §1.2): `Dashboard.tsx`, `Dashboard_MEJORADO.tsx` y similares, que todavía tienen años fijos y fórmulas antiguas.
 - `RENDICION_PARCIAL` es una lista fija: actualizarla con las notas al pie del Excel en cada importación.
 
-## 6. Fase 6 — Comparar y Rankings
+## 6. Fase 6 — Comparar y Rankings ✅ completada (2026-10-14, PR #7, merge `3d91f55`)
 
 - `rankear()`, `contarExcluidos()`, `paresSugeridos()` y `motivoExcluido()` en `src/lib/indicadores.ts` (sin fórmulas nuevas). Pruebas: `rankings.test.ts` y `rankings.bordes.test.ts`.
 - **Comparar** (`/comparativos`): hasta 5 municipios. La tabla muestra valor, percentil en su categoría y semáforo, con una columna "Mediana cat. X" por cada categoría presente. Debajo van barras por indicador con la línea de mediana. La ejecución va "sin dirección" (no está en `SEMAFORO`). El ahorro corriente y el resultado sin balance van solo aquí. Se eliminó el modo Departamentos, que ahora remite a Panorama Nacional.
 - **Rankings** (`/rankings`): solo indicadores per cápita y razones; los montos absolutos no se rankean. La posición se cuenta dentro del filtro y el percentil en la categoría completa. Los excluidos (`excluirDeRazones`) van al final con ⚠ y sin posición. El ordenar por columna solo cambia la vista.
 - Verificación 2025: 295 rankeados en autonomía y 3 ⚠ (Pespire sin liquidación; El Triunfo y San Juan Guarita sin Art. 91). Siguatepeque tiene P65 y la mediana de la categoría A es 68.3 %, igual que en la Ficha.
+
+- Atípico de inversión: bienes capitalizables por debajo del 2 % del gasto total. La fila se marca pero no se excluye. Si las Asignaciones globales son ≥ 30 % del gasto, el rótulo las nombra con su %. Hay 26 filas en 2021–2025 y 5 en 2025 (`ATIPICOS.md` §8).
+
+## 7. Fase 5b — Modo "Real" con IPC del BCH ✅ completada (2026-10-14, PR #8, merge `41c2770`)
+
+- `src/data/ipc.ts`: IPC promedio anual del BCH 2021–2025 (77.12 / 84.13 / 89.74 / 93.87 / 98.18), base dic-2025 = 100. Fuente: `docs/fuentes/IPC_BCH_serie_mensual_promedio_anual.xlsx` (ignorado por git).
+- Análisis, toggle "Real":
+  - Precios constantes de 2025: monto × IPC2025 ÷ IPCaño. El año base es fijo.
+  - Solo se deflactan los montos y los valores per cápita; las razones no.
+  - Rótulos:
+    - Pie de fuente: "Precios constantes de 2025 — IPC promedio anual BCH (dic-2025 = 100)".
+    - Títulos de los gráficos de montos: "(precios constantes 2025)".
+- Verificación, presupuesto País real 2021–2025 (mil M): 25.2 / 25.9 / 31.0 / 33.1 / 32.7. El factor de 2021 es 1.2731.
+
+## 8. Pendientes menores para la Fase 7
+
+- El texto "2 %" del atípico de inversión está escrito a mano en `indicadores.ts` y `RankingsPage.tsx`; debe salir de `UMBRAL_INVERSION_GASTO`.
+- Color fijo fuera de la paleta: `#1a1610` (fondo de las filas ⚠ en Rankings) debe pasar a `C` en `components/ficha/estilo.ts`.
+- `?municipio=` en Comparar se lee solo al montar la página: si ya estás en `/comparativos`, un nuevo parámetro no se vuelve a leer.
+- Falta una prueba de render del pie de fuente: que aparezca el rótulo de precios constantes con "Real" y que desaparezca al volver a "Nominal" o al salir de Análisis.

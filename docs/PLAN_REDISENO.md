@@ -1,4 +1,4 @@
-# SIMHO — Plan de rediseño (Fases 0–6)
+# SIMHO — Plan de rediseño (Fases 0–7)
 
 Objetivo de la Fase 1: cada indicador se calcula en un solo lugar (`src/lib/indicadores.ts`), con una sola fórmula, y todas las páginas muestran las mismas cifras para el mismo municipio y año.
 
@@ -94,9 +94,37 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
     - Títulos de los gráficos de montos: "(precios constantes 2025)".
 - Verificación, presupuesto País real 2021–2025 (mil M): 25.2 / 25.9 / 31.0 / 33.1 / 32.7. El factor de 2021 es 1.2731.
 
-## 8. Pendientes menores para la Fase 7
+## 8. Fase 7 — Versión para celular + PWA ✅ completada (2026-10-14, PR #10, merge `bf8ea03`)
 
-- El texto "2 %" del atípico de inversión está escrito a mano en `indicadores.ts` y `RankingsPage.tsx`; debe salir de `UMBRAL_INVERSION_GASTO`.
-- Color fijo fuera de la paleta: `#1a1610` (fondo de las filas ⚠ en Rankings) debe pasar a `C` en `components/ficha/estilo.ts`.
-- `?municipio=` en Comparar se lee solo al montar la página: si ya estás en `/comparativos`, un nuevo parámetro no se vuelve a leer.
-- Falta una prueba de render del pie de fuente: que aparezca el rótulo de precios constantes con "Real" y que desaparezca al volver a "Nominal" o al salir de Análisis.
+- En producción: bundle `static/js/main.0f654df7.js` y `static/css/main.9746eca0.css`.
+- Todo va detrás de `max-width: 767px` o de `useEsMovil()` (`src/hooks/useMediaQuery.ts`). El escritorio (≥ 1024 px) no cambia: las capturas a 1280 px coinciden con `main` ca0e6f2 en 8/8 rutas (`maxDiffPixelRatio` ≤ 0.01).
+- Navegación: barra superior con menú ☰ y drawer con los nombres completos.
+  - El drawer se cierra con Esc, con el fondo o al navegar. El foco queda atrapado dentro y vuelve al ☰ al cerrar.
+  - Los enlaces miden 44 px.
+  - Se quitó la barra de íconos de 64 px.
+- Contenido: `main` es el único contenedor con scroll. El pie de fuente va estático al final del contenido.
+- Tablas:
+  - Rankings y Base de Datos van como tarjetas (`OrdenMovil`: mismo orden y filtros). En Base de Datos, con más de 12 columnas los valores van plegados.
+  - Comparar, Análisis y Panorama usan `TablaScroll`: primera columna fija, degradado › y sombra al desplazar.
+- Mapa: `SelectorMetrica` pasa a select nativo. El mapa va a todo el ancho y la leyenda debajo.
+- Gráficos: ancho 100 %, leyenda abajo y escalas de al menos 11 px.
+- PWA:
+  - `public/manifest.json`, con íconos 192 y 512 y uno maskable.
+  - `public/sw.js` guarda solo los estáticos del build del mismo origen. Supabase y los pedidos con `apikey` o `authorization` van siempre a la red.
+  - El caché se versiona con el hash de todo el build (`scripts/version-sw.js`, en postbuild): cada deploy borra el anterior.
+  - Sin conexión aparece el aviso "Sin conexión — datos no disponibles".
+- Pendientes de la Fase 6 resueltos:
+  - El "2 %" del atípico sale de `UMBRAL_INVERSION_GASTO` (`TEXTO_INVERSION_CASI_NULA`).
+  - `#1a1610` pasó a `C.filaAviso`.
+  - Comparar relee `?municipio=` aunque ya estés en la página.
+  - Hay prueba de render del pie de fuente.
+- Pruebas:
+  - Jest: 411.
+  - Playwright, con `npm run e2e`, fuera del build de Netlify:
+    - 390 px sin desborde en 8 rutas (ancho máximo 390);
+    - drawer y pie de fuente;
+    - PWA sobre el build;
+    - flujos Real/Nominal y `?municipio=`;
+    - escritorio 8/8.
+  - Las capturas de referencia son de Windows (`*-win32.png`): en otro sistema operativo hay que regenerarlas con `--update-snapshots`.
+- Build: `.npmrc` con `legacy-peer-deps=true`, por el conflicto TypeScript 5 / react-scripts 5. Playwright está fijado en 1.63.0.

@@ -100,6 +100,13 @@ test('Análisis: ⚠ en Industria, Comercio y Servicios solo si el alcance inclu
   await expect(avisos).toHaveCount(3);
   await depto.selectOption({ label: 'Comayagua' });
   await expect(avisos).toHaveCount(0);
+  // Categoría: A (incluye a Distrito Central) sí; B no
+  await alcance.getByRole('button', { name: 'Categoría' }).click();
+  const cat = page.getByRole('group', { name: 'Categoría SGJD' });
+  await cat.getByRole('button', { name: 'A', exact: true }).click();
+  await expect(avisos).toHaveCount(3);
+  await cat.getByRole('button', { name: 'B', exact: true }).click();
+  await expect(avisos).toHaveCount(0);
   // Municipio: Distrito Central sí
   await alcance.getByRole('button', { name: 'Municipio' }).click();
   await page.getByRole('combobox', { name: /municipio/i }).fill('Distrito Central');

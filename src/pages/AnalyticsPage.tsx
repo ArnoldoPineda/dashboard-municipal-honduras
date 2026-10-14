@@ -67,8 +67,10 @@ function aggregate(all: Municipality[], unMunicipio = false): YearData {
 // ── Filas del cuadro ──────────────────────────────────────────────────────────
 
 type RowVariant = 'group' | 'main' | 'sub' | 'highlight' | 'signed';
-/** `ocultarSiCero`: filas de impuestos que no se muestran si valen 0 o nulo en todos los años visibles (en la exportación van siempre). */
-/** `avisoICS`: Industria, Comercio y Servicios llevan ⚠ si el alcance incluye un municipio con renglón cambiante (docs/ATIPICOS.md §9). */
+/**
+ * `ocultarSiCero`: filas de impuestos que no se muestran si valen 0 o nulo en todos los años visibles (en la exportación van siempre).
+ * `avisoICS`: Industria, Comercio y Servicios llevan ⚠ si el alcance incluye un municipio con renglón cambiante (docs/ATIPICOS.md §9).
+ */
 interface TRow { key: string; label: string; variant: RowVariant; field?: string; ocultarSiCero?: boolean; avisoICS?: boolean }
 
 /** Espacio duro: la flecha ↳ nunca queda sola en una línea. */

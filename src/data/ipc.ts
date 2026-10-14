@@ -19,5 +19,12 @@ export const IPC = {
   } as SerieIPC,
 };
 
+/**
+ * Título de un gráfico de Análisis: los de montos agregan la unidad y, en "Real", "(precios constantes 2025)".
+ * Los de porcentajes (terminan en "(%)") no cambian.
+ */
+export const tituloGrafico = (titulo: string, perCapita: boolean, real: boolean) =>
+  titulo.endsWith('(%)') ? titulo : `${titulo} · ${perCapita ? 'L/hab.' : 'L'}${real ? ` (precios constantes ${ANIO_BASE_REAL})` : ''}`;
+
 /** true si la serie tiene valor en todos los años pedidos. */
 export const ipcCompleto = (anios: number[]) => anios.every((y) => (IPC.valores[y] ?? 0) > 0);

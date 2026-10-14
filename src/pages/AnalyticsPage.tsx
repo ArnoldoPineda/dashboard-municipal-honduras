@@ -12,7 +12,7 @@ import {
   porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda,
 } from '../lib/indicadores';
 import { ANIOS_SEFIN } from '../data/anios';
-import { IPC, ipcCompleto, ANIO_BASE_REAL, ROTULO_PRECIOS_REALES } from '../data/ipc';
+import { IPC, ipcCompleto, ANIO_BASE_REAL, ROTULO_PRECIOS_REALES, tituloGrafico } from '../data/ipc';
 import { useNavbar } from '../context/NavbarContext';
 import { fmtL, fmtLGrafico, fmtPct } from '../lib/formato';
 import { DEPARTAMENTOS, codigoINE } from '../data/departamentos';
@@ -531,7 +531,7 @@ export default function AnalyticsPage() {
               ].map((g) => (
                 <div key={g.titulo} style={{ ...panel, padding: '14px 10px 10px' }}>
                   <h3 style={{ margin: '0 0 10px 6px', fontFamily: MONO, fontSize: 12, color: C.suave, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>
-                    {g.titulo}{g.titulo.endsWith('(%)') ? '' : ` · ${perCapita ? 'L/hab.' : 'L'}`}
+                    {tituloGrafico(g.titulo, perCapita, enReal)}
                   </h3>
                   <ResponsiveContainer width="100%" height={240}>{g.chart}</ResponsiveContainer>
                 </div>

@@ -180,3 +180,27 @@ La mediana nacional de inversión ÷ gasto es 28.5 %. El valor por habitante alt
 **Dónde se muestra:**
 - Comparar: ⚠ en el encabezado, en las barras y en los avisos.
 - Rankings: marca "atípico" en los indicadores de inversión (por habitante y ÷ gasto). La fila conserva su posición, y la exportación lo indica en la columna Nota.
+
+## 9. Distrito Central — clasificación de Industria/Comercio/Servicios cambia entre años; usar el subtotal (Fase 7c)
+
+Distrito Central (Francisco Morazán, código INE 0801) registra todo su impuesto sobre industria, comercio y servicios en un solo renglón de la liquidación SEFIN, y el renglón cambia entre años:
+
+| Año | Industria | Comercio | Servicios | Subtotal | Renglón usado |
+|---|---|---|---|---|---|
+| 2021 | L 520.9 M | 0 | 0 | L 520.9 M | Industria |
+| 2022 | L 866.0 M | 0 | L 3,210.58 | L 866.0 M | Industria (Servicios: monto mínimo) |
+| 2023 | L 880.1 M | 0 | 0 | L 880.1 M | Industria |
+| 2024 | L 1,032.3 M | 0 | 0 | L 1,032.3 M | Industria |
+| 2025 | 0 | L 1,093.2 M | 0 | L 1,093.2 M | Comercio |
+
+Efecto en el agregado País 2025 (cuadro de Análisis, precios corrientes):
+- Industria: −72.5 %.
+- Comercio: +101.4 %.
+- Subtotal Industria, comercio y servicios: +5.4 %.
+- Sin Distrito Central, Industria cambiaría +3.4 % (L 372.9 M a L 385.7 M) y Comercio +6.6 % (L 1,153.0 M a L 1,228.8 M).
+
+**Regla:** para comparar en el tiempo se usa el subtotal Industria, comercio y servicios, no sus tres renglones. El dato no se corrige ni se excluye: SIMHO muestra la cifra tal como la reporta SEFIN.
+
+**Dónde se muestra:** en el cuadro de Análisis aparece ⚠, con un aviso, en las filas Industria, Comercio y Servicios cuando el alcance incluye a Distrito Central. Eso ocurre con el municipio, con Francisco Morazán, con País y con la categoría A.
+
+**Otros municipios con el mismo patrón (revisión 2021–2025):** ninguno. La regla fue: una de las tres filas en 0 un año que el año siguiente concentra al menos el 90 % del subtotal, con subtotal > L 1 M. El resultado no cambia si se exige el subtotal solo en el año siguiente, ni si se acepta "casi 0" (< 1 % del subtotal) en lugar de 0 exacto.

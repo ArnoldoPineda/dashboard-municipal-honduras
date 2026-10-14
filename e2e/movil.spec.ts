@@ -92,3 +92,14 @@ test('390 px: con alcance País el aviso de Distrito Central va como nota visibl
   const { x, width } = (await nota.boundingBox())!;
   expect(x + width).toBeLessThanOrEqual(390);
 });
+
+test('390 px: en la Ficha de Ahuas 2025 el aviso de Asignaciones globales se ve como texto, sin tooltip', async ({ page }) => {
+  await abrir(page, '/municipio/gracias-a-dios/3');
+  await page.getByRole('tab', { name: 'Pares' }).click();
+  const aviso = page.getByTestId('nota-asignaciones').getByText('⚠ Parte del gasto de capital puede estar registrado en Asignaciones globales; la inversión por habitante podría estar subestimada.');
+  await aviso.scrollIntoViewIfNeeded();
+  await expect(aviso).toBeVisible();
+  expect(await aviso.getAttribute('title')).toBeNull();
+  const { x, width } = (await aviso.boundingBox())!;
+  expect(x + width).toBeLessThanOrEqual(390);
+});

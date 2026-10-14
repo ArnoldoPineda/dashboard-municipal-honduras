@@ -57,3 +57,25 @@ test('390 px: el menú ☰ abre el drawer con los nombres completos', async ({ p
     expect(alto).toBeGreaterThanOrEqual(44);
   }
 });
+
+for (const [nombre, ruta] of RUTAS.filter(([n]) => ['rankings', 'base-datos', 'ficha', 'departamento', 'mapa'].includes(n))) {
+  test(`390 px: el pie de fuente va al final del contenido, sin tapar nada: ${nombre}`, async ({ page }) => {
+    await abrir(page, ruta);
+    const pie = page.locator('footer.pie-fuente');
+    const medida = () => page.evaluate(() => {
+      const main = document.querySelector('main')!;
+      const f = main.querySelector('footer.pie-fuente')!;
+      const contenido = f.previousElementSibling!;
+      return { pieArriba: f.getBoundingClientRect().top, contenidoAbajo: contenido.getBoundingClientRect().bottom,
+        alto: window.innerHeight, scrollMain: main.scrollHeight > main.clientHeight, scrollPagina: contenido.scrollHeight > contenido.clientHeight + 1 };
+    });
+    const arriba = await medida();
+    expect(arriba.scrollMain).toBe(true);          // main es quien se desplaza
+    expect(arriba.scrollPagina).toBe(false);       // la página ya no tiene scroll propio
+    expect(arriba.pieArriba).toBeGreaterThanOrEqual(arriba.alto); // al inicio el pie no está en pantalla
+    await page.evaluate(() => { const m = document.querySelector('main')!; m.scrollTop = m.scrollHeight; });
+    await expect(pie).toBeInViewport();
+    const abajo = await medida();
+    expect(abajo.pieArriba).toBeGreaterThanOrEqual(abajo.contenidoAbajo - 0.5); // después del contenido, sin superponerse
+  });
+}

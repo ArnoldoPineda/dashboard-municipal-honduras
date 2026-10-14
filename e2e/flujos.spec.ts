@@ -42,7 +42,7 @@ async function cuadroDe(page: import('@playwright/test').Page, municipio: string
   await page.getByRole('option', { name: new RegExp(municipio) }).first().click();
   await page.waitForFunction(() => !/Cargando/.test(document.body.innerText));
   const cuadro = page.getByRole('region', { name: 'Cuadro presupuestario' });
-  const conceptos = (await cuadro.getByRole('rowheader').allInnerTexts()).map((t) => t.replace(/ /g, ' ').trim());
+  const conceptos = (await cuadro.getByRole('rowheader').allInnerTexts()).map((t) => t.replace(/\u00a0/g, ' ').trim());
   const [descarga] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'CSV' }).click()]);
   const csv = fs.readFileSync((await descarga.path())!, 'utf8').replace(/^\uFEFF/, '');
   const lineas = csv.split(/\r?\n/).map((l) => l.split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((c) => c.replace(/^"|"$/g, '')));

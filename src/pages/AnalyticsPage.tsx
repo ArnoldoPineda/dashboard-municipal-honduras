@@ -72,7 +72,7 @@ interface TRow { key: string; label: string; variant: RowVariant; field?: string
 
 /** Espacio duro: la flecha ↳ nunca queda sola en una línea. */
 const NBSP = String.fromCharCode(160);
-const sangria = (nivel: number) => ' '.repeat(4 * nivel);
+const sangria = (nivel: number) => NBSP.repeat(4 * nivel);
 /** Los 8 impuestos de G1, desde la lista central: IBI, subtotal ICS (Industria · Comercio · Servicios) y el resto. */
 const FILAS_IMPUESTOS: TRow[] = IMPUESTOS_G1.flatMap((i, k): TRow[] => {
   const fila: TRow = { key: i.campo, label: `${sangria(i.ics ? 3 : 2)}↳ ${i.etiqueta}`, variant: 'sub', field: i.campo, ocultarSiCero: true };
@@ -91,10 +91,10 @@ const TABLE_ROWS: TRow[] = [
   // Jerarquía SEFIN: Corrientes = Tributarios (G1, ya incluye Tasas y Derechos) + No Tributarios (G2).
   { key: 'ing_c',   label: 'Ingresos Corrientes',            variant: 'main',      field: 'ingresosCorrientes' },
   { key: 'ing_t',   label: '↳ Ingresos Tributarios (G1)',    variant: 'sub',       field: 'ingresos_tributarios' },
-  { key: 'imp',     label: '    ↳ de los cuales: Impuestos', variant: 'sub', field: 'impuestos' },
+  { key: 'imp',     label: `${sangria(1)}↳ de los cuales: Impuestos`, variant: 'sub', field: 'impuestos' },
   ...FILAS_IMPUESTOS,
-  { key: 'tasas',   label: '    ↳ de los cuales: Tasas por Servicios', variant: 'sub', field: 'tasas_servicios' },
-  { key: 'derech',  label: '    ↳ de los cuales: Derechos', variant: 'sub', field: 'derechos' },
+  { key: 'tasas',   label: `${sangria(1)}↳ de los cuales: Tasas por Servicios`, variant: 'sub', field: 'tasas_servicios' },
+  { key: 'derech',  label: `${sangria(1)}↳ de los cuales: Derechos`, variant: 'sub', field: 'derechos' },
   { key: 'ing_nt',  label: '↳ Ingresos No Tributarios (G2)', variant: 'sub',       field: 'ingresos_no_tributarios' },
   { key: 'ing_cap', label: 'Ingresos de Capital',            variant: 'main',      field: 'ingresos_capital' },
   { key: 'g_trans', label: 'TRANSFERENCIAS RECIBIDAS',       variant: 'group' },
@@ -426,13 +426,14 @@ export default function AnalyticsPage() {
                     {filasVisibles.map((row, idx) => {
                       const isGroup = row.variant === 'group', isSub = row.variant === 'sub', isHi = row.variant === 'highlight';
                       // Sangría del rótulo (espacios iniciales) como margen: el texto que se corta en dos líneas queda alineado.
+                      // Escritorio: el nivel 1 ocupa lo mismo que sus 4 espacios (29 px) y los niveles 2–3 suman 14 px, para no ensanchar la columna (220 px).
                       const nivel = (row.label.match(/^\s*/)?.[0].length ?? 0) / 4;
                       const bg = isGroup ? C.panel2 : isHi ? '#10302d' : idx % 2 === 0 ? '#111a2b' : C.panel;
                       const color = (v: number | null) => (row.variant === 'signed' && v != null && v !== 0 ? (v > 0 ? '#4ade80' : '#ff7a6b') : isSub ? C.texto2 : C.texto);
                       return (
                         <tr key={row.key} style={{ background: bg }}>
                           <th scope="row" className="col-fija" style={{
-                            padding: isSub ? `7px 16px 7px ${esMovil ? 12 + nivel * 8 : 28 + nivel * 18}px` : '8px 16px', textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: bg,
+                            padding: isSub ? `7px 16px 7px ${esMovil ? 12 + nivel * 8 : 28 + Math.min(nivel, 1) * 29 + Math.max(nivel - 1, 0) * 14}px` : '8px 16px', textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: bg,
                             color: isGroup ? C.suave : isSub ? C.texto2 : C.texto, fontSize: isGroup ? 11 : isSub ? 12 : 13,
                             fontWeight: isGroup || isHi ? 700 : isSub ? 400 : 500, letterSpacing: isGroup ? '0.14em' : 0,
                           }}>{row.label.trimStart().replace(/^↳ /, '↳' + NBSP)}</th>

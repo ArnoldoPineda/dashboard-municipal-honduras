@@ -184,7 +184,7 @@ export function csv(tabla: TablaExport): string {
     const seguro = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v; // Excel no evalúa la celda como fórmula
     return /[";\r\n]/.test(seguro) ? `"${seguro.replace(/"/g, '""')}"` : seguro;
   };
-  return '﻿' + [tabla.columnas.map((c) => c.titulo), ...tabla.filas].map((f) => f.map(esc).join(';')).join('\r\n');
+  return '\uFEFF' + [tabla.columnas.map((c) => c.titulo), ...tabla.filas].map((f) => f.map(esc).join(';')).join('\r\n');
 }
 
 function bajar(blob: Blob, nombre: string) {

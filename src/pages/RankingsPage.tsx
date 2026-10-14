@@ -6,7 +6,7 @@ import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
 import {
   ClaveSemaforo, SEMAFORO, FilaRanking, ROTULO_POBLACION, ROTULO_CATEGORIA, ROTULO_SIN_LIQUIDACION,
-  ROTULO_INVERSION_CASI_NULA, rankear, sinLiquidacion, inversionCasiNula,
+  rankear, sinLiquidacion, inversionCasiNula, rotuloInversionCasiNula,
 } from '../lib/indicadores';
 import { fmtNum } from '../lib/formato';
 import { DEPARTAMENTOS, nombreDepartamento, codigoINE } from '../data/departamentos';
@@ -113,7 +113,7 @@ export default function RankingsPage() {
       ],
       filas: ranking.map((r) => [
         r.posicion, codigoINE(r.fila.department, r.fila.code), r.fila.name ?? '', nombreDepartamento(r.fila.department),
-        r.fila.category ?? '', r.fila.population ?? null, r.valor, r.percentil, r.motivo ?? (atipico(r) ? `Atípico: ${ROTULO_INVERSION_CASI_NULA}` : ''),
+        r.fila.category ?? '', r.fila.population ?? null, r.valor, r.percentil, r.motivo ?? (atipico(r) ? `Atípico: ${rotuloInversionCasiNula(r.fila)}` : ''),
       ]),
     };
   }
@@ -217,8 +217,8 @@ export default function RankingsPage() {
                           {ruta ? <Link to={ruta} onClick={(e) => e.stopPropagation()} style={{ color: C.texto, textDecoration: 'none' }}>{r.fila.name}</Link> : r.fila.name}
                           {r.motivo && <span title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
                           {atipico(r) && (
-                            <span title={ROTULO_INVERSION_CASI_NULA} style={{ marginLeft: 6, fontFamily: MONO, fontSize: 11, color: C.ambar, border: `1px solid ${C.ambar}`, borderRadius: 4, padding: '0 4px' }}>
-                              atípico<span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>: {ROTULO_INVERSION_CASI_NULA}</span>
+                            <span title={rotuloInversionCasiNula(r.fila)} style={{ marginLeft: 6, fontFamily: MONO, fontSize: 11, color: C.ambar, border: `1px solid ${C.ambar}`, borderRadius: 4, padding: '0 4px' }}>
+                              atípico<span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>: {rotuloInversionCasiNula(r.fila)}</span>
                             </span>
                           )}
                         </td>
@@ -243,7 +243,7 @@ export default function RankingsPage() {
             )}
             {ranking.some(atipico) && (
               <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
-                <span style={{ color: C.ambar }}>atípico</span>: {ROTULO_INVERSION_CASI_NULA}.
+                <span style={{ color: C.ambar }}>atípico</span>: inversión en bienes capitalizables casi nula (&lt; 2 % del gasto); el motivo de cada fila está en su marca.
                 Se rankea igual; no se excluye.
               </div>
             )}

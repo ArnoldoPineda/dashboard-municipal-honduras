@@ -1,7 +1,7 @@
 // Fuente única de indicadores financieros municipales (docs/PLAN_REDISENO.md §1).
 // Por municipio y año. Agregados (departamento, nación): suma de numeradores y denominadores.
 import type { Municipality } from '../hooks/useMunicipalities';
-import { fmtL } from './formato';
+import { fmtL, fmtPct } from './formato';
 import { codigoINE } from '../data/departamentos';
 
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
@@ -23,8 +23,10 @@ const RENDICION_PARCIAL = new Set(['GRACIAS A DIOS|6|2021', 'EL PARAISO|11|2022'
  * de capital de estas filas suele quedar en "Asignaciones globales" y no en bienes capitalizables (docs/ATIPICOS.md §8).
  */
 export const UMBRAL_INVERSION_GASTO = 2;
-export const ROTULO_INVERSION_CASI_NULA = 'Inversión en bienes capitalizables casi nula (< 2 % del gasto). '
-  + 'El gasto de capital puede estar registrado en Asignaciones globales — verificar con la liquidación';
+/** Asignaciones globales ÷ total egresos desde este % : el rótulo nombra las asignaciones como posible destino. */
+export const UMBRAL_ASIGNACIONES_GLOBALES = 30;
+/** Rótulo base (sin asignaciones relevantes) y leyenda general. */
+export const ROTULO_INVERSION_CASI_NULA = 'Inversión en bienes capitalizables casi nula (< 2 % del gasto) — verificar con la liquidación';
 /** La ejecución se mide contra el aprobado (no hay vigente); por encima de este % se marca ⚠. */
 export const UMBRAL_EJECUCION = 150;
 
@@ -198,6 +200,14 @@ export const inversionCasiNula = (m: Municipality) => {
   return !sinLiquidacion(m) && v != null && v < UMBRAL_INVERSION_GASTO;
 };
 
+/** Rótulo de la fila: menciona Asignaciones globales (con su % del gasto) si son ≥ UMBRAL_ASIGNACIONES_GLOBALES %. */
+export function rotuloInversionCasiNula(m: Municipality): string {
+  const ag = ratio(n(m.asignaciones_globales), n(m.total_egresos));
+  return ag != null && ag >= UMBRAL_ASIGNACIONES_GLOBALES
+    ? `Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar registrado en Asignaciones globales (${fmtPct(ag)} del gasto) — verificar con la liquidación`
+    : ROTULO_INVERSION_CASI_NULA;
+}
+
 /** Diferencia tolerada entre un subtotal SEFIN y la suma de sus renglones (lempiras). */
 const TOL = 1;
 const suma = (m: Municipality, ks: (keyof Municipality)[]) => ks.reduce((s, k) => s + n(m[k] as number), 0);
@@ -213,7 +223,7 @@ export function atipicos(m: Municipality): string[] {
   if (r.autonomia !== null && r.autonomia > 100) out.push('Autonomía > 100 %');
   const nota = notaDatoIncompleto(m);
   if (nota) out.push(nota);
-  if (inversionCasiNula(m)) out.push(ROTULO_INVERSION_CASI_NULA);
+  if (inversionCasiNula(m)) out.push(rotuloInversionCasiNula(m));
   if (i.poblacion <= 0) out.push('Sin población');
   if (i.totalEgresos <= 0) out.push('Sin egresos reportados');
   if (i.ingresosTotales <= 0) out.push('Sin ingresos reportados');

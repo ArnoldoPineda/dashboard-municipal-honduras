@@ -148,7 +148,11 @@ Efecto: el presupuesto nacional 2023 pasa de L 23.2 a L 28.4 mil M (San Pedro Su
 
 ## 8. Inversión en bienes capitalizables casi nula (Fase 6)
 
-**Regla (2026-10-13):** `inversionCasiNula()` marca las filas con liquidación en las que bienes capitalizables ÷ total egresos es menor a 2 %. Es una señal de atípico y no excluye la fila. Rótulo: "Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar registrado en Asignaciones globales — verificar con la liquidación". La primera versión usaba "inversión por habitante < L 50"; se cambió al % del gasto porque marcaba como casi nula a Trojes, que invierte L 2.9 M (7 % de su gasto).
+**Regla (2026-10-13):** `inversionCasiNula()` marca las filas con liquidación en las que bienes capitalizables ÷ total egresos es menor a 2 %. Es una señal de atípico y no excluye la fila. El rótulo depende de las Asignaciones globales (`rotuloInversionCasiNula()`):
+- **Asignaciones globales ≥ 30 % del gasto:** "Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar registrado en Asignaciones globales (X % del gasto) — verificar con la liquidación", donde X es el porcentaje calculado con 1 decimal. En 2025 aplica a Tomalá (48.7 %), Nueva Frontera (61.4 %), Jano (53.3 %) y Texiguat (58.7 %).
+- **En otro caso:** "Inversión en bienes capitalizables casi nula (< 2 % del gasto) — verificar con la liquidación". En 2025 aplica a La Unión (15.3 %).
+
+La primera versión usaba "inversión por habitante < L 50"; se cambió al % del gasto porque marcaba como casi nula a Trojes, que invierte L 2.9 M (7 % de su gasto).
 
 Hay 26 filas marcadas en 2021–2025: 7 en 2021, 8 en 2022, 3 en 2023, 3 en 2024 y 5 en 2025. Lectura de `public.municipalities` del 2026-10-13, con la anon key y solo lectura.
 

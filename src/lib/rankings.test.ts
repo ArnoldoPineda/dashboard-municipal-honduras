@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
 import {
   rankear, contarExcluidos, paresSugeridos, comparacionPares, excluirDeRazones, inversionCasiNula, atipicos,
-  ROTULO_INVERSION_CASI_NULA,
+  ROTULO_INVERSION_CASI_NULA, rotuloInversionCasiNula,
   ROTULO_SIN_LIQUIDACION, ROTULO_SIN_ART91, ROTULO_RENDICION_PARCIAL,
 } from './indicadores';
 import fixture from './__fixtures__/municipios2021_2025.json';
@@ -141,9 +141,25 @@ describe('inversión casi nula (atípico de fuente, docs/ATIPICOS.md §8)', () =
   it('se marca en atipicos() pero no se excluye ni pierde posición', () => {
     const anio = de(2025);
     const tomala = anio.find((m) => m.name === 'Tomalá')!;
-    expect(atipicos(tomala)).toContain(ROTULO_INVERSION_CASI_NULA);
+    expect(atipicos(tomala)).toContain(rotuloInversionCasiNula(tomala));
     expect(excluirDeRazones(tomala)).toBe(false);
     expect(rankear(anio, anio, 'inversionPerCapita').find((x) => x.fila === tomala)!.posicion).not.toBeNull();
-    expect(atipicos(anio.find((m) => m.name === 'Humuya')!)).not.toContain(ROTULO_INVERSION_CASI_NULA);
+    expect(atipicos(anio.find((m) => m.name === 'Humuya')!).some((s) => s.startsWith('Inversión en bienes'))).toBe(false);
+  });
+
+  // Tomalá 2025 real: asignaciones globales L 11.703 M de L 24.007 M (48.7 %); La Unión: L 3.036 M de L 19.818 M (15.3 %).
+  const base = { ...de(2025)[0], bienes_capitalizables: 7_695 } as Municipality;
+  it('rótulo con Asignaciones globales ≥ 30 % del gasto: nombra las asignaciones y su %', () => {
+    const t = { ...base, asignaciones_globales: 11_703_000, total_egresos: 24_007_183 } as Municipality;
+    expect(rotuloInversionCasiNula(t)).toBe('Inversión en bienes capitalizables casi nula (< 2 % del gasto). El gasto de capital puede estar '
+      + 'registrado en Asignaciones globales (48.7 % del gasto) — verificar con la liquidación');
+    expect(atipicos(t)).toContain(rotuloInversionCasiNula(t));
+    expect(rotuloInversionCasiNula({ ...t, asignaciones_globales: 30, total_egresos: 100 } as Municipality)).toContain('(30.0 % del gasto)'); // 30 % justo
+  });
+  it('rótulo con Asignaciones globales < 30 %: versión corta', () => {
+    const u = { ...base, asignaciones_globales: 3_036_000, total_egresos: 19_817_667 } as Municipality;
+    expect(rotuloInversionCasiNula(u)).toBe(ROTULO_INVERSION_CASI_NULA);
+    expect(ROTULO_INVERSION_CASI_NULA).toBe('Inversión en bienes capitalizables casi nula (< 2 % del gasto) — verificar con la liquidación');
+    expect(rotuloInversionCasiNula({ ...u, asignaciones_globales: null } as Municipality)).toBe(ROTULO_INVERSION_CASI_NULA);
   });
 });

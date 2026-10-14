@@ -226,10 +226,22 @@ export const inversionCasiNula = (m: Municipality) => {
   return !sinLiquidacion(m) && v != null && v < UMBRAL_INVERSION_GASTO;
 };
 
+export const AVISO_ASIGNACIONES_GLOBALES = 'Parte del gasto de capital puede estar registrado en Asignaciones globales; la inversión por habitante podría estar subestimada.';
+
+/** Asignaciones globales: % del gasto total, lempiras por habitante y aviso desde UMBRAL_ASIGNACIONES_GLOBALES % (docs/ATIPICOS.md §10). */
+export function asignacionesGlobales(m: Municipality) {
+  const pctGasto = ratio(n(m.asignaciones_globales), n(m.total_egresos));
+  return {
+    pctGasto,
+    porHabitante: perCapita(n(m.asignaciones_globales), n(m.population)),
+    aviso: pctGasto != null && pctGasto >= UMBRAL_ASIGNACIONES_GLOBALES ? AVISO_ASIGNACIONES_GLOBALES : null,
+  };
+}
+
 /** Rótulo de la fila: menciona Asignaciones globales (con su % del gasto) si son ≥ UMBRAL_ASIGNACIONES_GLOBALES %. */
 export function rotuloInversionCasiNula(m: Municipality): string {
-  const ag = ratio(n(m.asignaciones_globales), n(m.total_egresos));
-  return ag != null && ag >= UMBRAL_ASIGNACIONES_GLOBALES
+  const { pctGasto: ag, aviso } = asignacionesGlobales(m);
+  return aviso && ag != null
     ? `Inversión en bienes capitalizables casi nula (< ${UMBRAL_INVERSION_GASTO} % del gasto). El gasto de capital puede estar registrado en Asignaciones globales (${fmtPct(ag)} del gasto) — verificar con la liquidación`
     : ROTULO_INVERSION_CASI_NULA;
 }

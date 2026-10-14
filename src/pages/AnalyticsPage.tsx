@@ -111,10 +111,11 @@ const TABLE_ROWS: TRow[] = [
   { key: 'otf',     label: '↳ Otros',                        variant: 'sub',       field: 'otros_gastos' },
   { key: 'gc',      label: 'Gastos de Capital y Deuda',      variant: 'main',      field: 'gastos_capital_deuda' },
   { key: 'bc',      label: '↳ Bienes Capitalizables',        variant: 'sub',       field: 'bienes_capitalizables' },
+  // Junto a la inversión (docs/ATIPICOS.md §10): parte del gasto de capital suele quedar registrada aquí.
+  { key: 'ag',      label: '↳ Asignaciones Globales',        variant: 'sub',       field: 'asignaciones_globales' },
   { key: 'tce',     label: '↳ Transferencias ejecutadas',    variant: 'sub',       field: 'transferencias_capital' },
   { key: 'sd',      label: '↳ Servicios de Deuda',           variant: 'sub',       field: 'servicios_deuda' },
   { key: 'ogc',     label: '↳ Otros Gastos',                 variant: 'sub',       field: 'otros_gastos_capital' },
-  { key: 'ag',      label: '↳ Asignaciones Globales',        variant: 'sub',       field: 'asignaciones_globales' },
   { key: 'te',      label: 'Total Egresos',                  variant: 'highlight', field: 'total_egresos' },
   { key: 'g_res',   label: 'RESULTADO',                      variant: 'group' },
   { key: 'sdef',    label: 'Resultado con Balance (Superávit/Déficit SEFIN)', variant: 'signed', field: 'resultadoConBalance' },

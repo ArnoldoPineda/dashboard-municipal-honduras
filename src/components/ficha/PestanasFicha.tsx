@@ -3,6 +3,7 @@ import React, { useRef, useState } from 'react';
 import type { Municipality } from '../../hooks/useMunicipalities';
 import {
   indicadoresMunicipio, insumos, semaforo, sinLiquidacion, ClaveSemaforo, ROTULO_SIN_LIQUIDACION,
+  notaMedianaDeuda,
 } from '../../lib/indicadores';
 import { fmtL } from '../../lib/formato';
 import { BarraPercentil, BarraValor } from './Barras';
@@ -268,7 +269,7 @@ function TabDeuda({ fila, filasMuni, comps }: Props) {
       <p style={nota}>
         En {fila.year} el servicio de la deuda equivale al {fmtIndicador('servicioDeudaSobreCorrientes', r.servicioDeudaSobreCorrientes)} de los
         ingresos corrientes{med != null ? ` (mediana cat. ${fila.category}: ${fmtIndicador('servicioDeudaSobreCorrientes', med)})` : ''}.
-        El saldo de la deuda no está disponible en la base SEFIN.
+        {med === 0 ? ` ${notaMedianaDeuda(fila.category)}` : ''} El saldo de la deuda no está disponible en la base SEFIN.
       </p>
     </>
   );
@@ -356,6 +357,9 @@ function TabPares({ fila, comps, excluida }: Props) {
       <div style={{ fontFamily: MONO, fontSize: 11, color: C.gris }}>
         Columnas: indicador · {fila.name} · mediana cat. {fila.category} · percentil (la línea gris marca la mediana)
       </div>
+      {comps.servicioDeudaSobreCorrientes?.mediana === 0 && (
+        <div style={{ fontSize: 12, color: C.suave }}>Servicio de deuda: {notaMedianaDeuda(fila.category)}</div>
+      )}
     </>
   );
 }

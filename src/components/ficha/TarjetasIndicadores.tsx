@@ -3,6 +3,7 @@ import React from 'react';
 import type { Municipality } from '../../hooks/useMunicipalities';
 import {
   indicadoresMunicipio, insumos, semaforo, lecturaSimho, ClaveSemaforo, Comparacion,
+  notaMedianaDeuda,
 } from '../../lib/indicadores';
 import { fmtL } from '../../lib/formato';
 import { BarraPercentil } from './Barras';
@@ -90,6 +91,9 @@ export function TarjetasIndicadores({ fila, comps, excluida }: { fila: Municipal
             <div style={{ fontFamily: MONO, fontSize: 12, color: C.suave }}>
               Mediana cat. {fila.category}: <span style={{ color: C.texto }}>{fmtIndicador(k, c?.mediana)}</span>
             </div>
+            {k === 'servicioDeudaSobreCorrientes' && c?.mediana === 0 && (
+              <div style={{ fontSize: 12, color: C.suave, lineHeight: 1.4 }}>{notaMedianaDeuda(fila.category)}</div>
+            )}
             {excluida
               ? <div style={{ fontFamily: MONO, fontSize: 11, color: C.ambar }}>Sin comparación: excluido de estadísticas</div>
               : <BarraPercentil percentil={c?.percentil ?? null} color={color} n={c?.n} />}

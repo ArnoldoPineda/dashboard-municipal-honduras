@@ -21,3 +21,9 @@ export function fmtL(n: number | string | null | undefined, opts: { completo?: b
 
 /** fmtL para ejes y etiquetas de gráficos: espacios no separables, para que Recharts no parta "L 150.0 M". */
 export const fmtLGrafico = (n: number | string | null | undefined) => fmtL(n).replace(/ /g, ' ');
+
+/** Porcentaje con 1 decimal: "60.1 %". Nulo o no finito → "—". */
+export const fmtPct = (v: number | null | undefined, dec = 1) => (v == null || !Number.isFinite(v) ? '—' : `${v.toFixed(dec)} %`);
+
+/** Número entero con separador de miles (población, conteos): "9,959,997". Nulo → "—". */
+export const fmtNum = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? '—' : miles(v));

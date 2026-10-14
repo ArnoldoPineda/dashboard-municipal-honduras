@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import * as d3 from 'd3';
 import {
-  ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, calcular, sinLiquidacion, notaDatoIncompleto,
+  ROTULO_CATEGORIA, ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, sumarInsumos, sumarTotales, notaTotales, calcular, sinLiquidacion, notaDatoIncompleto,
   excluirDeEstadisticas, indicadoresMunicipio, clasesQuintil, mediana, CLAVE_METRICA, MetricaMapa, Clases,
 } from '../lib/indicadores';
 import * as topojson from 'topojson-client';
@@ -279,11 +279,13 @@ export default function VistaDepartamental() {
   [yearRows, indicator]);
 
   // Agregados del departamento (lib/indicadores: Σ numeradores ÷ Σ denominadores).
-  const deptYear = useMemo(() => sumarInsumos(deptRows), [deptRows]);
+  // Montos y población: totales (solo sin las filas sin liquidación). Autonomía agregada: nivel razones.
+  const deptYear = useMemo(() => sumarTotales(deptRows), [deptRows]);
+  const notaTot = useMemo(() => notaTotales(deptRows), [deptRows]);
   // Autonomía como en el Panorama: mediana municipal (cifra principal) y agregado Σ/Σ (segunda línea).
   const autonomiaAgregado: number | null = useMemo(
-    () => (deptRows.length === 0 ? null : calcular(deptYear).autonomia),
-    [deptRows, deptYear]
+    () => (deptRows.length === 0 ? null : calcular(sumarInsumos(deptRows)).autonomia),
+    [deptRows]
   );
   const autonomiaMediana = useMemo(() => mediana(deptRows, 'autonomia'), [deptRows]);
   const nExcluidos = deptRows.filter(excluirDeEstadisticas).length;
@@ -416,6 +418,9 @@ export default function VistaDepartamental() {
               </div>
             ))}
           </div>
+          {notaTot && !noData && loaded && (
+            <div style={{ fontSize: 12, color: '#f0a33a', lineHeight: 1.4, flexShrink: 0 }}>Montos y población: {notaTot}</div>
+          )}
 
           <div style={{ height: 1, background: 'rgba(0,212,184,0.1)', flexShrink: 0 }} />
 

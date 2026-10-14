@@ -126,6 +126,7 @@ export function TablaCategorias({ r }: { r: ResumenNacional }) {
           </tbody>
         </table>
       </div>
+      {r.notaTotales && <p style={{ ...nota, fontSize: 13, color: C.ambar }}>Población (total): {r.notaTotales} "Munic." y las medianas cuentan solo los municipios en estadísticas.</p>}
       {c && (
         <p style={nota}>
           {c.n} de los {r.n} municipios son categoría C: generan el {pct(c.autonomia)} de sus ingresos del año (mediana) y dependen de las transferencias en un {pct(c.dependencia)}.

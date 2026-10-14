@@ -9,7 +9,7 @@ export default function PieFuente() {
     <footer style={{
       flexShrink: 0, padding: '6px 22px',
       borderTop: '1px solid rgba(0,212,184,0.08)',
-      fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, color: '#4a5a73', letterSpacing: '0.04em',
+      fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#a9b7c8', letterSpacing: '0.04em',
     }}>
       {TEXTO_FUENTE}
     </footer>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ROTULO_POBLACION, ROTULO_CATEGORIA, excluirDeEstadisticas } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_CATEGORIA, excluirDeEstadisticas, notaTotales } from '../lib/indicadores';
 import { useNavbar } from '../context/NavbarContext';
 import { useSefinYear, aggregate } from '../utils/sefin';
 import SelectorAnio from '../components/SelectorAnio';
@@ -28,6 +28,7 @@ export default function MapaInteractivo() {
   const { rows, loading, message: noDataMsg } = useSefinYear(fiscalYear);
   const hideFigures = loading || !!noDataMsg; // mientras carga: '—', nunca 0
   const totals = useMemo(() => aggregate(rows), [rows]);
+  const notaTot = useMemo(() => notaTotales(rows), [rows]);
   const catTotals = useMemo(() => {
     const c: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
     rows.forEach((m) => { if (!excluirDeEstadisticas(m) && m.category && m.category in c) c[m.category]++; });
@@ -89,6 +90,9 @@ export default function MapaInteractivo() {
             </>
           )}
       </div>
+      {indicator !== 'categoria' && !hideFigures && notaTot && (
+        <div style={{ padding: '0 16px 10px', fontSize: 12, color: '#f0a33a' }}>Población y presupuesto: {notaTot}</div>
+      )}
     </div>
   );
 }

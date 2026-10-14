@@ -2,6 +2,7 @@
 // Por municipio y año. Agregados (departamento, nación): suma de numeradores y denominadores.
 import type { Municipality } from '../hooks/useMunicipalities';
 import { fmtL } from './formato';
+import { codigoINE } from '../data/departamentos';
 
 /** Rótulo único de la población mostrada (SEFIN "ajustada" hasta cargar INE). */
 export const ROTULO_POBLACION = 'Población: proyección (provisional)';
@@ -87,17 +88,48 @@ export const datoIncompleto = (m: Municipality) => rendicionParcial(m) || sinArt
 export const notaDatoIncompleto = (m: Municipality): string | null =>
   rendicionParcial(m) ? ROTULO_RENDICION_PARCIAL : sinArt91(m) ? ROTULO_SIN_ART91 : null;
 
-/** Criterio único: fuera de totales, agregados, medianas y rankings (sin liquidación o dato incompleto). */
-export const excluirDeEstadisticas = (m: Municipality) => sinLiquidacion(m) || datoIncompleto(m);
+/**
+ * Dos niveles de exclusión (docs/ATIPICOS.md):
+ * - TOTALES (sumas de montos y población): fuera solo las filas sin liquidación. Una fila sin Art. 91 o con
+ *   rendición parcial sí tiene ingresos y gastos reales; sacarla de los totales crea caídas artificiales
+ *   (2023: el presupuesto nacional bajaba de 28.4 a 23.2 mil M al quitar San Pedro Sula).
+ * - RAZONES (razones agregadas, medianas, percentiles, distribución, semáforo y rankings): fuera también las
+ *   filas sin Art. 91 y las rendiciones parciales, porque su dato incompleto distorsiona la comparación.
+ */
+export const excluirDeTotales = (m: Municipality) => sinLiquidacion(m);
+export const excluirDeRazones = (m: Municipality) => sinLiquidacion(m) || datoIncompleto(m);
+/** Alias histórico de excluirDeRazones (medianas, percentiles, rankings, "municipios en estadísticas"). */
+export const excluirDeEstadisticas = excluirDeRazones;
 
-/** Suma de insumos de un grupo (un año), sin las filas excluidas de estadísticas. */
-export function sumarInsumos(rows: Municipality[]): Insumos {
+/**
+ * Suma de insumos de un grupo (un año). `nivel` 'razones' (por defecto): base de las razones agregadas
+ * (indicadoresAgregados). 'totales': montos y población para mostrar como total (ver sumarTotales).
+ */
+export function sumarInsumos(rows: Municipality[], nivel: 'razones' | 'totales' = 'razones'): Insumos {
   const acc = insumos({} as Municipality);
-  rows.filter((m) => !excluirDeEstadisticas(m)).forEach((m) => {
+  const fuera = nivel === 'totales' ? excluirDeTotales : excluirDeRazones;
+  rows.filter((m) => !fuera(m)).forEach((m) => {
     const i = insumos(m);
     (Object.keys(acc) as (keyof Insumos)[]).forEach((k) => { acc[k] += i[k]; });
   });
   return acc;
+}
+
+/** Montos y población de un grupo (un año) para mostrar como TOTAL: solo sin las filas sin liquidación. */
+export const sumarTotales = (rows: Municipality[]) => sumarInsumos(rows, 'totales');
+
+/**
+ * Nota para un total que incluye filas con dato incompleto (sin Art. 91 o rendición parcial); null si no hay.
+ * Ej.: "Incluye 1 municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas."
+ */
+export function notaTotales(rows: Municipality[]): string | null {
+  const s91 = rows.filter(sinArt91).length;
+  const rp = rows.filter(rendicionParcial).length;
+  const partes = [
+    s91 ? `Incluye ${s91} municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas.` : '',
+    rp ? `Incluye ${rp} municipio(s) con rendición parcial (dato incompleto).` : '',
+  ].filter(Boolean);
+  return partes.length ? partes.join(' ') : null;
 }
 
 /** Porcentajes en 0–100; per cápita en lempiras; montos en lempiras. null = denominador ≤ 0. */
@@ -336,7 +368,7 @@ export function resumenPorCategoria(filas: Municipality[]): ResumenCategoria[] {
     return {
       categoria:   c,
       n:           enEstadisticas(grupo).length,
-      poblacion:   sumarInsumos(grupo).poblacion,
+      poblacion:   sumarTotales(grupo).poblacion, // total: incluye filas sin Art. 91
       autonomia:   mediana(grupo, 'autonomia'),
       propiosPc:   mediana(grupo, 'propiosPerCapita'),
       dependencia: mediana(grupo, 'dependenciaTransferencias'),
@@ -352,6 +384,8 @@ export interface ResumenNacional {
   indicadores: Record<'autonomia' | 'propiosPerCapita' | 'dependenciaTransferencias' | 'balanceSobreIngresos', MedianaAgregado>;
   distribucion: { etiqueta: string; n: number }[];
   categorias: ResumenCategoria[];
+  /** Nota de los totales (población por categoría) que incluyen filas sin Art. 91 o con rendición parcial. */
+  notaTotales: string | null;
 }
 
 export function resumenNacional(filas: Municipality[], anio: number): ResumenNacional {
@@ -372,6 +406,7 @@ export function resumenNacional(filas: Municipality[], anio: number): ResumenNac
     },
     distribucion: distribucionAutonomia(delAnio),
     categorias: resumenPorCategoria(delAnio),
+    notaTotales: notaTotales(delAnio),
   };
 }
 
@@ -457,3 +492,91 @@ export function clasesQuintil(valores: (number | null | undefined)[], direccion:
   const rangos = [0, 1, 2, 3, 4].map((c) => ({ clase: c, ...porBruta[direccion === 'mayor' ? c : 4 - c] }));
   return { cortes, clase, rangos };
 }
+
+// ── Fase 5: Análisis multianual y Base de Datos ───────────────────────────────
+
+/** Monto por habitante; null si la población es ≤ 0 o falta el monto. */
+export const porCapita = (monto: number | null | undefined, poblacion: number | null | undefined) =>
+  monto == null || poblacion == null || !Number.isFinite(poblacion) || poblacion <= 0 ? null : fin(monto / poblacion);
+
+/** Serie anual del IPC (índice, cualquier base). Años sin dato: null. */
+export type SerieIPC = Record<number, number | null | undefined>;
+
+/** Lempiras del año `anio` a precios de `anioBase`: monto × IPC[base] ÷ IPC[año]. null si falta algún IPC. */
+export function deflactar(monto: number | null | undefined, anio: number, anioBase: number, ipc: SerieIPC): number | null {
+  const a = ipc[anio], b = ipc[anioBase];
+  if (monto == null || a == null || b == null || ![monto, a, b].every(Number.isFinite) || !(a > 0) || !(b > 0)) return null;
+  return fin((monto * b) / a);
+}
+
+/** Variación % entre dos años: (actual − anterior) ÷ |anterior| × 100. null si falta un año o el anterior es 0. */
+export function variacionPct(anterior: number | null | undefined, actual: number | null | undefined): number | null {
+  if (anterior == null || actual == null || anterior === 0) return null;
+  return fin(((actual - anterior) / Math.abs(anterior)) * 100);
+}
+
+/** Tasa de crecimiento anual compuesta, en %: ((último ÷ primero)^(1/años) − 1) × 100. null con extremos ≤ 0. */
+export function tcac(primero: number | null | undefined, ultimo: number | null | undefined, anios: number): number | null {
+  if (primero == null || ultimo == null || ![primero, ultimo, anios].every(Number.isFinite) || !(primero > 0) || !(ultimo > 0) || !(anios >= 1)) return null;
+  return fin(((ultimo / primero) ** (1 / anios) - 1) * 100);
+}
+
+/** Alcance de Análisis. Departamento: código INE de 2 dígitos ("03"); municipio: INE de 4 ("0318"). */
+export type Alcance =
+  | { tipo: 'pais' }
+  | { tipo: 'departamento'; cod: string }
+  | { tipo: 'municipio'; ine: string }
+  | { tipo: 'categoria'; categoria: string };
+
+/** Filas (todos los años) que caen en el alcance. Sin filtrar excluidos: eso lo hacen las sumas y medianas. */
+export function filasDeAlcance(filas: Municipality[], a: Alcance): Municipality[] {
+  if (a.tipo === 'pais') return filas;
+  if (a.tipo === 'categoria') return filas.filter((m) => m.category === a.categoria);
+  if (a.tipo === 'departamento') return filas.filter((m) => codigoINE(m.department, m.code).slice(0, 2) === a.cod);
+  return filas.filter((m) => codigoINE(m.department, m.code) === a.ine);
+}
+
+/** Indicadores del bloque por año de Análisis (claves de `Indicadores`). */
+export const INDICADORES_ANALISIS = [
+  'autonomia', 'dependenciaTransferencias', 'funcionamientoSobreCorrientes', 'inversionSobreGasto',
+  'servicioDeudaSobreCorrientes', 'balanceSobreIngresos', 'propiosPerCapita', 'ibiPerCapita', 'inversionPerCapita', 'ejecucion',
+] as const;
+export type IndicadorAnalisis = typeof INDICADORES_ANALISIS[number];
+
+/**
+ * Por año: mediana municipal y agregado (Σ/Σ) de cada indicador, sin excluidos. `filas` ya recortadas al alcance.
+ * Un solo municipio: su propio valor en ambas (aunque esté excluido; la UI lo marca con ⚠).
+ */
+export function indicadoresPorAnio(filas: Municipality[], anios: number[]): Record<number, Record<IndicadorAnalisis, MedianaAgregado>> {
+  return Object.fromEntries(anios.map((y) => {
+    const delAnio = filas.filter((m) => m.year === y);
+    const unico = delAnio.length === 1 ? indicadoresMunicipio(delAnio[0]) : null;
+    const agg = unico ?? indicadoresAgregados(delAnio);
+    return [y, Object.fromEntries(INDICADORES_ANALISIS.map((k) => [k, {
+      mediana:  unico ? unico[k] : mediana(delAnio, k),
+      agregado: agg[k],
+    }])) as Record<IndicadorAnalisis, MedianaAgregado>];
+  }));
+}
+
+/** Columna de la Base de Datos para el pie: suma (montos, población) o mediana (razones, per cápita). */
+export interface ColumnaPie { clave: string; agregacion: 'suma' | 'mediana' | 'ninguna'; valor: (m: Municipality) => number | null }
+
+/** Fila al pie del grupo filtrado: TOTAL (sin las filas sin liquidación) o MEDIANA (sin ninguna excluida). */
+export function pieTabla(filas: Municipality[], columnas: ColumnaPie[]): Record<string, number | null> {
+  const enTotales = filas.filter((m) => !excluirDeTotales(m));
+  const enRazones = filas.filter((m) => !excluirDeRazones(m));
+  return Object.fromEntries(columnas.map((c) => {
+    if (c.agregacion === 'ninguna') return [c.clave, null];
+    const v = (c.agregacion === 'suma' ? enTotales : enRazones).map(c.valor).filter((x): x is number => x != null && Number.isFinite(x));
+    if (!v.length) return [c.clave, null];
+    if (c.agregacion === 'suma') return [c.clave, v.reduce((s, x) => s + x, 0)];
+    v.sort((a, b) => a - b);
+    const h = v.length >> 1;
+    return [c.clave, v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2];
+  }));
+}
+
+/** Nota cuando la mediana del servicio de deuda ÷ corrientes es 0 (más de la mitad sin pagos de deuda en el año). */
+export const notaMedianaDeuda = (categoria?: string | null) =>
+  `Más de la mitad de los municipios${categoria ? ` de la categoría ${categoria}` : ''} no registra servicio de deuda en el año.`;

@@ -2,7 +2,7 @@
 // Fuente única de cifras para todas las páginas: el mock de municipios se eliminó.
 import { useMemo } from 'react';
 import { Municipality, useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
-import { sumarInsumos, calcular, excluirDeEstadisticas } from '../lib/indicadores';
+import { sumarInsumos, sumarTotales, calcular, excluirDeEstadisticas } from '../lib/indicadores';
 
 export const NO_DATA_MSG = 'Sin datos SEFIN para este año';
 
@@ -33,9 +33,9 @@ export interface SefinAgg {
   autonomia:          number | null;
 }
 
-/** Agregado de un grupo de filas (un año), sin filas excluidas de estadísticas. Fórmulas en lib/indicadores. */
+/** Agregado de un grupo (un año): montos y población como totales; autonomía y conteo con el nivel razones. */
 export function aggregate(rows: Municipality[]): SefinAgg {
-  const i = sumarInsumos(rows);
+  const i = sumarTotales(rows);
   return {
     count:              rows.filter((m) => !excluirDeEstadisticas(m)).length,
     presupuesto:        i.presupuesto,
@@ -43,7 +43,7 @@ export function aggregate(rows: Municipality[]): SefinAgg {
     ingresosCorrientes: i.ingresosCorrientes,
     ingresosDelAnio:    i.ingresosDelAnio,
     transferencias:     i.transferencias,
-    autonomia:          calcular(i).autonomia,
+    autonomia:          calcular(sumarInsumos(rows)).autonomia,
   };
 }
 

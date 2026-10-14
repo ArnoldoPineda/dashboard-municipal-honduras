@@ -131,3 +131,16 @@ Las hojas 2021, 2022, 2024 y 2025 traen notas al pie que la base no conserva:
 **Decisión (2026-10-13):** Wampusirpe 2021 y San Antonio de Flores 2022 se marcan como "Dato incompleto (rendición parcial)", con el mismo tratamiento que §5. La lista está fija en `RENDICION_PARCIAL` (`src/lib/indicadores.ts`), porque la base no conserva las notas: hay que actualizarla al importar un año nuevo.
 
 Las hojas 2021 y 2022 también dicen: "Categoría Municipal establecida por la SGJD 2020". Es la fuente de la columna `category`. El rótulo pasa a ser "Categoría SGJD 2020 (según nota del Excel SEFIN)" y `sql/002_categoria_municipal.sql` usa `criterio = 'SGJD 2020'`.
+
+## 7. Dos niveles de exclusión (Fase 5)
+
+Corrige el criterio de la Fase 2, que sacaba de los totales en lempiras a las filas sin Art. 91 y a las rendiciones parciales.
+
+| Nivel | Función | Qué excluye | Dónde aplica |
+|---|---|---|---|
+| Totales | `excluirDeTotales` | Sin liquidación (§2) | Sumas de montos y población: totales nacionales, departamentales y de categoría, hoja Resumen del Excel, cuadro de Análisis, tarjetas de montos de la Vista Departamental, tira del Mapa y Comparativos |
+| Razones | `excluirDeRazones` (= `excluirDeEstadisticas`) | Sin liquidación + sin Art. 91 (§5) + rendición parcial (§6) | Razones agregadas, medianas, percentiles, distribución, semáforo y rankings |
+
+Donde un total incluye filas sin Art. 91 se muestra: "Incluye N municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas" (`notaTotales`). Con rendiciones parciales se agrega "Incluye N municipio(s) con rendición parcial (dato incompleto)".
+
+Efecto: el presupuesto nacional 2023 pasa de L 23.2 a L 28.4 mil M (San Pedro Sula vuelve al total); la autonomía agregada 2023 sigue en 52.1 % y la mediana en 13.7 %.

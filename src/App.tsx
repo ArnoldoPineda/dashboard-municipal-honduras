@@ -9,7 +9,7 @@ import MapaInteractivo      from './pages/MapaInteractivo';
 import VistaDepartamental   from './pages/VistaDepartamental';
 import FichaMunicipal, { UltimaFicha } from './pages/FichaMunicipal';
 import DashboardNacional    from './pages/DashboardNacional';
-import PresupuestarioPage   from './pages/PresupuestarioPage';
+import BaseDatosPage        from './pages/BaseDatosPage';
 import AnalyticsPage        from './pages/AnalyticsPage';
 import ComparativesPage     from './pages/ComparativesPage';
 import RankingsPage         from './pages/RankingsPage';
@@ -31,7 +31,8 @@ export default function App() {
               <Route path="municipio/:deptId/:code" element={<FichaMunicipal />} />
               <Route path="dashboard"             element={<DashboardNacional />}  />
               <Route path="muni-detalle"          element={<UltimaFicha />}        />
-              <Route path="financiero"            element={<PresupuestarioPage />} />
+              <Route path="base-datos"            element={<BaseDatosPage />}      />
+              <Route path="financiero"            element={<Navigate to="/base-datos" replace />} />
               <Route path="analisis"              element={<AnalyticsPage />}      />
               <Route path="comparativos"          element={<ComparativesPage />}   />
               <Route path="rankings"              element={<RankingsPage />}       />

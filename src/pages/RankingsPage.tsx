@@ -136,7 +136,12 @@ export default function RankingsPage() {
   });
   const th: React.CSSProperties = { padding: 0, background: C.panel2, color: C.suave, fontSize: 11, fontWeight: 600, borderBottom: `1px solid ${C.borde2}`, whiteSpace: 'nowrap' };
   const botonOrden: React.CSSProperties = { all: 'unset', boxSizing: 'border-box', cursor: 'pointer', display: 'block', width: '100%', minHeight: 44, padding: '8px 10px', textAlign: 'inherit', fontFamily: MONO, color: 'inherit' };
-  const td: React.CSSProperties = { padding: '8px 10px', borderTop: `1px solid ${C.borde}` };
+  const td: React.CSSProperties = { padding: '8px 10px', borderTop: `1px solid ${C.borde}`, whiteSpace: 'nowrap' };
+  // Posición y Municipio quedan fijas al desplazar en horizontal (fondo opaco para tapar lo que pasa debajo).
+  const POS_W = 76;
+  const fija = (col: Col, bg: string, z = 1): React.CSSProperties =>
+    col === 'posicion' ? { position: 'sticky', left: 0, zIndex: z, background: bg, width: POS_W, minWidth: POS_W, maxWidth: POS_W }
+    : col === 'municipio' ? { position: 'sticky', left: POS_W, zIndex: z, background: bg, boxShadow: `1px 0 0 ${C.borde2}` } : {};
 
   return (
     <div className="simho-scroll" style={{ flex: 1, overflowY: 'auto', background: C.fondo, color: C.texto, fontFamily: SANS }}>
@@ -198,7 +203,7 @@ export default function RankingsPage() {
                   <tr>
                     {COLS.map(({ col, titulo, num }) => (
                       <th key={col} scope="col" aria-sort={ariaSort(col)} title={col === 'poblacion' ? ROTULO_POBLACION : col === 'categoria' ? ROTULO_CATEGORIA : undefined}
-                        style={{ ...th, textAlign: num ? 'right' : 'left' }}>
+                        style={{ ...th, ...fija(col, C.panel2, 2), textAlign: num ? 'right' : 'left', whiteSpace: col === 'posicion' || col === 'percentil' ? 'normal' : 'nowrap' }}>
                         <button type="button" style={botonOrden} onClick={() => ordenar(col)}>
                           {titulo}{orden?.col === col ? (orden.dir === 1 ? ' ▲' : ' ▼') : ''}
                         </button>
@@ -210,10 +215,11 @@ export default function RankingsPage() {
                   {filas.map((r) => {
                     const ine = codigoINE(r.fila.department, r.fila.code);
                     const ruta = rutaFicha(ine);
+                    const fondo = r.motivo ? '#1a1610' : C.panel;
                     return (
-                      <tr key={`${r.fila.department}|${r.fila.code}`} onClick={() => ruta && navigate(ruta)} style={{ cursor: ruta ? 'pointer' : 'default', background: r.motivo ? '#1a1610' : 'transparent' }}>
-                        <td style={{ ...td, textAlign: 'right', color: r.posicion != null && r.posicion <= 3 ? C.turquesa : C.texto2 }}>{r.posicion ?? '—'}</td>
-                        <td style={{ ...td, fontFamily: SANS, fontSize: 14 }}>
+                      <tr key={`${r.fila.department}|${r.fila.code}`} onClick={() => ruta && navigate(ruta)} style={{ cursor: ruta ? 'pointer' : 'default', background: fondo }}>
+                        <td style={{ ...td, ...fija('posicion', fondo), textAlign: 'right', color: r.posicion != null && r.posicion <= 3 ? C.turquesa : C.texto2 }}>{r.posicion ?? '—'}</td>
+                        <td style={{ ...td, ...fija('municipio', fondo), fontFamily: SANS, fontSize: 14, whiteSpace: 'normal', minWidth: 150 }}>
                           {ruta ? <Link to={ruta} onClick={(e) => e.stopPropagation()} style={{ color: C.texto, textDecoration: 'none' }}>{r.fila.name}</Link> : r.fila.name}
                           {r.motivo && <span title={r.motivo} aria-label={`Excluido: ${r.motivo}`} style={{ color: C.ambar, marginLeft: 6 }}>⚠</span>}
                           {atipico(r) && (
@@ -222,10 +228,11 @@ export default function RankingsPage() {
                             </span>
                           )}
                         </td>
-                        <td style={{ ...td, color: C.texto2 }}>{nombreDepartamento(r.fila.department)}</td>
+                        <td style={{ ...td, color: C.texto2, whiteSpace: 'normal', minWidth: 100 }}>{nombreDepartamento(r.fila.department)}</td>
                         <td style={{ ...td, color: C.texto2 }}>{r.fila.category ?? '—'}</td>
                         <td style={{ ...td, textAlign: 'right', color: C.texto2 }}>{fmtNum(r.fila.population)}</td>
-                        <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: r.motivo ? C.ambar : C.texto }}>
+                        <td title={r.motivo ? `Excluido de posiciones y percentiles: ${r.motivo}` : undefined}
+                          style={{ ...td, textAlign: 'right', fontWeight: 600, color: r.motivo ? C.gris : C.texto }}>
                           {sinLiquidacion(r.fila) ? ROTULO_SIN_LIQUIDACION : fmtIndicador(clave, r.valor)}
                         </td>
                         <td style={{ ...td, textAlign: 'right', color: C.texto2 }}>{r.percentil != null ? `P${r.percentil}` : '—'}</td>

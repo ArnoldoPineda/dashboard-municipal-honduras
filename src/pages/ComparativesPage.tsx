@@ -33,6 +33,8 @@ const FILAS: Clave[] = [
 ];
 const etiqueta = (k: Clave) => (k === 'ejecucion' ? 'Ejecución (vs. presupuesto aprobado)' : ETIQUETAS[k]);
 const fmt = (k: Clave, v: number | null | undefined) => (k === 'ejecucion' ? fmtPct(v) : fmtIndicador(k, v));
+/** Montos absolutos: solo el valor, sin percentil ni semáforo (favorecen a los municipios grandes). */
+const SIN_PERCENTIL: Clave[] = ['ahorroCorriente', 'resultadoSinBalance'];
 const esMonto = (k: Clave) => k.endsWith('PerCapita') || k === 'ahorroCorriente' || k === 'resultadoSinBalance';
 const ineDe = (m: Municipality) => codigoINE(m.department, m.code);
 
@@ -83,6 +85,8 @@ export default function ComparativesPage() {
 
   const agregar = (ine: string) => setInes((xs) => (!/^\d{4}$/.test(ine) || xs.includes(ine) || xs.length >= MAX ? xs : [...xs, ine]));
   const quitar = (ine: string) => setInes((xs) => xs.filter((x) => x !== ine));
+  // Pares de la categoría en el año (sin excluidos, incluido el municipio), como en comparacionPares.
+  const nPares = (fila: Municipality) => filasAnio.filter((m) => m.category === fila.category && !excluirDeRazones(m)).length;
   const base = conFila.find(({ fila }) => !excluirDeRazones(fila))?.fila ?? conFila[0]?.fila ?? null;
   const sugeridos = useMemo(
     () => (base ? paresSugeridos(filasAnio, base, conFila.map((e) => e.fila), MAX - ines.length) : []),
@@ -133,7 +137,7 @@ export default function ComparativesPage() {
               {elegidos.map(({ ine, fila }) => (
                 <li key={ine} style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${color(ine)}`, borderRadius: 999, padding: '0 4px 0 12px' }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: color(ine) }} aria-hidden="true" />
-                  <span style={{ fontSize: 14 }}>{fila ? `${fila.name} — ${nombreDepartamento(fila.department)}` : ine}</span>
+                  <span style={{ fontSize: 14 }}>{fila ? `${fila.name} — ${nombreDepartamento(fila.department)}` : loading ? 'Cargando…' : `${ine} (sin datos ${fiscalYear})`}</span>
                   <button type="button" onClick={() => quitar(ine)} aria-label={`Quitar ${fila?.name ?? ine}`}
                     className="boton-quitar" style={{ all: 'unset', cursor: 'pointer', width: 44, height: 44, display: 'grid', placeItems: 'center', color: C.suave, fontSize: 18 }}>×</button>
                 </li>
@@ -164,7 +168,7 @@ export default function ComparativesPage() {
                             {ruta ? <Link to={ruta} style={{ fontFamily: COND, fontSize: 17, color: C.texto, textDecoration: 'none' }}>{fila?.name ?? ine}</Link> : ine}
                             {av.length > 0 && <span title={av.join(' · ')} aria-label={`Aviso: ${av.join(' · ')}`} style={{ color: C.ambar, marginLeft: 4 }}>⚠</span>}
                             <div style={{ fontSize: 11, color: C.suave, fontWeight: 400 }}>
-                              {fila ? `${nombreDepartamento(fila.department)} · Cat. ${fila.category ?? '—'}` : `Sin datos ${fiscalYear}`}
+                              {fila ? `${nombreDepartamento(fila.department)} · Cat. ${fila.category ?? '—'} · ${nPares(fila)} pares` : `Sin datos ${fiscalYear}`}
                             </div>
                           </th>
                         );
@@ -181,23 +185,29 @@ export default function ComparativesPage() {
                           {etiqueta(k)}
                         </th>
                         {elegidos.map(({ ine, fila }) => {
-                          const td: React.CSSProperties = { padding: '8px 12px', textAlign: 'right', borderTop: `1px solid ${C.borde}` };
+                          const td: React.CSSProperties = { padding: '8px 12px', textAlign: 'right', borderTop: `1px solid ${C.borde}`, whiteSpace: 'nowrap' };
                           if (!fila) return <td key={ine} style={{ ...td, color: C.gris }}>—</td>;
                           if (sinLiquidacion(fila)) return <td key={ine} style={{ ...td, color: C.ambar }}>Sin liquidación</td>;
                           const v = indicadoresMunicipio(fila)[k];
                           const c = comps[ine][k];
+                          if (SIN_PERCENTIL.includes(k)) return (
+                            <td key={ine} style={td}>
+                              <span style={{ color: C.texto, fontWeight: 600 }}>{fmt(k, v)}</span>
+                              <div style={{ fontSize: 11, color: C.suave }}>monto, sin percentil</div>
+                            </td>
+                          );
                           return (
                             <td key={ine} style={td}>
                               <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                                 <span style={{ color: C.texto, fontWeight: 600 }}>{fmt(k, v)}</span>
                                 <Punto clave={k} valor={v} comp={c} />
                               </div>
-                              <div style={{ fontSize: 11, color: C.suave }}>{c.percentil != null ? `P${c.percentil} de ${c.n}` : 'sin percentil'}</div>
+                              <div style={{ fontSize: 11, color: C.suave }}>{c.percentil != null ? `P${c.percentil}` : 'sin percentil'}</div>
                             </td>
                           );
                         })}
                         {categorias.map(({ cat, ine }) => (
-                          <td key={cat} style={{ padding: '8px 12px', textAlign: 'right', borderTop: `1px solid ${C.borde}`, color: C.suave }}>
+                          <td key={cat} style={{ padding: '8px 12px', textAlign: 'right', borderTop: `1px solid ${C.borde}`, color: C.suave, whiteSpace: 'nowrap' }}>
                             {fmt(k, comps[ine][k].mediana)}
                           </td>
                         ))}
@@ -209,7 +219,7 @@ export default function ComparativesPage() {
               <div style={{ padding: '10px 14px', fontSize: 12, color: C.suave, borderTop: `1px solid ${C.borde}` }}>
                 P = percentil en su categoría (% de pares con valor menor). Punto: <span style={{ color: C.turquesa }}>●</span> sobre la mediana ·{' '}
                 <span style={{ color: C.gris }}>●</span> en la mediana · <span style={{ color: C.ambar }}>●</span> bajo la mediana o alerta, según el sentido favorable del indicador.
-                La ejecución no tiene sentido favorable ("sin dirección").
+                La ejecución no tiene sentido favorable ("sin dirección"). Ahorro corriente y resultado sin balance son montos: sin percentil ni punto.
               </div>
             </section>
 

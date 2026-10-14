@@ -431,7 +431,7 @@ export default function AnalyticsPage() {
                 <div key={y} style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.ambar }}>{y}: {t}</div>
               ))}
               <div style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontFamily: MONO, fontSize: 11, color: C.suave }}>
-                Var. %: último año frente al anterior seleccionado. Crecimiento promedio anual (TCAC) entre {sortedYears[0]} y {ultimo}; "—" si algún extremo es ≤ 0.
+                Var. %: último año frente al anterior seleccionado. Crecimiento promedio anual (TCAC) entre {sortedYears[0]} y {ultimo}; "—" si algún extremo es ≤ 0.{enReal ? ' En modo Real son variaciones a precios constantes (sin inflación).' : ''}
               </div>
             </section>
 

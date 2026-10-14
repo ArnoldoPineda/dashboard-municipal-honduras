@@ -139,3 +139,9 @@ Verificado contra la fila real de Supabase (2026-10-13): todos los insumos coinc
   - Personal o vecinal, Telecomunicaciones, Extracción y Pecuario.
 - Una fila se oculta si vale 0 en todos los años visibles. La exportación lleva siempre todas.
 - Distrito Central registra Industria/Comercio/Servicios en un solo renglón que cambia entre años (`ATIPICOS.md` §9). Si el alcance lo incluye, esas filas llevan ⚠ y conviene usar el subtotal.
+
+## 11. Fase 7d: aviso de Distrito Central visible en celular ✅ completada (2026-10-14, PR #16, merge `ecf60bd`, bundle `main.efa05e65.js`)
+
+- En pantallas de menos de 768 px, el aviso ⚠ de Distrito Central va como nota visible bajo el cuadro de Análisis, porque el tooltip no se ve al tocar.
+- En escritorio queda solo el tooltip.
+- e2e: a 390 px con alcance País se ve la nota; en escritorio no aparece.

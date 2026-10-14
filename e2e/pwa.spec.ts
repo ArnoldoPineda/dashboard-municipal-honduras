@@ -29,8 +29,10 @@ test.beforeAll(async () => {
 });
 test.afterAll(() => { servidor?.close(); });
 
+// Espera explícita: registro listo, SW en estado «activated» (ready resuelve ya en «activating») y página controlada.
 const listo = (page: import('@playwright/test').Page) => page.evaluate(async () => {
-  await navigator.serviceWorker.ready;
+  const sw = (await navigator.serviceWorker.ready).active!;
+  if (sw.state !== 'activated') await new Promise<void>((ok) => sw.addEventListener('statechange', () => { if (sw.state === 'activated') ok(); }));
   if (!navigator.serviceWorker.controller) await new Promise((ok) => navigator.serviceWorker.addEventListener('controllerchange', ok, { once: true }));
 });
 const contenidoCaches = (page: import('@playwright/test').Page) => page.evaluate(async () => {
@@ -52,6 +54,8 @@ test('PWA: solo estáticos del build en caché, nunca Supabase', async ({ page }
   // Un /static/ inexistente vuelve como index.html (fallback SPA): no se guarda como estático.
   await page.evaluate(() => fetch('/static/js/no-existe.123.chunk.js'));
 
+  // El SW guarda el topo JSON sin esperar el put: se espera a que aparezca en vez de leer el caché una sola vez.
+  await expect.poll(async () => (await contenidoCaches(page)).urls.some((u) => u.includes('/data/honduras-municipios-topo.json')), { timeout: 15_000 }).toBe(true);
   const { claves, urls } = await contenidoCaches(page);
   expect(claves).toHaveLength(1);
   expect(claves[0]).toMatch(/^simho-estaticos-[0-9a-f]{12}$/);

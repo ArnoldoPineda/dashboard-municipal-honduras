@@ -91,10 +91,10 @@ describe('bordes: funciones puras', () => {
     expect(pieTabla(f, [col(() => NaN, 'mediana')]).c).toBeNull();
     expect(pieTabla(f, [col(() => Infinity)]).c).toBeNull();
   });
-  it('pieTabla con todos excluidos → null (suma y mediana)', () => {
+  it('pieTabla: la fila sin Art. 91 suma en el total pero no en la mediana; sin liquidación, en ninguno', () => {
     const f = [mun({ transferencias_art91: 0 }), mun({ total_egresos: 0, ingresos_tributarios: 0, ingresos_no_tributarios: 0 })];
     const r = pieTabla(f, [{ clave: 's', agregacion: 'suma', valor: () => 5 }, { clave: 'm', agregacion: 'mediana', valor: () => 5 }]);
-    expect(r).toEqual({ s: null, m: null });
+    expect(r).toEqual({ s: 5, m: null });
   });
   it('pieTabla: mediana con cantidad par, suma con negativos y mediana con un solo valor', () => {
     const f = [1, 2, 3, 4].map((code) => mun({ code }));

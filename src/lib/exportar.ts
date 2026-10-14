@@ -34,7 +34,9 @@ export const DICCIONARIO: Record<string, EntradaDiccionario> = {
   categoria:   { definicion: ROTULO_CATEGORIA, unidad: 'A–D', fuente: SEFIN },
   year:        { definicion: 'Año fiscal de la liquidación.', unidad: 'Año', fuente: SEFIN },
   population:  { definicion: ROTULO_POBLACION + '. Columna de población de SEFIN.', unidad: 'Habitantes', fuente: SEFIN },
-  nota:        { definicion: 'Motivo por el que la fila queda fuera de totales y medianas (⚠): sin liquidación, sin transferencia Art. 91 o rendición parcial.', unidad: 'Texto', fuente: 'SIMHO (docs/ATIPICOS.md)' },
+  nota:        { definicion: 'Motivo del ⚠. Sin liquidación: fuera de totales y medianas. Sin transferencia Art. 91 o rendición parcial: suma en los totales, fuera de razones y medianas.', unidad: 'Texto', fuente: 'SIMHO (docs/ATIPICOS.md)' },
+  n_totales:   { definicion: 'Municipios que suman en los totales (todos menos los sin liquidación).', unidad: 'Municipios', fuente: 'SIMHO' },
+  n:           { definicion: 'Municipios en las medianas y razones (sin liquidación, sin Art. 91 y rendiciones parciales fuera).', unidad: 'Municipios', fuente: 'SIMHO' },
   concepto:    { definicion: 'Renglón del cuadro presupuestario.', unidad: 'Texto', fuente: 'SIMHO' },
   // Hoja Resumen
   campo:       { definicion: 'Clave del campo resumido (ver su definición en esta misma hoja o en el catálogo de SIMHO).', unidad: 'Texto', fuente: 'SIMHO' },
@@ -123,7 +125,7 @@ export function hojas(tabla: TablaExport, notas: [string, string][]) {
     ['Fuente', SEFIN],
     ['Población', `${ROTULO_POBLACION}: columna de población de SEFIN, pendiente de reemplazar por la proyección del INE.`],
     ['Categoría', ROTULO_CATEGORIA],
-    ['Exclusiones', 'Las filas sin liquidación, sin transferencia Art. 91 o con rendición parcial no entran en totales ni medianas.'],
+    ['Exclusiones', 'Totales (montos y población): fuera solo las filas sin liquidación. Razones agregadas y medianas: fuera también las filas sin transferencia Art. 91 y las rendiciones parciales.'],
     ['Generado', new Date().toLocaleString('es-HN', { dateStyle: 'long', timeStyle: 'short' }) + ' (hora local)'],
   ];
   const r = tabla.resumen;

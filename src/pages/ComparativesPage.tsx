@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, notaDatoIncompleto, excluirDeEstadisticas } from '../lib/indicadores';
+import { ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, insumos, indicadoresMunicipio, indicadoresAgregados, sinLiquidacion, notaDatoIncompleto, excluirDeTotales, notaTotales } from '../lib/indicadores';
 import DashboardLayout from '../components/DashboardLayout';
 import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { NO_DATA_MSG } from '../utils/sefin';
@@ -145,10 +145,10 @@ function formatValue(metric: MetricKey, value: number): string {
   return fmtL(value * 1e6); // montos de getMetricValue vienen en millones
 }
 
-/** Valor agregado de varias filas (un año), sin filas excluidas de estadísticas: suma, salvo autonomía (Σ/Σ). */
+/** Valor agregado de varias filas (un año): suma de montos sin las filas sin liquidación; autonomía Σ/Σ con el nivel razones. */
 function getAggMetricValue(recs: any[], metric: MetricKey): number {
   if (metric === 'autonomia') return indicadoresAgregados(recs).autonomia ?? 0;
-  return recs.filter(m => !excluirDeEstadisticas(m)).reduce((s, m) => s + getMetricValue(m, metric), 0);
+  return recs.filter(m => !excluirDeTotales(m)).reduce((s, m) => s + getMetricValue(m, metric), 0);
 }
 
 // Identidad de municipio = "DEPARTAMENTO|nombre": hay 24 nombres repetidos entre departamentos.
@@ -174,10 +174,10 @@ function getMetricLabel(metric: MetricKey): string {
 
 /**
  * Montos SEFIN (millones) e indicadores de lib/indicadores para una o varias filas de un año.
- * Varias filas: sin las excluidas de estadísticas. Un municipio: sus cifras tal cual.
+ * Varias filas: montos sin las filas sin liquidación; indicadores con el nivel razones. Un municipio: sus cifras tal cual.
  */
 function getAggFinCats(recs: any[], unMunicipio = false) {
-  const base = unMunicipio ? recs : recs.filter(m => !excluirDeEstadisticas(m));
+  const base = unMunicipio ? recs : recs.filter(m => !excluirDeTotales(m));
   const mill = (k: string) => Math.round(base.reduce((t, m) => t + (Number(m[k]) || 0), 0) / 1_000_000);
   const ind  = unMunicipio ? indicadoresMunicipio(recs[0]) : indicadoresAgregados(recs);
   const r1   = (v: number | null) => (v === null ? 0 : Math.round(v * 10) / 10);
@@ -575,6 +575,9 @@ function FinancialChartsSection({
       return { name: mode === 'muni' ? labels[entity] : nombreDepartamento(entity), ...fc };
     }).filter(Boolean) as any[];
   }, [selected, municipalities, effectiveFinYear, mode]);
+  // Montos agregados por departamento que incluyen filas sin Art. 91 o con rendición parcial.
+  const notaFin = mode === 'muni' ? null
+    : notaTotales(municipalities.filter((m) => selected.includes(m.department) && m.year === effectiveFinYear));
 
   const radarData = useMemo(() => {
     if (selected.length < 2 || !barData.length) return [];
@@ -638,6 +641,7 @@ function FinancialChartsSection({
             radarData={radarData}
             names={barData.map((d: any) => d.name)}
           />
+          {notaFin && <div style={{ marginTop: 10, fontSize: 12, color: '#f0a33a', fontFamily: "'IBM Plex Mono', monospace" }}>Montos {effectiveFinYear}: {notaFin}</div>}
         </>
       )}
     </>
@@ -1056,6 +1060,10 @@ function ModeDepartamentos({ municipalities }: { municipalities: any[] }) {
         keys={selectedDepts.map(nombreDepartamento)}
       />
       <ComparisonTable rows={tableRows} years={years} metric={metric} />
+      {metric !== 'autonomia' && years.map((y) => {
+        const t = notaTotales(municipalities.filter((m) => selectedDepts.includes(m.department) && m.year === y));
+        return t ? <div key={y} style={{ marginTop: 10, fontSize: 12, color: '#f0a33a', fontFamily: "'IBM Plex Mono', monospace" }}>{y}: {t}</div> : null;
+      })}
 
       <FinancialChartsSection selected={selectedDepts} municipalities={municipalities} mode="dept" />
     </>

@@ -43,7 +43,8 @@ describe('resumenPorCategoria 2025', () => {
   const REF: [string, number, number, number, number, number][] = [
     ['A', 43, 5_665_201, 68.3, 1183, 31.7],
     ['B', 40, 1_491_307, 46.9, 765, 53.05],
-    ['C', 170, 2_350_137, 13.35, 312, 86.4],
+    // Población = total (nivel totales): incluye El Triunfo y San Juan Guarita, sin Art. 91 (antes 2,350,137).
+    ['C', 170, 2_405_738, 13.35, 312, 86.4],
     ['D', 42, 453_352, 5.3, 129.5, 94.5],
   ];
   const r = resumenPorCategoria(de(2025));

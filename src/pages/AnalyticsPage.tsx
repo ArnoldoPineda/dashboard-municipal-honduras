@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { useMunicipalitiesMultiYear, Municipality } from '../hooks/useMunicipalities';
 import {
-  sumarInsumos, insumos, calcular, sinLiquidacion, excluirDeEstadisticas, notaDatoIncompleto, ROTULO_SIN_LIQUIDACION,
+  sumarTotales, insumos, calcular, sinLiquidacion, excluirDeTotales, excluirDeRazones, notaDatoIncompleto, notaTotales, ROTULO_SIN_LIQUIDACION,
   Indicadores, Alcance, filasDeAlcance, indicadoresPorAnio, INDICADORES_ANALISIS, IndicadorAnalisis,
   porCapita, deflactar, variacionPct, tcac, notaMedianaDeuda,
 } from '../lib/indicadores';
@@ -34,19 +34,21 @@ interface YearData extends Indicadores {
 }
 
 /**
- * Agregado del ámbito, sin filas excluidas de estadísticas (docs/ATIPICOS.md §2, §5, §6).
+ * Montos del ámbito como TOTALES: sin las filas sin liquidación (sí con las de dato incompleto; la UI lo anota).
+ * Las razones del bloque de indicadores salen de indicadoresPorAnio (nivel razones).
  * `unMunicipio`: vista de un solo municipio; no excluye, muestra sus cifras (la UI marca el ⚠).
  */
 function aggregate(all: Municipality[], unMunicipio = false): YearData {
-  const rows = unMunicipio ? all : all.filter((m) => !excluirDeEstadisticas(m));
+  const rows = unMunicipio ? all : all.filter((m) => !excluirDeTotales(m));
   const s = (k: keyof Municipality) => sumField(rows, k);
-  const ins = unMunicipio && rows.length === 1 ? insumos(rows[0]) : sumarInsumos(rows);
+  const ins = unMunicipio && rows.length === 1 ? insumos(rows[0]) : sumarTotales(rows);
   const campos: (keyof Municipality)[] = [
     'presupuesto_municipal', 'ingresos_tributarios', 'tasas_servicios', 'derechos', 'ingresos_no_tributarios', 'ingresos_capital',
     'transferencias_art91', 'otras_transferencias', 'gastos_funcionamiento', 'servicios_personales', 'servicios_no_personales',
     'materiales_suministro', 'transferencias_corrientes', 'otros_gastos', 'gastos_capital_deuda', 'bienes_capitalizables',
     'transferencias_capital', 'activos_financieros', 'servicios_deuda', 'otros_gastos_capital', 'asignaciones_globales', 'total_egresos',
   ];
+  // ponytail: las razones de YearData salen del nivel totales y NO se muestran; las razones vienen de indicadoresPorAnio.
   return {
     ...calcular(ins),
     ...Object.fromEntries(campos.map((k) => [k, s(k)])),
@@ -209,6 +211,11 @@ export default function AnalyticsPage() {
   const verInd = (k: IndicadorAnalisis, v: number | null, y: number) => (IND_LPH.has(k) && enReal ? deflactar(v, y, ultimo, IPC.valores) : v);
   const fmtInd = (k: IndicadorAnalisis, v: number | null) => (IND_LPH.has(k) ? fmtL(v) : fmtPct(v));
   const fmtMonto = (v: number | null) => (v == null || v === 0 ? '—' : fmtL(v));
+  // Totales que incluyen filas sin Art. 91 o con rendición parcial (alcances agregados).
+  const notasTotales = agregado ? sortedYears.flatMap((y) => {
+    const t = notaTotales(filasAlcance.filter((m) => m.year === y));
+    return t ? [[y, t] as [number, string]] : [];
+  }) : [];
   // Mediana del servicio de deuda en 0 en algún año (alcances agregados): más de la mitad sin pagos de deuda.
   const deudaCero = agregado && sortedYears.some((y) => indicadores[y]?.servicioDeudaSobreCorrientes.mediana === 0);
 
@@ -267,7 +274,7 @@ export default function AnalyticsPage() {
         ],
         filas: resFilas, tipoFila: resTipos,
         nota: (agregado
-          ? `Mediana municipal y agregado (Σ numeradores ÷ Σ denominadores) de ${scopeLabel}, sin municipios excluidos (sin liquidación, sin transferencia Art. 91 o rendición parcial).`
+          ? `Mediana municipal y agregado (Σ numeradores ÷ Σ denominadores) de ${scopeLabel}, sin municipios sin liquidación, sin transferencia Art. 91 ni con rendición parcial. Los montos de la hoja Datos son totales: solo excluyen las filas sin liquidación.`
           : `Valores de ${scopeLabel}.`)
           + (perCapita || enReal ? ` Montos por habitante ${enReal ? `a precios de ${ultimo}` : 'nominales'}.` : '')
           + (deudaCero ? ` ${notaMedianaDeuda()}` : ''),
@@ -284,9 +291,15 @@ export default function AnalyticsPage() {
     };
   }
   function notasExport(): [string, string][] {
-    const excl = filasAlcance.filter((m) => sortedYears.includes(m.year) && excluirDeEstadisticas(m))
+    const lista = (f: (m: Municipality) => boolean) => filasAlcance.filter((m) => sortedYears.includes(m.year) && f(m))
       .sort((a, b) => a.year - b.year || (a.name ?? '').localeCompare(b.name ?? ''))
       .map((m) => `${m.year} ${m.name} (${codigoINE(m.department, m.code)}): ${notaDatoIncompleto(m) ?? ROTULO_SIN_LIQUIDACION}`);
+    const fueraTot = lista(excluirDeTotales);
+    const soloRaz = lista((m) => excluirDeRazones(m) && !excluirDeTotales(m));
+    const excl = [
+      ...(fueraTot.length ? [`Fuera de totales y razones: ${fueraTot.join('; ')}`] : []),
+      ...(soloRaz.length ? [`Suman en los totales pero quedan fuera de razones y medianas: ${soloRaz.join('; ')}`] : []),
+    ];
     return [
       ['Página', 'Análisis — cuadro presupuestario multianual'],
       ['Alcance', scopeLabel],
@@ -295,6 +308,7 @@ export default function AnalyticsPage() {
       ['Per cápita', perCapita ? 'Sí: cada monto se divide entre la población del mismo año del alcance' : 'No'],
       ['Precios', enReal ? `Reales, a precios de ${ultimo}, con el IPC del BCH (promedio anual)` : 'Nominales (corrientes)'],
       ['Indicadores', agregado ? 'Mediana municipal y agregado Σ/Σ del alcance' : 'Valor del municipio'],
+      ...notasTotales.map(([y, t]) => [`Totales ${y}`, t] as [string, string]),
       ['Excluidos', excl.length ? excl.join(' · ') : (agregado ? 'Ninguno en el alcance y años seleccionados' : 'No aplica (vista de un municipio: se muestran sus cifras)')],
     ];
   }
@@ -409,6 +423,9 @@ export default function AnalyticsPage() {
                   </tbody>
                 </table>
               </div>
+              {notasTotales.map(([y, t]) => (
+                <div key={y} style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.ambar }}>{y}: {t}</div>
+              ))}
               <div style={{ padding: '8px 18px', borderTop: `1px solid ${C.borde}`, fontFamily: MONO, fontSize: 11, color: C.suave }}>
                 Var. %: último año frente al anterior seleccionado. Crecimiento promedio anual (TCAC) entre {sortedYears[0]} y {ultimo}; "—" si algún extremo es ≤ 0.
               </div>
@@ -419,7 +436,7 @@ export default function AnalyticsPage() {
               <div style={{ padding: '14px 18px 10px', borderBottom: `1px solid ${C.borde}` }}>
                 <h2 style={{ margin: 0, fontFamily: COND, fontSize: 22, fontWeight: 600 }}>Indicadores por año</h2>
                 <div style={{ fontFamily: MONO, fontSize: 12, color: C.suave, marginTop: 4 }}>
-                  {agregado ? 'Mediana municipal y agregado (Σ/Σ) del alcance, sin municipios excluidos' : 'Valores del municipio'}
+                  {agregado ? 'Mediana municipal y agregado (Σ/Σ) del alcance, sin municipios sin liquidación, sin Art. 91 ni con rendición parcial' : 'Valores del municipio'}
                 </div>
               </div>
               <div style={{ overflowX: 'auto' }}>

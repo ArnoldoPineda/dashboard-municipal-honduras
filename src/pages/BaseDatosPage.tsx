@@ -6,7 +6,7 @@ import { useMunicipalitiesMultiYear } from '../hooks/useMunicipalities';
 import { useNavbar } from '../context/NavbarContext';
 import {
   ROTULO_POBLACION, ROTULO_SIN_LIQUIDACION, Indicadores, indicadoresMunicipio, insumos,
-  excluirDeEstadisticas, notaDatoIncompleto, pieTabla, notaMedianaDeuda,
+  excluirDeEstadisticas, excluirDeTotales, notaDatoIncompleto, notaTotales, pieTabla, notaMedianaDeuda,
 } from '../lib/indicadores';
 import { fmtL, fmtPct, fmtNum } from '../lib/formato';
 import { DEPARTAMENTOS, nombreDepartamento, codigoINE } from '../data/departamentos';
@@ -185,6 +185,8 @@ export default function BaseDatosPage() {
     valor: (m: Municipality) => { const v = c.valor(m); return typeof v === 'number' ? v : null; },
   }))), [filas, cols]);
   const nEst = filas.filter((m) => !excluirDeEstadisticas(m)).length;
+  const nTot = filas.filter((m) => !excluirDeTotales(m)).length;
+  const notaTot = notaTotales(filas);
   const esSuma = (c: Col) => c.tipo === 'monto' || c.tipo === 'entero';
   const numericas = cols.filter((c) => c.tipo !== 'texto');
   const deudaCero = cols.some((c) => c.clave === 'servicioDeudaSobreCorrientes') && pie.servicioDeudaSobreCorrientes === 0;
@@ -218,12 +220,14 @@ export default function BaseDatosPage() {
           { clave: 'criterio', titulo: 'Criterio', tipo: 'texto' }, { clave: 'valor', titulo: 'Valor', tipo: 'variable' },
         ],
         filas: [
-          ['n', 'Municipios en estadísticas', 'Conteo', nEst],
+          ['n_totales', 'Municipios en los totales', 'Conteo', nTot],
+          ['n', 'Municipios en las medianas', 'Conteo', nEst],
           ...numericas.map((c) => [c.clave, c.titulo, esSuma(c) ? 'Total' : 'Mediana', pie[c.clave] ?? null] as Celda[]),
         ],
-        tipoFila: ['entero', ...numericas.map((c) => c.tipo as 'entero' | 'monto' | 'pct' | 'lph')],
-        nota: `Totales de montos y población; medianas de porcentajes y montos por habitante. Sin los ${excluidas.length} municipios excluidos `
-          + `(sin liquidación, sin transferencia Art. 91 o rendición parcial). Grupo: año ${fiscalYear} · ${alcance}.`
+        tipoFila: ['entero', 'entero', ...numericas.map((c) => c.tipo as 'entero' | 'monto' | 'pct' | 'lph')],
+        nota: `Totales de montos y población sin las filas sin liquidación (${filas.length - nTot}); medianas de porcentajes y montos por habitante `
+          + `sin ninguna fila excluida (${excluidas.length}: sin liquidación, sin transferencia Art. 91 o rendición parcial). Grupo: año ${fiscalYear} · ${alcance}.`
+          + (notaTot ? ` ${notaTot}` : '')
           + (deudaCero ? ` ${notaMedianaDeuda()}` : ''),
       },
     };
@@ -233,7 +237,7 @@ export default function BaseDatosPage() {
       ['Página', `Base de Datos — vista ${VISTAS[vista].etiqueta}`],
       ['Filtros', `Año ${fiscalYear} · ${alcance}${texto.trim() ? ` · búsqueda "${texto.trim()}"` : ''}`],
       ['Filas', `${filas.length} municipios; ${nEst} en estadísticas`],
-      ['Resumen', 'Hoja Resumen: totales de montos y población, y medianas de porcentajes y montos por habitante, sin los excluidos.'],
+      ['Resumen', 'Hoja Resumen: totales de montos y población (sin las filas sin liquidación) y medianas de porcentajes y montos por habitante (sin ninguna fila excluida).'],
       ['Excluidos', excluidas.length ? excluidas.map((m) => `${m.name} (${codigoINE(m.department, m.code)}): ${motivo(m)}`).join(' · ') : 'Ninguno'],
     ];
   }
@@ -322,7 +326,7 @@ export default function BaseDatosPage() {
                     <tr key={m.id ?? `${m.department}|${m.code}`} style={{ background: bg }}>
                       <th scope="row" className="col-fija" style={{ ...fija(bg), textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontFamily: SANS, fontSize: 14 }}>
                         {ruta ? <Link to={ruta} style={{ color: C.texto, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>{m.name}</Link> : m.name}
-                        {nota && <span role="img" title={nota} aria-label={`Excluido de totales y medianas: ${nota}`} style={{ color: C.ambar, marginLeft: 6, cursor: 'help' }}>⚠</span>}
+                        {nota && <span role="img" title={nota} aria-label={excluirDeTotales(m) ? `Fuera de totales y medianas: ${nota}` : `Suma en los totales, fuera de las medianas: ${nota}`} style={{ color: C.ambar, marginLeft: 6, cursor: 'help' }}>⚠</span>}
                       </th>
                       {cols.map((c) => (
                         <td key={c.clave} style={{ padding: '8px 10px', textAlign: c.tipo === 'texto' ? 'left' : 'right', whiteSpace: 'nowrap', color: nota ? C.suave : C.texto }}>
@@ -336,7 +340,7 @@ export default function BaseDatosPage() {
               <tfoot style={{ position: 'sticky', bottom: 0, zIndex: 3 }}>
                 <tr>
                   <th scope="row" style={{ ...fija('#10302d', 4), textAlign: 'left', padding: '10px', color: C.turquesa, fontSize: 12, borderTop: `1px solid ${C.turquesa}` }}>
-                    TOTAL / MEDIANA<div style={{ color: C.suave, fontSize: 11, fontWeight: 400 }}>{nEst} en estadísticas</div>
+                    TOTAL / MEDIANA<div style={{ color: C.suave, fontSize: 11, fontWeight: 400 }}>{nTot} en totales · {nEst} en medianas</div>
                   </th>
                   {cols.map((c) => (
                     <td key={c.clave} style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap', background: '#10302d', fontWeight: 700, borderTop: `1px solid ${C.turquesa}` }}>
@@ -348,9 +352,10 @@ export default function BaseDatosPage() {
             </table>
           </div>
         </section>
+        {notaTot && <p style={{ margin: 0, fontSize: 13, color: C.ambar }}>Totales: {notaTot}</p>}
         {deudaCero && <p style={{ margin: 0, fontSize: 13, color: C.suave }}>Mediana del servicio de deuda en 0.0 %: {notaMedianaDeuda()}</p>}
         <p style={{ margin: 0, fontSize: 13, color: C.suave }}>
-          ⚠ Filas fuera de totales y medianas (sin liquidación, sin transferencia Art. 91 o rendición parcial). Clic en un municipio para abrir su ficha.
+          ⚠ Sin liquidación: fuera de totales y medianas. Sin transferencia Art. 91 o rendición parcial: suman en los totales, pero quedan fuera de las medianas. Clic en un municipio para abrir su ficha.
         </p>
       </div>
     </div>

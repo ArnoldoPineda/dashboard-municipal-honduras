@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import type { Municipality } from '../hooks/useMunicipalities';
 import {
   porCapita, deflactar, variacionPct, tcac, filasDeAlcance, indicadoresPorAnio, pieTabla,
-  sumarInsumos, indicadoresMunicipio, excluirDeEstadisticas,
+  sumarInsumos, indicadoresMunicipio, excluirDeEstadisticas, sumarTotales, excluirDeTotales, excluirDeRazones, notaTotales,
 } from './indicadores';
 import { fmtL, fmtPct, fmtNum } from './formato';
 import { IPC, ipcCompleto } from '../data/ipc';
@@ -40,14 +40,14 @@ describe('referencias 2025', () => {
     expect(porDepto.reduce((s, x) => s + x, 0)).toBe(298);
     expect(['A', 'B', 'C', 'D'].map((categoria) => filasDeAlcance(y, { tipo: 'categoria', categoria }).length).reduce((s, x) => s + x, 0)).toBe(298);
   });
-  it('pie de la Base de Datos: mediana de autonomía 17.0 %, total de corrientes sin excluidos', () => {
+  it('pie de la Base de Datos: mediana de autonomía 17.0 %; total de corrientes con las 297 filas con liquidación', () => {
     const pie = pieTabla(de(2025), [
       { clave: 'aut', agregacion: 'mediana', valor: (m) => indicadoresMunicipio(m).autonomia },
       { clave: 'corr', agregacion: 'suma', valor: (m) => indicadoresMunicipio(m).ingresosCorrientes },
       { clave: 'nombre', agregacion: 'ninguna', valor: () => 1 },
     ]);
     cerca(pie.aut, 17.0);
-    expect(Math.abs((pie.corr as number) - 13752143869.82)).toBeLessThan(0.01);
+    expect(Math.abs((pie.corr as number) - 13769986951.53)).toBeLessThan(0.01); // incluye El Triunfo y San Juan Guarita (sin Art. 91)
     expect(pie.nombre).toBeNull();
     expect(de(2025).filter(excluirDeEstadisticas)).toHaveLength(3);
   });
@@ -99,5 +99,49 @@ describe('casos borde', () => {
     expect(fmtPct(null)).toBe('—');
     expect(fmtNum(9959997.4)).toBe('9,959,997');
     expect(fmtNum(NaN)).toBe('—');
+  });
+});
+
+describe('dos niveles de exclusión: totales y razones', () => {
+  const y23 = de(2023);
+  const sps = y23.find((m) => m.name === 'San Pedro Sula')!;
+  it('presupuesto nacional 2023 incluye a San Pedro Sula (≈ L 28.4 mil M, no 23.2)', () => {
+    expect(excluirDeTotales(sps)).toBe(false);
+    expect(excluirDeRazones(sps)).toBe(true);
+    const tot = sumarTotales(y23).presupuesto;
+    expect(Math.abs(tot - 28369627684)).toBeLessThan(1);
+    expect(fmtL(tot)).toBe('L 28.4 mil M');
+    expect(Math.abs(tot - sumarInsumos(y23, 'razones').presupuesto - (sps.presupuesto_municipal ?? 0))).toBeLessThan(1);
+  });
+  it('2023: la autonomía agregada sigue en 52.1 % y la mediana en 13.7 %', () => {
+    const r = indicadoresPorAnio(filas, [2023])[2023].autonomia;
+    cerca(r.agregado, 52.1);
+    cerca(r.mediana, 13.7);
+  });
+  it('Pespire 2025 (sin liquidación) sigue fuera de todo', () => {
+    const p = de(2025).find((m) => m.name === 'Pespire')!;
+    expect(excluirDeTotales(p)).toBe(true);
+    expect(excluirDeRazones(p)).toBe(true);
+    const sinP = de(2025).filter((m) => m !== p);
+    expect(sumarTotales(de(2025)).presupuesto).toBeCloseTo(sumarTotales(sinP).presupuesto, 2);
+  });
+  it('nota de totales: cuántos municipios sin Art. 91 incluye', () => {
+    expect(notaTotales(y23)).toBe('Incluye 1 municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas.');
+    expect(notaTotales(de(2025))).toMatch(/^Incluye 2 municipio\(s\) sin transferencia Art\. 91/);
+  });
+  it('antes / después por año (presupuesto e ingresos corrientes)', () => {
+    const ref: Record<number, [number, number, number, number]> = {
+      2021: [19373979535, 19794992442, 9025113660, 9309530930],
+      2022: [21766503731, 22203858856, 10986515456, 11362887530],
+      2023: [23237908562, 28369627684, 9077115437, 11824180793],
+      2024: [31635046330, 31657146330, 13711944727, 13713755093],
+      2025: [32643150450, 32729356023, 13752143870, 13769986952],
+    };
+    Object.entries(ref).forEach(([y, [pa, pd, ca, cd]]) => {
+      const f = de(Number(y));
+      const antes = sumarInsumos(f, 'razones'), despues = sumarTotales(f);
+      [[antes.presupuesto, pa], [despues.presupuesto, pd], [antes.ingresosCorrientes, ca], [despues.ingresosCorrientes, cd]]
+        .forEach(([v, r]) => expect(Math.abs(v - r)).toBeLessThan(1));
+    });
   });
 });

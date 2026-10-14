@@ -88,17 +88,48 @@ export const datoIncompleto = (m: Municipality) => rendicionParcial(m) || sinArt
 export const notaDatoIncompleto = (m: Municipality): string | null =>
   rendicionParcial(m) ? ROTULO_RENDICION_PARCIAL : sinArt91(m) ? ROTULO_SIN_ART91 : null;
 
-/** Criterio único: fuera de totales, agregados, medianas y rankings (sin liquidación o dato incompleto). */
-export const excluirDeEstadisticas = (m: Municipality) => sinLiquidacion(m) || datoIncompleto(m);
+/**
+ * Dos niveles de exclusión (docs/ATIPICOS.md):
+ * - TOTALES (sumas de montos y población): fuera solo las filas sin liquidación. Una fila sin Art. 91 o con
+ *   rendición parcial sí tiene ingresos y gastos reales; sacarla de los totales crea caídas artificiales
+ *   (2023: el presupuesto nacional bajaba de 28.4 a 23.2 mil M al quitar San Pedro Sula).
+ * - RAZONES (razones agregadas, medianas, percentiles, distribución, semáforo y rankings): fuera también las
+ *   filas sin Art. 91 y las rendiciones parciales, porque su dato incompleto distorsiona la comparación.
+ */
+export const excluirDeTotales = (m: Municipality) => sinLiquidacion(m);
+export const excluirDeRazones = (m: Municipality) => sinLiquidacion(m) || datoIncompleto(m);
+/** Alias histórico de excluirDeRazones (medianas, percentiles, rankings, "municipios en estadísticas"). */
+export const excluirDeEstadisticas = excluirDeRazones;
 
-/** Suma de insumos de un grupo (un año), sin las filas excluidas de estadísticas. */
-export function sumarInsumos(rows: Municipality[]): Insumos {
+/**
+ * Suma de insumos de un grupo (un año). `nivel` 'razones' (por defecto): base de las razones agregadas
+ * (indicadoresAgregados). 'totales': montos y población para mostrar como total (ver sumarTotales).
+ */
+export function sumarInsumos(rows: Municipality[], nivel: 'razones' | 'totales' = 'razones'): Insumos {
   const acc = insumos({} as Municipality);
-  rows.filter((m) => !excluirDeEstadisticas(m)).forEach((m) => {
+  const fuera = nivel === 'totales' ? excluirDeTotales : excluirDeRazones;
+  rows.filter((m) => !fuera(m)).forEach((m) => {
     const i = insumos(m);
     (Object.keys(acc) as (keyof Insumos)[]).forEach((k) => { acc[k] += i[k]; });
   });
   return acc;
+}
+
+/** Montos y población de un grupo (un año) para mostrar como TOTAL: solo sin las filas sin liquidación. */
+export const sumarTotales = (rows: Municipality[]) => sumarInsumos(rows, 'totales');
+
+/**
+ * Nota para un total que incluye filas con dato incompleto (sin Art. 91 o rendición parcial); null si no hay.
+ * Ej.: "Incluye 1 municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas."
+ */
+export function notaTotales(rows: Municipality[]): string | null {
+  const s91 = rows.filter(sinArt91).length;
+  const rp = rows.filter(rendicionParcial).length;
+  const partes = [
+    s91 ? `Incluye ${s91} municipio(s) sin transferencia Art. 91 en la fuente; las transferencias pueden estar subestimadas.` : '',
+    rp ? `Incluye ${rp} municipio(s) con rendición parcial (dato incompleto).` : '',
+  ].filter(Boolean);
+  return partes.length ? partes.join(' ') : null;
 }
 
 /** Porcentajes en 0–100; per cápita en lempiras; montos en lempiras. null = denominador ≤ 0. */
@@ -337,7 +368,7 @@ export function resumenPorCategoria(filas: Municipality[]): ResumenCategoria[] {
     return {
       categoria:   c,
       n:           enEstadisticas(grupo).length,
-      poblacion:   sumarInsumos(grupo).poblacion,
+      poblacion:   sumarTotales(grupo).poblacion, // total: incluye filas sin Art. 91
       autonomia:   mediana(grupo, 'autonomia'),
       propiosPc:   mediana(grupo, 'propiosPerCapita'),
       dependencia: mediana(grupo, 'dependenciaTransferencias'),
@@ -353,6 +384,8 @@ export interface ResumenNacional {
   indicadores: Record<'autonomia' | 'propiosPerCapita' | 'dependenciaTransferencias' | 'balanceSobreIngresos', MedianaAgregado>;
   distribucion: { etiqueta: string; n: number }[];
   categorias: ResumenCategoria[];
+  /** Nota de los totales (población por categoría) que incluyen filas sin Art. 91 o con rendición parcial. */
+  notaTotales: string | null;
 }
 
 export function resumenNacional(filas: Municipality[], anio: number): ResumenNacional {
@@ -373,6 +406,7 @@ export function resumenNacional(filas: Municipality[], anio: number): ResumenNac
     },
     distribucion: distribucionAutonomia(delAnio),
     categorias: resumenPorCategoria(delAnio),
+    notaTotales: notaTotales(delAnio),
   };
 }
 
@@ -528,12 +562,13 @@ export function indicadoresPorAnio(filas: Municipality[], anios: number[]): Reco
 /** Columna de la Base de Datos para el pie: suma (montos, población) o mediana (razones, per cápita). */
 export interface ColumnaPie { clave: string; agregacion: 'suma' | 'mediana' | 'ninguna'; valor: (m: Municipality) => number | null }
 
-/** Fila al pie del grupo filtrado: TOTAL o MEDIANA por columna, sin contar los excluidos. */
+/** Fila al pie del grupo filtrado: TOTAL (sin las filas sin liquidación) o MEDIANA (sin ninguna excluida). */
 export function pieTabla(filas: Municipality[], columnas: ColumnaPie[]): Record<string, number | null> {
-  const en = filas.filter((m) => !excluirDeEstadisticas(m));
+  const enTotales = filas.filter((m) => !excluirDeTotales(m));
+  const enRazones = filas.filter((m) => !excluirDeRazones(m));
   return Object.fromEntries(columnas.map((c) => {
     if (c.agregacion === 'ninguna') return [c.clave, null];
-    const v = en.map(c.valor).filter((x): x is number => x != null && Number.isFinite(x));
+    const v = (c.agregacion === 'suma' ? enTotales : enRazones).map(c.valor).filter((x): x is number => x != null && Number.isFinite(x));
     if (!v.length) return [c.clave, null];
     if (c.agregacion === 'suma') return [c.clave, v.reduce((s, x) => s + x, 0)];
     v.sort((a, b) => a - b);
